@@ -3,3 +3,11 @@
 
 from telegram import Bot
 from telegram.ext import Application
+
+
+async def startup():
+    pass
+
+
+async def shutdown():
+    pass
