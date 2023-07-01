@@ -5,6 +5,10 @@ from telegram import Bot
 from telegram.ext import Application
 
 
+async def set_webhook(url: str):
+    pass
+
+
 async def startup():
     pass
 
