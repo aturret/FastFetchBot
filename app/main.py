@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
 import sentry_sdk
+
+import database
 from app.services import telegram_service
 
 SENTRY_DSN = ""
@@ -19,13 +21,11 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def on_startup():
-    # database.on_start_up()
+    await database.startup()
     await telegram_service.startup()
-    pass
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    await database.shutdown()
     await telegram_service.shutdown()
-    # database.on_shutdown()
-    pass
