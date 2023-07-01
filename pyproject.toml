@@ -11,6 +11,7 @@ python = "^3.11"
 fastapi = "^0.99.0"
 python-telegram-bot = "^20.3"
 aiohttp = "^3.8.4"
+sentry-sdk = {extras = ["fastapi"], version = "^1.26.0"}
 
 
 [tool.poetry.group.dev.dependencies]
