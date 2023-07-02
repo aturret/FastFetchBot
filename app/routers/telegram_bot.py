@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from app.services.telegram_service import set_webhook
+from app.services.telegram import set_webhook
 
 router = APIRouter(prefix="/telegram")
 

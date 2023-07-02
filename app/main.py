@@ -4,7 +4,7 @@ import sentry_sdk
 from fastapi import FastAPI
 
 import database
-from app.services import telegram_service
+from app.services import telegram_bot as telegram_bot_service
 
 SENTRY_DSN = ""
 
@@ -23,13 +23,13 @@ app = FastAPI()
 @app.on_event("startup")
 async def on_startup():
     await database.startup()
-    await telegram_service.startup()
+    await telegram_bot_service.startup()
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
     await database.shutdown()
-    await telegram_service.shutdown()
+    await telegram_bot_service.shutdown()
 
     # https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
     await asyncio.sleep(0)
