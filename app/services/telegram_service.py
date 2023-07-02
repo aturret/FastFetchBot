@@ -1,17 +1,23 @@
 # TODO: Implement Telegram Service
 # example: https://docs.python-telegram-bot.org/en/stable/examples.customwebhookbot.html
 
-from telegram import Bot
-from telegram.ext import Application
+from telegram.ext import (
+    Application,
+)
+
+# TODO: move to config
+TELEGRAM_BOT_TOKEN = ""
+
+application = Application.builder().token("TOKEN").updater(None).build()
 
 
 async def set_webhook(url: str):
-    pass
+    await application.bot.set_webhook(url=url)
 
 
 async def startup():
-    pass
+    await application.start()
 
 
 async def shutdown():
-    pass
+    await application.stop()
