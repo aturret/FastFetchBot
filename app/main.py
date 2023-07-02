@@ -1,6 +1,7 @@
-from fastapi import FastAPI
-
+import asyncio
 import sentry_sdk
+
+from fastapi import FastAPI
 
 import database
 from app.services import telegram_service
@@ -29,3 +30,6 @@ async def on_startup():
 async def on_shutdown():
     await database.shutdown()
     await telegram_service.shutdown()
+
+    # https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
+    await asyncio.sleep(0)
