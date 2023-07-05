@@ -33,3 +33,6 @@ async def on_shutdown():
 
     # https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
     await asyncio.sleep(0)
+
+@app.post("telegram_webhook")
+async def

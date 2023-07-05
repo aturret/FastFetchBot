@@ -4,6 +4,7 @@
 from telegram.ext import (
     Application,
 )
+from app.config import *
 
 # TODO: move to config
 TELEGRAM_BOT_TOKEN = ""
