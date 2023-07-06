@@ -45,7 +45,7 @@ class MediaFile:
 @dataclass
 class MetadataItem:
     url: str
-    turl: str
+    telegraph_url: str
     content: str
     text: str
     media_files: List[MediaFile]
@@ -58,7 +58,7 @@ class MetadataItem:
     def from_dict(obj: Any) -> 'MetadataItem':
         assert isinstance(obj, dict)
         url = from_str(obj.get("url"))
-        turl = from_str(obj.get("turl"))
+        telegraph_url = from_str(obj.get("turl"))
         content = from_str(obj.get("content"))
         text = from_str(obj.get("text"))
         media_files = from_list(MediaFile.from_dict, obj.get("media_files"))
@@ -66,12 +66,12 @@ class MetadataItem:
         title = from_str(obj.get("title"))
         author_url = from_str(obj.get("author_url"))
         type = from_str(obj.get("type"))
-        return MetadataItem(url, turl, content, text, media_files, author, title, author_url, type)
+        return MetadataItem(url, telegraph_url, content, text, media_files, author, title, author_url, type)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["url"] = from_str(self.url)
-        result["turl"] = from_str(self.turl)
+        result["telegraph_url"] = from_str(self.telegraph_url)
         result["content"] = from_str(self.content)
         result["text"] = from_str(self.text)
         result["media_files"] = from_list(lambda x: to_class(MediaFile, x), self.media_files)
