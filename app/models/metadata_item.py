@@ -2,6 +2,12 @@ from dataclasses import dataclass
 from typing import Any, List, TypeVar, Callable, Type, cast
 
 
+"""
+MetadataItem is a dataclass that represents a single item for our services. It would be saved in the database.
+The MetadataItem is used to send to the telegram bot. Users can use the metadata to define their own message template.
+If the program doesn't find the attribute in the dict_data, it will use the default value in case of KeyError.
+"""
+
 T = TypeVar("T")
 
 
@@ -58,7 +64,7 @@ class MetadataItem:
     def from_dict(obj: Any) -> 'MetadataItem':
         assert isinstance(obj, dict)
         url = from_str(obj.get("url"))
-        telegraph_url = from_str(obj.get("turl"))
+        telegraph_url = from_str(obj.get("telegraph_url"))
         content = from_str(obj.get("content"))
         text = from_str(obj.get("text"))
         media_files = from_list(MediaFile.from_dict, obj.get("media_files"))

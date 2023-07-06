@@ -2,6 +2,11 @@ from dataclasses import dataclass
 from typing import Any, TypeVar, Type, cast
 
 
+"""
+The TelegraphItem is a class for generating a Telegraph page.
+If the program doesn't find the attribute in the dict_data, it will use the default value in case of KeyError.
+"""
+
 T = TypeVar("T")
 
 
