@@ -2,7 +2,7 @@ from PIL import Image
 import asyncio
 from app.config import env_var
 
-DEFAULT_IMAGE_LIMITATION = env_var.get('DEFAULT_IMAGE_LIMITATION', 1600)
+DEFAULT_IMAGE_LIMITATION = env_var.get("DEFAULT_IMAGE_LIMITATION", 1600)
 
 
 def get_image_dimension(image_file: str):
@@ -14,7 +14,13 @@ def image_compressing(image: Image, limitation: int = DEFAULT_IMAGE_LIMITATION):
     new_image = image
     if image.size[0] > limitation or image.size[1] > limitation:
         if image.size[0] > image.size[1]:
-            new_image = image.resize((limitation, int(image.size[1] * limitation / image.size[0])), Image.ANTIALIAS)
+            new_image = image.resize(
+                (limitation, int(image.size[1] * limitation / image.size[0])),
+                Image.ANTIALIAS,
+            )
         else:
-            new_image = image.resize((int(image.size[0] * limitation / image.size[1]), limitation), Image.ANTIALIAS)
+            new_image = image.resize(
+                (int(image.size[0] * limitation / image.size[1]), limitation),
+                Image.ANTIALIAS,
+            )
     return new_image
