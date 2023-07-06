@@ -23,7 +23,7 @@ async def get_response_json(url, headers=None, test=False):
 async def get_response(url, headers=None):
     if headers is None:
         headers = {
-            'User-Agent': 'smcc',
+            "User-Agent": "smcc",
         }
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers)
@@ -34,10 +34,10 @@ async def get_selector(url, headers):
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers, timeout=30)
         if resp.history:
-            print('Request was redirected')
+            print("Request was redirected")
             for resp in resp.history:
                 print(resp.status_code, resp.url)
-            print('Final destination:')
+            print("Final destination:")
             print(resp.status_code, resp.url)
         selector = etree.HTML(resp.content)
         return selector
@@ -48,7 +48,7 @@ async def download_a_iobytes_file(url, file_name=None):
         response = await client.get(url)
     file_data = response.content
     if file_name is None:
-        file_format = url.split('.')[-1]
-        file_name = 'media-' + str(uuid.uuid1())[:8] + '.' + file_format
+        file_format = url.split(".")[-1]
+        file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
     io_object = NamedBytesIO(file_data, name=file_name)
     return io_object
