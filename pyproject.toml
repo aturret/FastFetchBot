@@ -13,6 +13,8 @@ python-telegram-bot = "^20.3"
 aiohttp = "^3.8.4"
 sentry-sdk = {extras = ["fastapi"], version = "^1.26.0"}
 beautifulsoup4 = "^4.12.2"
+lxml = "^4.9.3"
+Pillow = "*"
 
 
 [tool.poetry.group.dev.dependencies]
