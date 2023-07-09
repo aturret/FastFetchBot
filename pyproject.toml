@@ -9,17 +9,18 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 fastapi = "^0.99.0"
-uvicorn = "^0.22.0"
 python-telegram-bot = {extras = ["callback-data"], version = "^20.3"}
 sentry-sdk = {extras = ["fastapi"], version = "^1.26.0"}
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.3"
 Pillow = "*"
 httpx = "*"
+gunicorn = "^20.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
+uvicorn = "^0.22.0"
 
 [build-system]
 requires = ["poetry-core"]
