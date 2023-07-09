@@ -1,4 +1,5 @@
 import datetime
+import urllib
 
 from bs4 import BeautifulSoup
 
@@ -23,13 +24,17 @@ def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
     return soup
 
 
-def unix_timestamp_to_utc(timestamp):
+def unix_timestamp_to_utc(timestamp: int) -> str:
     utc_time = datetime.datetime.utcfromtimestamp(timestamp)
     beijing_time = utc_time + datetime.timedelta(hours=8)
     return beijing_time.strftime("%Y-%m-%d %H:%M")
 
 
-def second_to_time(second):
+def second_to_time(second: int) -> str:
     m, s = divmod(second, 60)
     h, m = divmod(m, 60)
     return "{:02d}:{:02d}:{:02d}".format(h, m, s)
+
+
+def check_url_type(url: str) -> dict:
+    return {}

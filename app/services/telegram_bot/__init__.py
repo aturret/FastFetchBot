@@ -23,12 +23,21 @@ from telegram.ext import (
 
 from app.config import (
     TELEGRAM_BOT_TOKEN,
-    CHANNEL_ID,
+    TELEGRAM_CHANNEL_ID,
 )
-from app.services.telegram_bot.telegram_bot_config import (
+from .config import (
     HTTPS_URL_REGEX,
     WEBSITE_PATTERNS,
 )
+
+"""
+logging
+"""
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 
 """
 application and handlers initialization
@@ -40,13 +49,6 @@ application = (
     .arbitrary_callback_data(True)
     .build()
 )
-"""
-logging
-"""
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-logger = logging.getLogger(__name__)
 
 
 async def set_webhook(url: str) -> None:
@@ -90,7 +92,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-        data: dict,
+    data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -115,7 +117,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         # create the inline keyboard
         special_function_keyboard = []
         basic_function_keyboard = []
-        if CHANNEL_ID:
+        if TELEGRAM_CHANNEL_ID:
             special_function_keyboard.append(
                 InlineKeyboardButton(
                     "Send to channel",

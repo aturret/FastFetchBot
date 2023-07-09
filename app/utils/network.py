@@ -4,15 +4,13 @@ import traceback
 
 from lxml import etree
 
-from app.utils.classes import NamedBytesIO
+from app.models.classes import NamedBytesIO
 
 
-async def get_response_json(url, headers=None, test=False):
+async def get_response_json(url, headers=None):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
-            if test:
-                print(response.text)
             json_result = response.json()
     except Exception as e:
         print(e, traceback.format_exc())

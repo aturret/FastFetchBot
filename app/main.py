@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from app import database, auth
 from app.routers import telegram_bot
-from app.services.telegram_bot import telegram_bot as telegram_bot_service
+from app.services import telegram_bot as telegram_bot_service
 
 SENTRY_DSN = ""
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from app.services.telegram_bot.telegram_bot import set_webhook, process_telegram_update
+from app.services.telegram_bot.__init__ import set_webhook, process_telegram_update
 from app.config import WEBHOOK_URL
 
 
