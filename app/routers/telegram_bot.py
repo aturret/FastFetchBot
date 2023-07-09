@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from app.services.telegram_bot import set_webhook
+from app.services.telegram_bot.telegram_bot import set_webhook, process_telegram_update
+from app.config import WEBHOOK_URL
+
 
 router = APIRouter(prefix="/telegram")
 
@@ -10,11 +12,13 @@ router = APIRouter(prefix="/telegram")
 async def telegram_bot_webhook(request: Request):
     # TODO: add security check
     data = await request.json()
-    # process_telegram_event(data)
+    await process_telegram_update(data)
     return "ok"
 
 
 @router.get("/bot/set_webhook")
 async def telegram_bot_set_webhook():
     # TODO: add security check, fix URL
-    return await set_webhook("")
+    print("WEBHOOK_URL", WEBHOOK_URL)
+    await set_webhook(WEBHOOK_URL)
+    return "ok"
