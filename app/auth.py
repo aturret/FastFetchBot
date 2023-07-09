@@ -3,10 +3,7 @@ import secrets
 from fastapi import HTTPException, Security, status
 from fastapi.security.api_key import APIKeyQuery
 
-# TODO: move to config
-API_KEY_NAME = "api_key"
-API_KEY = ""
-TELEGRAM_API_KEY = ""
+from app.config import API_KEY_NAME, API_KEY, TELEGRAM_API_KEY
 
 api_key_query = APIKeyQuery(name=API_KEY_NAME, auto_error=False)
 

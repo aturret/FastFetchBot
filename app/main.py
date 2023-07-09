@@ -3,8 +3,9 @@ import sentry_sdk
 
 from fastapi import FastAPI
 
-import database
-from app.services import telegram_bot as telegram_bot_service
+from app import database, auth
+from app.routers import telegram_bot
+from app.services.telegram_bot import telegram_bot as telegram_bot_service
 
 SENTRY_DSN = ""
 
@@ -18,6 +19,7 @@ sentry_sdk.init(
 )
 
 app = FastAPI()
+app.include_router(telegram_bot.router)
 
 
 @app.on_event("startup")
