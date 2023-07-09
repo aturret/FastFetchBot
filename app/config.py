@@ -4,7 +4,6 @@ env = os.environ
 
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "")
-PORT = int(env.get("PORT", 10450))
 API_KEY_NAME = env.get("API_KEY_NAME", "")
 API_KEY = env.get("API_KEY", "")
 TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", "")
