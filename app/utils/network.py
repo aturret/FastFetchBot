@@ -5,30 +5,30 @@ import traceback
 from lxml import etree
 
 from app.models.classes import NamedBytesIO
+from app.utils.config import CHROME_USER_AGENT
 
 
-async def get_response_json(url, headers=None):
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers)
-            json_result = response.json()
-    except Exception as e:
-        print(e, traceback.format_exc())
-        json_result = None
-    return json_result
-
-
-async def get_response(url, headers=None):
+async def get_response(url: str, headers: dict = None) -> httpx.Response:
     if headers is None:
         headers = {
-            "User-Agent": "smcc",
+            "User-Agent": CHROME_USER_AGENT,
         }
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers)
         return resp
 
 
-async def get_selector(url, headers):
+async def get_response_json(url: str, headers=None) -> dict:
+    try:
+        response = await get_response(url, headers)
+        json_result = response.json()
+    except Exception as e:
+        print(e, traceback.format_exc())
+        json_result = None
+    return json_result
+
+
+async def get_selector(url: str, headers: dict) -> etree.HTML:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers, timeout=30)
         if resp.history:
