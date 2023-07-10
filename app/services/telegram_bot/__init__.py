@@ -2,32 +2,28 @@
 # example: https://docs.python-telegram-bot.org/en/stable/examples.customwebhookbot.html
 import html
 import json
-import re
-import traceback
-import uuid
 import logging
+import traceback
 
-import telegram
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
     CallbackContext,
     ContextTypes,
-    TypeHandler,
     MessageHandler,
     CallbackQueryHandler,
     filters,
     InvalidCallbackData,
 )
 
+from app.utils.parse import check_url_type
 from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
 )
 from .config import (
     HTTPS_URL_REGEX,
-    WEBSITE_PATTERNS,
 )
 
 """
@@ -37,7 +33,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
 
 """
 application and handlers initialization
@@ -72,7 +67,7 @@ async def startup() -> None:
     )
     buttons_process_handler = CallbackQueryHandler(
         callback=buttons_process,
-        # pattern=dict
+        pattern=dict
     )
     #  add handlers
     application.add_handlers(
@@ -84,6 +79,7 @@ async def startup() -> None:
         ]
     )
     application.add_error_handler(error_handler)
+    await application.bot.get_webhook_info()
     await application.start()
 
 
@@ -92,28 +88,34 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-    data: dict,
+        data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
     :param data:
     :return:
     """
-    await application.update_queue.put(Update.de_json(data=data, bot=application.bot))
+    update = Update.de_json(data=data, bot=application.bot)
+    application.bot.insert_callback_data(update)
+    await application.update_queue.put(update)
 
 
 async def https_url_process(update: Update, context: CallbackContext) -> None:
-    url = context.matches[0].group(0)  # get first match by the context.matches
     message = update.message
-    url_metadata = await check_url_type(url, message)
-    if url_metadata["category"]:
-        # process the metadata of the url
-        await application.bot.delete_message(
-            chat_id=message.chat_id,
-            message_id=url_metadata.pop("replying_message").message_id,
+    welcome_message = await message.reply_text(
+        text="Processing...",
+    )
+    url = context.matches[0].group(0)  # get first match by the context.matches
+    url_metadata = await check_url_type(url)
+    if not url_metadata.category:
+        await welcome_message.edit_text(
+            text="No supported url found."
         )
-        url_metadata_id = str(uuid.uuid4())
-        context.chat_data[url_metadata_id] = url_metadata
+        return
+    else:
+        await welcome_message.edit_text(
+            text=f"{url_metadata.category} url found. Processing..."
+        )
         # create the inline keyboard
         special_function_keyboard = []
         basic_function_keyboard = []
@@ -141,29 +143,32 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             basic_function_keyboard,
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        await welcome_message.delete()
         await message.reply_text("Please choose:", reply_markup=reply_markup)
 
 
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
     print("webhook_update", update.message)
-    return
 
 
-async def buttons_process(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def buttons_process(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     data = query.data
-    id = query.id
-    print(data, id)
     if data["type"] == "cancel":
         await query.answer("Canceled")
         await query.message.delete()
     elif data["type"] == "private":
         await query.answer("Sending to you...")
         await query.message.delete()
+        await update.message.reply_text(
+            text=f"Item processing...",
+        )
         # await content_process_function(query, context)
+        # TODO: sent to chat
     elif data["type"] == "channel":
         await query.answer("Sending to channel...")
         await query.message.delete()
+        # TODO: sent to channel
     context.drop_callback_data(query)
 
 
@@ -174,43 +179,23 @@ async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     )
 
 
+async def send_item_message():  # TODO: send item message to channel or private
+    pass
+
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
-    # tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
-    # tb_string = "".join(tb_list)
-    # update_str = update.to_dict() if isinstance(update, Update) else str(update)
-    # message = (
-    #     f"An exception was raised while handling an update\n"
-    #     f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}"
-    #     "</pre>\n\n"
-    #     f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
-    #     f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
-    #     f"<pre>{html.escape(tb_string)}</pre>"
-    # )
-    # await context.bot.send_message(
-    #     chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
-    # )
-
-
-async def check_url_type(url: str, message: telegram.Message) -> dict:
-    for site, patterns in WEBSITE_PATTERNS.items():
-        for pattern in patterns:
-            if re.search(pattern, url):
-                replying_message = await message.reply_text(
-                    text=f"{site} detected, please wait...",
-                )
-                url_metadata = {
-                    "url": url,
-                    "category": site,
-                    "replying_message": replying_message,
-                }
-                return url_metadata
-    replying_message = await message.reply_text(
-        text="The url is not included in the list of supported websites.",
+    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_string = "".join(tb_list)
+    update_str = update.to_dict() if isinstance(update, Update) else str(update)
+    message = (
+        f"An exception was raised while handling an update\n"
+        f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}"
+        "</pre>\n\n"
+        f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
+        f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
+        f"<pre>{html.escape(tb_string)}</pre>"
     )
-    url_metadata = {
-        "url": url,
-        "category": None,
-        "replying_message": replying_message,
-    }
-    return url_metadata
+    await context.bot.send_message(
+        chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
+    )
