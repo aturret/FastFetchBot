@@ -52,6 +52,9 @@ COPY poetry.lock pyproject.toml ./
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
 RUN poetry install --no-dev
 
+# install the browser dependencies for playwright
+RUN poetry run playwright install
+
 # `production` image used for runtime
 FROM python-base as production
 ENV FASTAPI_ENV=production
