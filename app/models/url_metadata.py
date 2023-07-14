@@ -18,26 +18,26 @@ def to_class(c: Type[T], x: Any) -> dict:
 @dataclass
 class UrlMetadata:
     url: str
-    category: str
+    source: str
     type: str
 
-    def __init__(self, url: str, category: str, the_type: str) -> None:
+    def __init__(self, url: str, source: str, the_type: str) -> None:
         self.url = url
-        self.category = category
+        self.source = source
         self.type = the_type
 
     @staticmethod
     def from_dict(obj: Any) -> "UrlMetadata":
         assert isinstance(obj, dict)
         url = from_str(obj.get("url"))
-        category = from_str(obj.get("category"))
+        source = from_str(obj.get("source"))
         the_type = from_str(obj.get("type"))
-        return UrlMetadata(url, category, the_type)
+        return UrlMetadata(url, source, the_type)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["url"] = from_str(self.url)
-        result["category"] = from_str(self.category)
+        result["source"] = from_str(self.source)
         result["type"] = from_str(self.type)
         return result
 
