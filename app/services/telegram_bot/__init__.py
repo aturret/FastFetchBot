@@ -17,6 +17,7 @@ from telegram.ext import (
     InvalidCallbackData,
 )
 
+from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type
 from app.config import (
     TELEGRAM_BOT_TOKEN,
@@ -66,8 +67,7 @@ async def startup() -> None:
         pattern=InvalidCallbackData,
     )
     buttons_process_handler = CallbackQueryHandler(
-        callback=buttons_process,
-        pattern=dict
+        callback=buttons_process, pattern=dict
     )
     #  add handlers
     application.add_handlers(
@@ -88,7 +88,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-        data: dict,
+    data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -107,14 +107,12 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
     )
     url = context.matches[0].group(0)  # get first match by the context.matches
     url_metadata = await check_url_type(url)
-    if not url_metadata.category:
-        await welcome_message.edit_text(
-            text="No supported url found."
-        )
+    if not url_metadata.source:
+        await welcome_message.edit_text(text="No supported url found.")
         return
     else:
         await welcome_message.edit_text(
-            text=f"{url_metadata.category} url found. Processing..."
+            text=f"{url_metadata.source} url found. Processing..."
         )
         # create the inline keyboard
         special_function_keyboard = []
@@ -156,19 +154,25 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
     data = query.data
     if data["type"] == "cancel":
         await query.answer("Canceled")
-        await query.message.delete()
-    elif data["type"] == "private":
-        await query.answer("Sending to you...")
-        await query.message.delete()
-        await update.message.reply_text(
+    else:
+        if data["type"] == "private":
+            await query.answer("Sending to you...")
+            chat_id = update.message.chat_id
+            # await content_process_function(query, context)
+            # TODO: sent to chat
+        elif data["type"] == "channel":
+            await query.answer("Sending to channel...")
+            chat_id = TELEGRAM_CHANNEL_ID
+            # TODO: sent to channel
+        replying_message = await update.message.reply_text(
             text=f"Item processing...",
         )
-        # await content_process_function(query, context)
-        # TODO: sent to chat
-    elif data["type"] == "channel":
-        await query.answer("Sending to channel...")
-        await query.message.delete()
-        # TODO: sent to channel
+        metadata_item = await content_process_function(data["metadata"])
+        await replying_message.edit_text(
+            text=f"Item processed. Sending to the target...",
+        )
+        await send_item_message(chat_id, metadata_item)
+    await query.message.delete()
     context.drop_callback_data(query)
 
 
@@ -179,13 +183,22 @@ async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     )
 
 
-async def send_item_message():  # TODO: send item message to channel or private
+async def content_process_function(url_metadata: dict) -> dict:
+    item = InfoExtractService(url_metadata)
+    metadata_item = await item.get_item()
+    return metadata_item
+
+
+async def send_item_message(chat_id: int, item: dict):
+    # TODO: send item message to channel or private
     pass
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_list = traceback.format_exception(
+        None, context.error, context.error.__traceback__
+    )
     tb_string = "".join(tb_list)
     update_str = update.to_dict() if isinstance(update, Update) else str(update)
     message = (
@@ -199,3 +212,29 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     await context.bot.send_message(
         chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
     )
+
+
+def message_formatting(data: dict) -> str:
+    """
+    Format the message to be sent to the user.
+    :param data:
+    :return:
+    """
+    text = (
+        '<a href="'
+        + data["telegraph_url"]
+        + '"><b>'
+        + data["title"]
+        + "</b></a>\nvia #"
+        + data["category"]
+        + ' - <a href="'
+        + data["author_url"]
+        + ' "> '
+        + data["author"]
+        + "</a>\n"
+        + data["message"]
+        + '<a href="'
+        + data["url"]
+        + '">阅读原文</a>'
+    )
+    return text
