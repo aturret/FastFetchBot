@@ -1,8 +1,8 @@
 from PIL import Image
 import asyncio
-from app.config import env_var
+from app.config import env
 
-DEFAULT_IMAGE_LIMITATION = env_var.get("DEFAULT_IMAGE_LIMITATION", 1600)
+DEFAULT_IMAGE_LIMITATION = env.get("DEFAULT_IMAGE_LIMITATION", 1600)
 
 
 def get_image_dimension(image_file: str):
