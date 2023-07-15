@@ -3,9 +3,23 @@
 import html
 import json
 import logging
+import os
 import traceback
+from urllib.parse import urlparse
+from urllib.request import url2pathname
+from typing import Optional, Union
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    InputFile,
+    InputMediaPhoto,
+    InputMediaVideo,
+    InputMediaDocument,
+    InputMediaAnimation,
+    InputMediaAudio,)
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -16,12 +30,18 @@ from telegram.ext import (
     filters,
     InvalidCallbackData,
 )
+from jinja2 import Environment, FileSystemLoader
 
 from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type
+from app.utils.network import download_a_iobytes_file
+from app.utils.image import Image, image_compressing
 from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
+    TELEBOT_API_SERVER,
+    TELEGRAM_IMAGE_DIMENSION_LIMIT,
+    TELEGRAM_IMAGE_SIZE_LIMIT,
 )
 from .config import (
     HTTPS_URL_REGEX,
@@ -43,8 +63,11 @@ application = (
     .token(TELEGRAM_BOT_TOKEN)
     .updater(None)
     .arbitrary_callback_data(True)
+    .base_url(TELEBOT_API_SERVER)
     .build()
 )
+environment = Environment(loader=FileSystemLoader("jinja_templates/"))
+template = environment.get_template("message.txt")
 
 
 async def set_webhook(url: str) -> None:
@@ -53,7 +76,7 @@ async def set_webhook(url: str) -> None:
 
 async def startup() -> None:
     await application.initialize()
-    #  initialize handlers
+    # initialize handlers
     all_messages_handler = MessageHandler(
         filters=filters.ALL,
         callback=all_messages_process,
@@ -69,7 +92,7 @@ async def startup() -> None:
     buttons_process_handler = CallbackQueryHandler(
         callback=buttons_process, pattern=dict
     )
-    #  add handlers
+    # add handlers
     application.add_handlers(
         [
             https_url_process_handler,
@@ -88,7 +111,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-    data: dict,
+        data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -124,17 +147,23 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                     callback_data={"type": "channel", "metadata": url_metadata},
                 ),
             )
-        basic_function_keyboard.append(
+        special_function_keyboard.append(
             InlineKeyboardButton(
-                "Send to me",
-                callback_data={"type": "private", "metadata": url_metadata},
+                "Force send in chat",
+                callback_data={"type": "force", "metadata": url_metadata},
             )
         )
-        basic_function_keyboard.append(
-            InlineKeyboardButton(
-                "Cancel",
-                callback_data={"type": "cancel"},
-            )
+        basic_function_keyboard.extend(
+            [
+                InlineKeyboardButton(
+                    "Send to me",
+                    callback_data={"type": "private", "metadata": url_metadata},
+                ),
+                InlineKeyboardButton(
+                    "Cancel",
+                    callback_data={"type": "cancel"},
+                ),
+            ]
         )
         keyboard = [
             special_function_keyboard,
@@ -158,12 +187,9 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         if data["type"] == "private":
             await query.answer("Sending to you...")
             chat_id = update.message.chat_id
-            # await content_process_function(query, context)
-            # TODO: sent to chat
         elif data["type"] == "channel":
             await query.answer("Sending to channel...")
-            chat_id = TELEGRAM_CHANNEL_ID
-            # TODO: sent to channel
+            chat_id = await application.bot.get_chat(chat_id=TELEGRAM_CHANNEL_ID).id
         replying_message = await update.message.reply_text(
             text=f"Item processing...",
         )
@@ -171,7 +197,7 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
-        await send_item_message(chat_id, metadata_item)
+        await send_item_message(metadata_item, chat_id=chat_id)
     await query.message.delete()
     context.drop_callback_data(query)
 
@@ -189,9 +215,34 @@ async def content_process_function(url_metadata: dict) -> dict:
     return metadata_item
 
 
-async def send_item_message(chat_id: int, item: dict):
-    # TODO: send item message to channel or private
-    pass
+async def send_item_message(
+        data: dict, chat_id: Union[int, str] = None, message: Message = None
+) -> None:
+    """
+    :param data: (dict) metadata of the item
+    :param chat_id: (int) any chat id for sending
+    :param message: (Message) any message to reply
+    :return:
+    """
+    if (
+            not chat_id
+    ) and message:  # this function supports directly reply to a message even if the chat_id is None
+        chat_id = message.chat.id
+    discussion_chat_id = chat_id
+    the_chat = await application.bot.get_chat(chat_id=chat_id)
+    if the_chat.type == "channel":
+        if the_chat.linked_chat_id:
+            discussion_chat_id = the_chat.linked_chat_id
+    try:
+        caption_text = message_formatting(data)
+        if data["type"] == "short" and len(data["media_files"]) > 0:
+            await media_files_packaging(media_files=data["media_files"], caption_text=caption_text)
+
+    except Exception as e:
+        logger.error(e)
+        await message.reply_text(
+            text="Sorry, I could not send the item to the target 😕"
+        )
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -220,21 +271,83 @@ def message_formatting(data: dict) -> str:
     :param data:
     :return:
     """
-    text = (
-        '<a href="'
-        + data["telegraph_url"]
-        + '"><b>'
-        + data["title"]
-        + "</b></a>\nvia #"
-        + data["category"]
-        + ' - <a href="'
-        + data["author_url"]
-        + ' "> '
-        + data["author"]
-        + "</a>\n"
-        + data["message"]
-        + '<a href="'
-        + data["url"]
-        + '">阅读原文</a>'
-    )
+    message_template = environment.get_template("social_media_message.jinja2")
+    text = message_template.render(data=data)
     return text
+
+
+async def media_files_packaging(media_files: list, caption_text: str = '') -> tuple:
+    """
+    Download the media files from data["media_files"] and package them into a list of media group or file group for
+    sending them by send_media_group method or send_document method.
+    :param media_files: (list) a list of media files,
+    :param caption_text: (str) the caption text
+    :return: (tuple) a tuple of media group and file group
+        media_message_group: (list) a list of media items, the type of each item is InputMediaPhoto or InputMediaVideo
+        file_group: (list) a list of file items, the type of each item is InputFile
+    """
+    media_counter = 0
+    media_message_group = []
+    media_group = []
+    file_group = []
+    for media_item in media_files:
+        # check if we need to create a new media group
+        if media_counter == 10:  # the limitation of media item for a single telegram media group message is 10
+            media_message_group.append(media_group)
+            media_group = []
+            media_counter = 0
+        # check the url validity
+        url_parser = urlparse(media_item['url'])
+        if url_parser.scheme == 'http' or url_parser.scheme == 'https': # if the url is a http url, download the file
+            io_object = await download_a_iobytes_file(media_item['url'])
+            file_size = io_object.size
+        else:  # if the url is a local file path, just add it to the media group
+            try:
+                file_path = url2pathname(media_item['url'])
+                file_size = os.path.getsize(file_path)
+            except:  # the url is not a valid file path
+                continue
+        # check the file size
+        if not TELEBOT_API_SERVER:  # the official telegram bot api server only supports 50MB file
+            if file_size > 50 * 1024 * 1024:  # if the size is over 50MB, skip this file
+                continue
+        else:
+            if file_size > 2 * 1024 * 1024 * 1024:  # for local api sever, if the size is over 2GB, skip this file
+                continue
+        # check media files' type and process them by their type
+        if media_item['type'] == 'image':
+            image_url = media_item['url']
+            image = Image.open(io_object)
+            img_width, img_height = image.size
+            image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
+            media_group.append(InputMediaPhoto(image, caption=media_item['caption'], parse_mode='html'))
+            if file_size > TELEGRAM_IMAGE_SIZE_LIMIT or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT \
+                    or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT:
+                io_object = await download_a_iobytes_file(image_url)
+                if not io_object.name.endswith('.gif'):  # TODO: it's not a good way to judge whether it's a gif...
+                    file_group.append(io_object)
+                    # download again because Image.open method closed the previous io_object
+                    # if the image is too large, append the file into file_group
+        elif media_item['type'] == 'gif':
+            io_object = await download_a_iobytes_file(media_item['url'], 'gif_image-' + str(media_counter) + '.gif')
+            io_object.name = io_object.name + '.gif'
+            media_group.append(InputMediaAnimation(io_object, caption=media_item['caption'], parse_mode='html'))
+        elif media_item['type'] == 'video':
+            file_like_object = InputFile(io_object)
+            media_group.append(InputMediaVideo(file_like_object, caption=media_item['caption'], parse_mode='html'))
+        elif media_item['type'] == 'audio':  # TODO: not have any services to store audio files for now
+            file_like_object = InputFile(io_object)
+            media_group.append(InputMediaAudio(file_like_object, caption=media_item['caption'], parse_mode='html'))
+        media_counter += 1
+    if len(media_message_group) == 0:
+        if len(media_group) == 0:
+            return None, None
+        else:
+            media_message_group.append(media_group)
+    elif len(media_group) > 0:
+        media_message_group.append(media_group)
+    media_message_group[0][0].caption = caption_text  # only the first media group has the caption text
+    if len(media_message_group) > 1:
+        for i in range(1, len(media_message_group)):
+            media_message_group[i][0].caption = f"the {i}th media group"
+    return media_message_group, file_group
