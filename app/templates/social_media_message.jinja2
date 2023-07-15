@@ -1,0 +1,20 @@
+{# templates/social_media_message.html #}
+
+<a href="{{ data.telegraph_url }}">
+    <b>
+        {{ data.title }}
+    </b>
+</a>
+\n
+via #{{ data.category }} -
+<a href="{{ data.author_url }}">
+    {{ data.author }}
+    {# the message, which is from inoreader comment or telegram bot comment function (todo) #}
+</a>
+{% if data.message %}
+    \n
+    {{ data.message }}
+{% endif %}
+<a href="{{ data.url }}">
+    阅读原文
+</a>
