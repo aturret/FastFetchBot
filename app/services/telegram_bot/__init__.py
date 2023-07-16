@@ -19,7 +19,7 @@ from telegram import (
     InputMediaVideo,
     InputMediaDocument,
     InputMediaAnimation,
-    InputMediaAudio,)
+    InputMediaAudio, )
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -224,9 +224,9 @@ async def send_item_message(
     :param message: (Message) any message to reply
     :return:
     """
-    if (
-            not chat_id
-    ) and message:  # this function supports directly reply to a message even if the chat_id is None
+    if not chat_id and not message:
+        raise ValueError("must provide chat_id or message")
+    if (not chat_id) and message:  # this function supports directly reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
@@ -236,8 +236,43 @@ async def send_item_message(
     try:
         caption_text = message_formatting(data)
         if data["type"] == "short" and len(data["media_files"]) > 0:
-            await media_files_packaging(media_files=data["media_files"], caption_text=caption_text)
-
+            # if the type is short and there are some media files, send media group
+            media_message_group, file_group = await media_files_packaging(media_files=data["media_files"],
+                                                                          caption_text=caption_text)
+            if len(media_message_group) > 0:  # if there are some media groups to send, send it
+                reply_to_message_id = None
+                for media_group in media_message_group:
+                    sent_message = await application.bot.send_media_group(
+                        chat_id=discussion_chat_id,
+                        media=media_group,
+                    )
+                if discussion_chat_id != chat_id > 0:
+                    # if the chat is a channel, get the latest pinned message from the channel and reply to it
+                    pinned_message = await application.bot.get_chat(chat_id=discussion_chat_id).pinned_message
+                    if pinned_message.forward_from_message_id == sent_message[-1].message_id:
+                        reply_to_message_id = application.bot.get_chat(chat_id=discussion_chat_id).pinned_message.id \
+                                              - len(sent_message) + 1
+                    else:
+                        reply_to_message_id = sent_message[-1].message_id
+            if len(file_group) > 0:  # send files, the files messages should be replied to the message sent before
+                application.bot.send_message(chat_id=discussion_chat_id, parse_mode="html",
+                                             text="The following files are larger than the limitation of Telegram, "
+                                                  "so they are sent as files:",
+                                             reply_to_message_id=reply_to_message_id)
+                for file in file_group:
+                    if file.name.endswith('.gif'):  # TODO: it's not a good way to determine whether it's a gif.
+                        await application.bot.send_video(chat_id=discussion_chat_id, animation=file,
+                                                         reply_to_message_id=reply_to_message_id)
+                    else:
+                        await application.bot.send_document(chat_id=discussion_chat_id, document=file,
+                                                            reply_to_message_id=reply_to_message_id)
+        else:  # if there are no media files, send the caption text and also note the message
+            await application.bot.send_message(
+                chat_id=discussion_chat_id,
+                text=caption_text,
+                parse_mode="html",
+                disable_web_page_preview=True,
+            )
     except Exception as e:
         logger.error(e)
         await message.reply_text(
@@ -298,14 +333,15 @@ async def media_files_packaging(media_files: list, caption_text: str = '') -> tu
             media_counter = 0
         # check the url validity
         url_parser = urlparse(media_item['url'])
-        if url_parser.scheme == 'http' or url_parser.scheme == 'https': # if the url is a http url, download the file
+        if url_parser.scheme == 'http' or url_parser.scheme == 'https':  # if the url is a http url, download the file
             io_object = await download_a_iobytes_file(media_item['url'])
             file_size = io_object.size
         else:  # if the url is a local file path, just add it to the media group
             try:
                 file_path = url2pathname(media_item['url'])
                 file_size = os.path.getsize(file_path)
-            except:  # the url is not a valid file path
+            except Exception as e:  # the url is not a valid file path
+                logger.error(e)
                 continue
         # check the file size
         if not TELEBOT_API_SERVER:  # the official telegram bot api server only supports 50MB file
@@ -339,12 +375,13 @@ async def media_files_packaging(media_files: list, caption_text: str = '') -> tu
             file_like_object = InputFile(io_object)
             media_group.append(InputMediaAudio(file_like_object, caption=media_item['caption'], parse_mode='html'))
         media_counter += 1
+    # check if the media group is empty, if it is, return None
     if len(media_message_group) == 0:
         if len(media_group) == 0:
-            return None, None
-        else:
+            return media_message_group, file_group
+        else:  # if the media group is not empty, append the only media group
             media_message_group.append(media_group)
-    elif len(media_group) > 0:
+    elif len(media_group) > 0:  # append the last media group
         media_message_group.append(media_group)
     media_message_group[0][0].caption = caption_text  # only the first media group has the caption text
     if len(media_message_group) > 1:
