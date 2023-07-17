@@ -33,6 +33,7 @@ class Weibo(MetadataItem):
         pass
 
     async def get_weibo_info(self) -> dict:
+        weibo_info = {}
         if self.method == "webpage":
             url = WEIBO_WEB_HOST + self.id
             async with httpx.AsyncClient() as client:
@@ -56,3 +57,4 @@ class Weibo(MetadataItem):
         elif self.method == "a  pi":
             ajax_info = await get_response_json(self.ajax_url, headers=self.headers)
         return weibo_info
+
