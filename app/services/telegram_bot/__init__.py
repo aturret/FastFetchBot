@@ -19,7 +19,8 @@ from telegram import (
     InputMediaVideo,
     InputMediaDocument,
     InputMediaAnimation,
-    InputMediaAudio, )
+    InputMediaAudio,
+)
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -45,6 +46,9 @@ from app.config import (
 )
 from .config import (
     HTTPS_URL_REGEX,
+    TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
+    TELEGRAM_FILE_UPLOAD_LIMIT,
+    TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL,
 )
 
 """
@@ -111,7 +115,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-        data: dict,
+    data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -216,7 +220,7 @@ async def content_process_function(url_metadata: dict) -> dict:
 
 
 async def send_item_message(
-        data: dict, chat_id: Union[int, str] = None, message: Message = None
+    data: dict, chat_id: Union[int, str] = None, message: Message = None
 ) -> None:
     """
     :param data: (dict) metadata of the item
@@ -226,7 +230,9 @@ async def send_item_message(
     """
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
-    if (not chat_id) and message:  # this function supports directly reply to a message even if the chat_id is None
+    if (
+        not chat_id
+    ) and message:  # this function supports directly reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
@@ -237,9 +243,12 @@ async def send_item_message(
         caption_text = message_formatting(data)
         if data["type"] == "short" and len(data["media_files"]) > 0:
             # if the type is short and there are some media files, send media group
-            media_message_group, file_group = await media_files_packaging(media_files=data["media_files"],
-                                                                          caption_text=caption_text)
-            if len(media_message_group) > 0:  # if there are some media groups to send, send it
+            media_message_group, file_group = await media_files_packaging(
+                media_files=data["media_files"], caption_text=caption_text
+            )
+            if (
+                len(media_message_group) > 0
+            ):  # if there are some media groups to send, send it
                 reply_to_message_id = None
                 for media_group in media_message_group:
                     sent_message = await application.bot.send_media_group(
@@ -248,24 +257,47 @@ async def send_item_message(
                     )
                 if discussion_chat_id != chat_id > 0:
                     # if the chat is a channel, get the latest pinned message from the channel and reply to it
-                    pinned_message = await application.bot.get_chat(chat_id=discussion_chat_id).pinned_message
-                    if pinned_message.forward_from_message_id == sent_message[-1].message_id:
-                        reply_to_message_id = application.bot.get_chat(chat_id=discussion_chat_id).pinned_message.id \
-                                              - len(sent_message) + 1
+                    pinned_message = await application.bot.get_chat(
+                        chat_id=discussion_chat_id
+                    ).pinned_message
+                    if (
+                        pinned_message.forward_from_message_id
+                        == sent_message[-1].message_id
+                    ):
+                        reply_to_message_id = (
+                            application.bot.get_chat(
+                                chat_id=discussion_chat_id
+                            ).pinned_message.id
+                            - len(sent_message)
+                            + 1
+                        )
                     else:
                         reply_to_message_id = sent_message[-1].message_id
-            if len(file_group) > 0:  # send files, the files messages should be replied to the message sent before
-                application.bot.send_message(chat_id=discussion_chat_id, parse_mode="html",
-                                             text="The following files are larger than the limitation of Telegram, "
-                                                  "so they are sent as files:",
-                                             reply_to_message_id=reply_to_message_id)
+            if (
+                len(file_group) > 0
+            ):  # send files, the files messages should be replied to the message sent before
+                application.bot.send_message(
+                    chat_id=discussion_chat_id,
+                    parse_mode="html",
+                    text="The following files are larger than the limitation of Telegram, "
+                    "so they are sent as files:",
+                    reply_to_message_id=reply_to_message_id,
+                )
                 for file in file_group:
-                    if file.name.endswith('.gif'):  # TODO: it's not a good way to determine whether it's a gif.
-                        await application.bot.send_video(chat_id=discussion_chat_id, animation=file,
-                                                         reply_to_message_id=reply_to_message_id)
+                    if file.name.endswith(
+                        ".gif"
+                    ):  # TODO: it's not a good way to determine whether it's a gif.
+                        await application.bot.send_video(
+                            chat_id=discussion_chat_id,
+                            animation=file,
+                            reply_to_message_id=reply_to_message_id,
+                        )
                     else:
-                        await application.bot.send_document(chat_id=discussion_chat_id, document=file,
-                                                            reply_to_message_id=reply_to_message_id)
+                        await application.bot.send_document(
+                            chat_id=discussion_chat_id,
+                            document=file,
+                            reply_to_message_id=reply_to_message_id,
+                        )
         else:  # if there are no media files, send the caption text and also note the message
             await application.bot.send_message(
                 chat_id=discussion_chat_id,
@@ -311,7 +343,7 @@ def message_formatting(data: dict) -> str:
     return text
 
 
-async def media_files_packaging(media_files: list, caption_text: str = '') -> tuple:
+async def media_files_packaging(media_files: list, caption_text: str = "") -> tuple:
     """
     Download the media files from data["media_files"] and package them into a list of media group or file group for
     sending them by send_media_group method or send_document method.
@@ -327,53 +359,86 @@ async def media_files_packaging(media_files: list, caption_text: str = '') -> tu
     file_group = []
     for media_item in media_files:
         # check if we need to create a new media group
-        if media_counter == 10:  # the limitation of media item for a single telegram media group message is 10
+        if (
+            media_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT
+        ):  # the limitation of media item for a single telegram media group message is 10
             media_message_group.append(media_group)
             media_group = []
             media_counter = 0
         # check the url validity
-        url_parser = urlparse(media_item['url'])
-        if url_parser.scheme == 'http' or url_parser.scheme == 'https':  # if the url is a http url, download the file
-            io_object = await download_a_iobytes_file(media_item['url'])
+        url_parser = urlparse(media_item["url"])
+        if (
+            url_parser.scheme == "http" or url_parser.scheme == "https"
+        ):  # if the url is a http url, download the file
+            io_object = await download_a_iobytes_file(media_item["url"])
             file_size = io_object.size
         else:  # if the url is a local file path, just add it to the media group
             try:
-                file_path = url2pathname(media_item['url'])
+                file_path = url2pathname(media_item["url"])
                 file_size = os.path.getsize(file_path)
             except Exception as e:  # the url is not a valid file path
                 logger.error(e)
                 continue
         # check the file size
-        if not TELEBOT_API_SERVER:  # the official telegram bot api server only supports 50MB file
-            if file_size > 50 * 1024 * 1024:  # if the size is over 50MB, skip this file
+        if (
+            not TELEBOT_API_SERVER
+        ):  # the official telegram bot api server only supports 50MB file
+            if (
+                file_size > TELEGRAM_FILE_UPLOAD_LIMIT
+            ):  # if the size is over 50MB, skip this file
                 continue
         else:
-            if file_size > 2 * 1024 * 1024 * 1024:  # for local api sever, if the size is over 2GB, skip this file
+            if (
+                file_size > TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL
+            ):  # for local api sever, if the size is over 2GB, skip this file
                 continue
         # check media files' type and process them by their type
-        if media_item['type'] == 'image':
-            image_url = media_item['url']
+        if media_item["type"] == "image":
+            image_url = media_item["url"]
             image = Image.open(io_object)
             img_width, img_height = image.size
             image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
-            media_group.append(InputMediaPhoto(image, caption=media_item['caption'], parse_mode='html'))
-            if file_size > TELEGRAM_IMAGE_SIZE_LIMIT or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT \
-                    or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT:
+            media_group.append(
+                InputMediaPhoto(image, caption=media_item["caption"], parse_mode="html")
+            )
+            if (
+                file_size > TELEGRAM_IMAGE_SIZE_LIMIT
+                or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
+            ):
                 io_object = await download_a_iobytes_file(image_url)
-                if not io_object.name.endswith('.gif'):  # TODO: it's not a good way to judge whether it's a gif...
+                if not io_object.name.endswith(
+                    ".gif"
+                ):  # TODO: it's not a good way to judge whether it's a gif...
                     file_group.append(io_object)
                     # download again because Image.open method closed the previous io_object
                     # if the image is too large, append the file into file_group
-        elif media_item['type'] == 'gif':
-            io_object = await download_a_iobytes_file(media_item['url'], 'gif_image-' + str(media_counter) + '.gif')
-            io_object.name = io_object.name + '.gif'
-            media_group.append(InputMediaAnimation(io_object, caption=media_item['caption'], parse_mode='html'))
-        elif media_item['type'] == 'video':
+        elif media_item["type"] == "gif":
+            io_object = await download_a_iobytes_file(
+                media_item["url"], "gif_image-" + str(media_counter) + ".gif"
+            )
+            io_object.name = io_object.name + ".gif"
+            media_group.append(
+                InputMediaAnimation(
+                    io_object, caption=media_item["caption"], parse_mode="html"
+                )
+            )
+        elif media_item["type"] == "video":
             file_like_object = InputFile(io_object)
-            media_group.append(InputMediaVideo(file_like_object, caption=media_item['caption'], parse_mode='html'))
-        elif media_item['type'] == 'audio':  # TODO: not have any services to store audio files for now
+            media_group.append(
+                InputMediaVideo(
+                    file_like_object, caption=media_item["caption"], parse_mode="html"
+                )
+            )
+        elif (
+            media_item["type"] == "audio"
+        ):  # TODO: not have any services to store audio files for now
             file_like_object = InputFile(io_object)
-            media_group.append(InputMediaAudio(file_like_object, caption=media_item['caption'], parse_mode='html'))
+            media_group.append(
+                InputMediaAudio(
+                    file_like_object, caption=media_item["caption"], parse_mode="html"
+                )
+            )
         media_counter += 1
     # check if the media group is empty, if it is, return None
     if len(media_message_group) == 0:
@@ -383,7 +448,9 @@ async def media_files_packaging(media_files: list, caption_text: str = '') -> tu
             media_message_group.append(media_group)
     elif len(media_group) > 0:  # append the last media group
         media_message_group.append(media_group)
-    media_message_group[0][0].caption = caption_text  # only the first media group has the caption text
+    media_message_group[0][
+        0
+    ].caption = caption_text  # only the first media group has the caption text
     if len(media_message_group) > 1:
         for i in range(1, len(media_message_group)):
             media_message_group[i][0].caption = f"the {i}th media group"
