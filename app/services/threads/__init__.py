@@ -11,7 +11,7 @@ SHORT_LIMIT = 600
 
 
 class Threads(object):
-    def __init__(self, url):
+    def __init__(self, url: str, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""
@@ -191,11 +191,11 @@ class Threads(object):
                     pics_component += f"<img src=\"{media['image_versions2']['candidates'][0]['url']}\">"
         thread_info["text_group"] += user_component + thread["text"] + "\n"
         thread_info["content_group"] += (
-            user_component
-            + thread["text"].replace("\n", "<br>")
-            + pics_component
-            + videos_component
-            + "<hr>"
+                user_component
+                + thread["text"].replace("\n", "<br>")
+                + pics_component
+                + videos_component
+                + "<hr>"
         )
         if thread["quoted_post"] is not None:  # solve possible retweeted threads
             retweeted_thread = Threads.parse_single_threads_data(thread["quoted_post"])
