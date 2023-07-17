@@ -197,7 +197,8 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         replying_message = await update.message.reply_text(
             text=f"Item processing...",
         )
-        metadata_item = await content_process_function(data["metadata"])
+        extra_args = data["extra_args"] if "extra_args" in data else {}
+        metadata_item = await content_process_function(url_metadata=data["metadata"], **extra_args)
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
@@ -213,8 +214,8 @@ async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     )
 
 
-async def content_process_function(url_metadata: dict) -> dict:
-    item = InfoExtractService(url_metadata)
+async def content_process_function(url_metadata: dict, **kwargs) -> dict:
+    item = InfoExtractService(url_metadata, **kwargs)
     metadata_item = await item.get_item()
     return metadata_item
 
@@ -393,7 +394,7 @@ async def media_files_packaging(media_files: list, caption_text: str = "") -> tu
             ):  # for local api sever, if the size is over 2GB, skip this file
                 continue
         # check media files' type and process them by their type
-        if media_item["type"] == "image":
+        if media_item["media_type"] == "image":
             image_url = media_item["url"]
             image = Image.open(io_object)
             img_width, img_height = image.size
@@ -413,7 +414,7 @@ async def media_files_packaging(media_files: list, caption_text: str = "") -> tu
                     file_group.append(io_object)
                     # download again because Image.open method closed the previous io_object
                     # if the image is too large, append the file into file_group
-        elif media_item["type"] == "gif":
+        elif media_item["media_type"] == "gif":
             io_object = await download_a_iobytes_file(
                 media_item["url"], "gif_image-" + str(media_counter) + ".gif"
             )
@@ -423,7 +424,7 @@ async def media_files_packaging(media_files: list, caption_text: str = "") -> tu
                     io_object, caption=media_item["caption"], parse_mode="html"
                 )
             )
-        elif media_item["type"] == "video":
+        elif media_item["media_type"] == "video":
             file_like_object = InputFile(io_object)
             media_group.append(
                 InputMediaVideo(
@@ -431,7 +432,7 @@ async def media_files_packaging(media_files: list, caption_text: str = "") -> tu
                 )
             )
         elif (
-            media_item["type"] == "audio"
+            media_item["media_type"] == "audio"
         ):  # TODO: not have any services to store audio files for now
             file_like_object = InputFile(io_object)
             media_group.append(

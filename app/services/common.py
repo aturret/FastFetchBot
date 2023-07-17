@@ -2,7 +2,7 @@ from app.services import threads, twitter, instagram, weibo, telegraph
 
 
 class InfoExtractService(object):
-    def __init__(self, url_metadata, data=None):
+    def __init__(self, url_metadata, data=None, **kwargs):
         self.url = url_metadata["url"]
         self.type = url_metadata["type"]
         self.category = url_metadata["category"]
@@ -15,6 +15,7 @@ class InfoExtractService(object):
             "youtube": self.get_video,
             "bilibili": self.get_video,
         }
+        self.kwargs = kwargs
 
     async def get_item(self):
         metadata_item = await self.service_functions[self.type]()
@@ -22,7 +23,7 @@ class InfoExtractService(object):
         return
 
     async def get_threads(self):
-        threads_item = threads.Threads(self.url)
+        threads_item = threads.Threads(self.url, **self.kwargs)
         metadata_item = await threads_item.get_threads()
         return metadata_item
 
