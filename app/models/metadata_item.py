@@ -77,7 +77,7 @@ class MetadataItem:
     def to_dict(self) -> dict:
         result: dict = {}
         result["url"] = from_str(self.url)
-        result["telegraph_url"] = from_str(self.telegraph_url)
+        result["telegraph_url"] = from_str(self.telegraph_url) if self.telegraph_url else ""
         result["content"] = from_str(self.content)
         result["text"] = from_str(self.text)
         result["media_files"] = from_list(lambda x: to_class(MediaFile, x), self.media_files)
