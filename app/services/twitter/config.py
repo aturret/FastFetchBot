@@ -1,5 +1,10 @@
-ALL_SCRAPER = ["Twitter135", "Twitter154"]
-ALL_SINGLE_SCRAPER = ["Twitter154"]
+
+"""
+scaper infos
+"""
+
+ALL_SCRAPER = ["Twitter135", "Twitter154", "twitter-v24"]
+ALL_SINGLE_SCRAPER = ["Twitter154", "twitter-v24", "Twitter135"]
 SCRAPER_INFO = {
     "Twitter135": {
         "host": "https://twitter135.p.rapidapi.com/v2/TweetDetail/",
@@ -18,3 +23,9 @@ SCRAPER_INFO = {
     },
 }
 X_RAPIDAPI_HOST = ".p.rapidapi.com"
+
+"""
+twitter constants
+"""
+
+SHORT_LIMIT = 600
