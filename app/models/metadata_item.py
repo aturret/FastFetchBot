@@ -33,7 +33,7 @@ class MediaFile:
     caption: str
 
     @staticmethod
-    def from_dict(obj: Any) -> 'MediaFile':
+    def from_dict(obj: Any) -> "MediaFile":
         assert isinstance(obj, dict)
         media_type = from_str(obj.get("media_type"))
         url = from_str(obj.get("url"))
@@ -58,10 +58,11 @@ class MetadataItem:
     author: str
     title: str
     author_url: str
+    category: str
     type: str
 
     @staticmethod
-    def from_dict(obj: Any) -> 'MetadataItem':
+    def from_dict(obj: Any) -> "MetadataItem":
         assert isinstance(obj, dict)
         url = from_str(obj.get("url"))
         telegraph_url = from_str(obj.get("telegraph_url"))
@@ -71,19 +72,34 @@ class MetadataItem:
         author = from_str(obj.get("author"))
         title = from_str(obj.get("title"))
         author_url = from_str(obj.get("author_url"))
+        category = from_str(obj.get("category"))
         type = from_str(obj.get("type"))
-        return MetadataItem(url, telegraph_url, content, text, media_files, author, title, author_url, type)
+        return MetadataItem(
+            url,
+            telegraph_url,
+            content,
+            text,
+            media_files,
+            author,
+            title,
+            author_url,
+            category,
+            type,
+        )
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["url"] = from_str(self.url)
-        result["telegraph_url"] = from_str(self.telegraph_url) if self.telegraph_url else ""
+        result["telegraph_url"] = ""
         result["content"] = from_str(self.content)
         result["text"] = from_str(self.text)
-        result["media_files"] = from_list(lambda x: to_class(MediaFile, x), self.media_files)
+        result["media_files"] = from_list(
+            lambda x: to_class(MediaFile, x), self.media_files
+        )
         result["author"] = from_str(self.author)
         result["title"] = from_str(self.title)
         result["author_url"] = from_str(self.author_url)
+        result["category"] = from_str(self.category)
         result["type"] = from_str(self.type)
         return result
 
