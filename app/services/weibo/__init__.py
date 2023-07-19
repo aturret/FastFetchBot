@@ -7,7 +7,7 @@ import httpx
 from app.models.metadata_item import MetadataItem
 from app.utils.config import CHROME_USER_AGENT
 from app.utils.network import get_response_json
-from config import AJAX_HOST, AJAX_LONGTEXT_HOST, WEIBO_WEB_HOST
+from .config import AJAX_HOST, AJAX_LONGTEXT_HOST, WEIBO_WEB_HOST
 
 
 class Weibo(MetadataItem):
@@ -57,4 +57,3 @@ class Weibo(MetadataItem):
         elif self.method == "a  pi":
             ajax_info = await get_response_json(self.ajax_url, headers=self.headers)
         return weibo_info
-
