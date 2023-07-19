@@ -6,12 +6,12 @@ from app.services import threads, twitter, instagram, weibo, telegraph
 
 
 class InfoExtractService(object):
+
     def __init__(self, url_metadata: UrlMetadata, data: Any = None, **kwargs):
         url_metadata = url_metadata.to_dict()
         self.url = url_metadata["url"]
         self.type = url_metadata["type"]
         self.source = url_metadata["source"]
-        self.category = self.check_category(self.source)
         self.data = data
         self.service_functions = {
             "instagram": self.get_instagram,
@@ -23,14 +23,17 @@ class InfoExtractService(object):
         }
         self.kwargs = kwargs
 
-    @staticmethod
-    def check_category(source: str) -> str:
-        category = source
-        return category
+    @property
+    def category(self) -> str:
+        return self.source
 
     async def get_item(self):
         metadata_item = await self.service_functions[self.category]()
-        # TODO: check if metadata_item needs to create a telegraph page
+        if metadata_item["type"] == "long":
+            telegraph_item = telegraph.Telegraph.from_dict(metadata_item)
+            telegraph_url = await telegraph_item.get_telegraph()
+            metadata_item["telegraph_url"] = telegraph_url
+        print(metadata_item)
         return metadata_item
 
     async def get_threads(self):
