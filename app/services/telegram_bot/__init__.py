@@ -347,6 +347,8 @@ def message_formatting(data: dict) -> str:
     :param data:
     :return:
     """
+    # TODO: the telegram bot api doesn't support line break symbols. We must enter it manually so that jinja2 may not
+    #  render it correctly. We should find a way to solve this problem.
     message_template = environment.get_template("social_media_message.jinja2")
     text = message_template.render(data=data)
     print(text)
