@@ -38,6 +38,7 @@ from app.utils.parse import check_url_type
 from app.utils.network import download_a_iobytes_file
 from app.utils.image import Image, image_compressing
 from app.config import (
+    BASE_URL,
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
     TELEBOT_API_SERVER,
@@ -50,6 +51,7 @@ from .config import (
     TELEGRAM_FILE_UPLOAD_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL,
 )
+from ...models.url_metadata import UrlMetadata
 
 """
 logging
@@ -70,8 +72,8 @@ application = (
     .base_url(TELEBOT_API_SERVER)
     .build()
 )
-environment = Environment(loader=FileSystemLoader("jinja_templates/"))
-template = environment.get_template("message.txt")
+environment = Environment(loader=FileSystemLoader("app/templates/"))
+template = environment.get_template("social_media_message.jinja2")
 
 
 async def set_webhook(url: str) -> None:
@@ -107,6 +109,7 @@ async def startup() -> None:
     )
     application.add_error_handler(error_handler)
     await application.bot.get_webhook_info()
+    # await set_webhook(url="https://" + BASE_URL)  # for testing
     await application.start()
 
 
@@ -190,15 +193,17 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
     else:
         if data["type"] == "private":
             await query.answer("Sending to you...")
-            chat_id = update.message.chat_id
+            chat_id = query.message.chat_id
         elif data["type"] == "channel":
             await query.answer("Sending to channel...")
             chat_id = await application.bot.get_chat(chat_id=TELEGRAM_CHANNEL_ID).id
-        replying_message = await update.message.reply_text(
+        replying_message = await query.message.reply_text(
             text=f"Item processing...",
         )
         extra_args = data["extra_args"] if "extra_args" in data else {}
-        metadata_item = await content_process_function(url_metadata=data["metadata"], **extra_args)
+        metadata_item = await content_process_function(
+            url_metadata=data["metadata"], **extra_args
+        )
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
@@ -214,7 +219,7 @@ async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     )
 
 
-async def content_process_function(url_metadata: dict, **kwargs) -> dict:
+async def content_process_function(url_metadata: UrlMetadata, **kwargs) -> dict:
     item = InfoExtractService(url_metadata, **kwargs)
     metadata_item = await item.get_item()
     return metadata_item
@@ -255,6 +260,7 @@ async def send_item_message(
                     sent_message = await application.bot.send_media_group(
                         chat_id=discussion_chat_id,
                         media=media_group,
+                        parse_mode=ParseMode.HTML,
                     )
                 if discussion_chat_id != chat_id > 0:
                     # if the chat is a channel, get the latest pinned message from the channel and reply to it
@@ -279,7 +285,7 @@ async def send_item_message(
             ):  # send files, the files messages should be replied to the message sent before
                 application.bot.send_message(
                     chat_id=discussion_chat_id,
-                    parse_mode="html",
+                    parse_mode=ParseMode.HTML,
                     text="The following files are larger than the limitation of Telegram, "
                     "so they are sent as files:",
                     reply_to_message_id=reply_to_message_id,
@@ -292,18 +298,20 @@ async def send_item_message(
                             chat_id=discussion_chat_id,
                             animation=file,
                             reply_to_message_id=reply_to_message_id,
+                            parse_mode=ParseMode.HTML,
                         )
                     else:
                         await application.bot.send_document(
                             chat_id=discussion_chat_id,
                             document=file,
                             reply_to_message_id=reply_to_message_id,
+                            parse_mode=ParseMode.HTML,
                         )
         else:  # if there are no media files, send the caption text and also note the message
             await application.bot.send_message(
                 chat_id=discussion_chat_id,
                 text=caption_text,
-                parse_mode="html",
+                parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True,
             )
     except Exception as e:
@@ -341,6 +349,7 @@ def message_formatting(data: dict) -> str:
     """
     message_template = environment.get_template("social_media_message.jinja2")
     text = message_template.render(data=data)
+    print(text)
     return text
 
 

@@ -2,7 +2,9 @@
 
 
 {% if data.type == "short" %}
-    {{ data.text }}\n#{{ data.category }}
+    {{ data.text }}
+    <br>
+    #{{ data.category }}
 {% else %}
     {# title #}
     {% if data.category in ['YouTube', 'Bilibili'] %}

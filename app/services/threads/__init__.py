@@ -20,7 +20,8 @@ class Threads(object):
         self.text = ""
         self.content = ""
         self.media_files = []
-        self.type = "long"
+        self.category = "Threads"
+        self.type = "short"
         # auxiliary fields
         self.text_group = ""
         self.content_group = ""
