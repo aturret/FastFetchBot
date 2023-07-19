@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import httpx
 import jmespath
 
-from app.models.metadata_item import MetadataItem
+from app.models.metadata_item import MetadataItem, MediaFile
 from app.utils.parse import get_html_text_length
 from .config import (
     ALL_SCRAPER,
@@ -140,11 +140,16 @@ class Twitter(MetadataItem):
                         "content_group"
                     ] += f"<img src='{media['media_url_https']}'/>"
                     tweet_info["media_files"].append(
-                        {
-                            "type": "image",
-                            "url": media["media_url_https"],
-                            "caption": "",
-                        }
+                        MediaFile(
+                            media_type="image",
+                            url=media["media_url_https"],
+                            caption="",
+                        )
+                        # {
+                        #     "media_type": "image",
+                        #     "url": media["media_url_https"],
+                        #     "caption": "",
+                        # }
                     )
                 elif media["type"] == "video":
                     highest_bitrate_item = max(
@@ -155,20 +160,24 @@ class Twitter(MetadataItem):
                         "content_group"
                     ] += f'<video controls="controls" src="{highest_bitrate_item["url"]}"></video>'
                     tweet_info["media_files"].append(
-                        {
-                            "type": "video",
-                            "url": highest_bitrate_item["url"],
-                            "caption": "",
-                        }
+                        MediaFile(
+                            media_type="video",
+                            url=highest_bitrate_item["url"],
+                            caption="",
+                        )
+                        # {
+                        #     "media_type": "video",
+                        #     "url": highest_bitrate_item["url"],
+                        #     "caption": "",
+                        # }
                     )
-        tweet_info["content_group"] += (
+        tweet_info["content_group"] = (
             tweet_info["content_group"].replace("\n", "<br>") + "<hr>"
         )
         return tweet_info
 
     @staticmethod
     def parse_tweet_data_Twitter135(data: Dict) -> Dict:
-        print(data)
         result = jmespath.search(
             """{
             tid: rest_id,
@@ -182,7 +191,6 @@ class Twitter(MetadataItem):
             }""",
             data,
         )
-        print(result)
         return result
 
     def process_tweet_Twitter154(self, tweet_data: Dict):
