@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 from app.models.url_metadata import UrlMetadata
 from app.models.metadata_item import MetadataItem
-from app.services import threads, twitter, instagram, weibo, telegraph
+from app.services import threads, twitter, instagram, weibo, telegraph, douban
 
 
 class InfoExtractService(object):
@@ -46,10 +46,15 @@ class InfoExtractService(object):
         metadata_item = await twitter_item.get_twitter()
         return metadata_item
 
-    async def get_instagram(self):
+    async def get_weibo(self):
         pass
 
-    async def get_weibo(self):
+    async def get_douban(self):
+        douban_item = douban.Douban(self.url, **self.kwargs)
+        metadata_item = await douban_item.get_douban()
+        return metadata_item
+
+    async def get_instagram(self):
         pass
 
     async def get_video(self):
