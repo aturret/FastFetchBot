@@ -1,16 +1,17 @@
 import json
 from typing import Dict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 import jmespath
 from playwright.async_api import async_playwright
 
 from app.utils.parse import get_html_text_length, unix_timestamp_to_utc
+from app.models.metadata_item import MetadataItem, MediaFile
 
 SHORT_LIMIT = 600
 
 
-class Threads(object):
+class Threads(MetadataItem):
     def __init__(self, url: str, **kwargs):
         # metadata fields
         self.url = url
@@ -20,7 +21,7 @@ class Threads(object):
         self.text = ""
         self.content = ""
         self.media_files = []
-        self.category = "Threads"
+        self.category = "threads"
         self.type = "short"
         # auxiliary fields
         self.text_group = ""
@@ -67,8 +68,9 @@ class Threads(object):
             images: carousel_media[].image_versions2.candidates[1].url,
             image: image_versions2.candidates[1].url,
             video: video_versions[1].url,
-            media_count: carousel_media_count
-            quoted_post: text_post_app_info.share_info.quoted_post
+            media_count: carousel_media_count,
+            quoted_post: text_post_app_info.share_info.quoted_post,
+            link: text_post_app_info.link_preview_attachment
         }""",
             data,
         )
@@ -149,55 +151,59 @@ class Threads(object):
         }
         # make html components, and solve the pictures and videos
         user_component = f"<a href='https://threads.net/@{thread['username']}'>@{thread['username']}</a>:"
-        pics_component = ""
-        videos_component = ""
+        thread_info["content_group"] += user_component + thread["text"].replace("\n", "<br><br>")
+        thread_info["text_group"] += user_component + thread["text"] + "\n"
         if not thread["media_count"]:  # if the thread doesn't have multiple media files
             if thread["video"]:  # if the threads has only one video/gif
                 thread_info["videos_url"].append(thread["video"])
                 thread_info["media_files"].append(
-                    {"type": "video", "url": thread["video"], "caption": ""}
+                    MediaFile(media_type="video", url=thread["video"], caption="")
                 )
-                videos_component += (
+                thread_info["content_group"] += (
                     f"<video controls=\"controls\" src=\"{thread['video']}\">"
                 )
             elif thread["image"]:  # if the threads has only one picture
                 thread_info["pics_url"].append(thread["image"])
                 thread_info["media_files"].append(
-                    {"type": "image", "url": thread["image"], "caption": ""}
+                    MediaFile(media_type="image", url=thread["image"], caption="")
                 )
-                pics_component += f"<img src=\"{thread['image']}\">"
+                thread_info["content_group"] += f"<img src=\"{thread['image']}\">"
         else:  # if the threads has more than one media files
             for media in thread["media_files"]:
                 if len(media["video_versions"]) > 0:  # if the media is a video/gif
                     thread_info["videos_url"].append(media["video_versions"][0]["url"])
                     thread_info["media_files"].append(
-                        {
-                            "type": "video",
-                            "url": media["video_versions"][0]["url"],
-                            "caption": "",
-                        }
+                        MediaFile(
+                            media_type="video",
+                            url=media["video_versions"][0]["url"],
+                            caption="",
+                        )
                     )
-                    videos_component += f"<video controls=\"controls\" src=\"{media['video_versions'][0]['url']}\">"
+                    thread_info["content_group"] += f"<video controls=\"controls\" src=\"{media['video_versions'][0]['url']}\">"
                 else:  # if the media is a picture
                     thread_info["pics_url"].append(
                         media["image_versions2"]["candidates"][0]["url"]
                     )
                     thread_info["media_files"].append(
-                        {
-                            "type": "image",
-                            "url": media["image_versions2"]["candidates"][0]["url"],
-                            "caption": "",
-                        }
+                        MediaFile(
+                            media_type="image",
+                            url=media["image_versions2"]["candidates"][0]["url"],
+                            caption="",
+                        )
                     )
-                    pics_component += f"<img src=\"{media['image_versions2']['candidates'][0]['url']}\">"
-        thread_info["text_group"] += user_component + thread["text"] + "\n"
-        thread_info["content_group"] += (
-                user_component
-                + thread["text"].replace("\n", "<br>")
-                + pics_component
-                + videos_component
-                + "<hr>"
-        )
+                    thread_info["content_group"] += f"<img src=\"{media['image_versions2']['candidates'][0]['url']}\">"
+        thread_info["content_group"] += "<hr>"
+        if thread["link"]:  # process the link item in the threads
+            link_title = thread["link"]["title"]
+            link_url = (
+                unquote(urlparse(thread["link"]["url"]).query)
+                .split("=")[1]
+                .split("&")[0]
+            )
+            thread_info["text_group"] += f"<a href='{link_url}'>{link_title}</a>\n"
+            thread_info[
+                "content_group"
+            ] += f"<p><a href='{link_url}'>{link_title}</a></p><br>"
         if thread["quoted_post"] is not None:  # solve possible retweeted threads
             retweeted_thread = Threads.parse_single_threads_data(thread["quoted_post"])
             retweeted_thread_info = Threads.parse_single_threads(retweeted_thread)
