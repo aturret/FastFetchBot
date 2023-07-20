@@ -2,11 +2,10 @@ from typing import Optional, Any
 
 from app.models.url_metadata import UrlMetadata
 from app.models.metadata_item import MetadataItem
-from app.services import threads, twitter, instagram, weibo, telegraph, douban
+from app.services import threads, twitter, instagram, weibo, telegraph, douban, zhihu
 
 
 class InfoExtractService(object):
-
     def __init__(self, url_metadata: UrlMetadata, data: Any = None, **kwargs):
         url_metadata = url_metadata.to_dict()
         self.url = url_metadata["url"]
@@ -14,10 +13,12 @@ class InfoExtractService(object):
         self.source = url_metadata["source"]
         self.data = data
         self.service_functions = {
-            "instagram": self.get_instagram,
             "twitter": self.get_twitter,
             "threads": self.get_threads,
             "weibo": self.get_weibo,
+            "instagram": self.get_instagram,
+            "douban": self.get_douban,
+            "zhihu": self.get_zhihu,
             "youtube": self.get_video,
             "bilibili": self.get_video,
         }
@@ -52,6 +53,11 @@ class InfoExtractService(object):
     async def get_douban(self):
         douban_item = douban.Douban(self.url, **self.kwargs)
         metadata_item = await douban_item.get_douban()
+        return metadata_item
+
+    async def get_zhihu(self):
+        zhihu_item = zhihu.Zhihu(self.url, **self.kwargs)
+        metadata_item = await zhihu_item.get_zhihu()
         return metadata_item
 
     async def get_instagram(self):
