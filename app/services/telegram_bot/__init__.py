@@ -50,6 +50,7 @@ from .config import (
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL,
+    REFERER_REQUIRED,
 )
 from ...models.url_metadata import UrlMetadata
 
@@ -250,7 +251,7 @@ async def send_item_message(
         if data["type"] == "short" and len(data["media_files"]) > 0:
             # if the type is short and there are some media files, send media group
             media_message_group, file_group = await media_files_packaging(
-                media_files=data["media_files"], caption_text=caption_text
+                media_files=data["media_files"], caption_text=caption_text, data=data
             )
             if (
                 len(media_message_group) > 0
@@ -345,20 +346,24 @@ def message_formatting(data: dict) -> str:
     """
     Format the message to be sent to the user.
     :param data:
-    :return:
+    :return: text (str) the formatted text for telegram bot api sending message.
+    TODO: the telegram bot api doesn't support line break symbols. It decides if there would be a line break just by
+     the real line break. So we must enter it manually so that jinja2 may not render it correctly.
+     We should find a way to solve this problem.
     """
-    # TODO: the telegram bot api doesn't support line break symbols. We must enter it manually so that jinja2 may not
-    #  render it correctly. We should find a way to solve this problem.
     message_template = environment.get_template("social_media_message.jinja2")
     text = message_template.render(data=data)
     print(text)
     return text
 
 
-async def media_files_packaging(media_files: list, caption_text: str = "") -> tuple:
+async def media_files_packaging(
+    media_files: list, data: dict, caption_text: str = ""
+) -> tuple:
     """
     Download the media files from data["media_files"] and package them into a list of media group or file group for
     sending them by send_media_group method or send_document method.
+    :param data: (dict) metadata of the item
     :param media_files: (list) a list of media files,
     :param caption_text: (str) the caption text
     :return: (tuple) a tuple of media group and file group
@@ -382,12 +387,15 @@ async def media_files_packaging(media_files: list, caption_text: str = "") -> tu
         if (
             url_parser.scheme == "http" or url_parser.scheme == "https"
         ):  # if the url is a http url, download the file
+            if data["category"] in REFERER_REQUIRED:
+                referer = data["url"]
             io_object = await download_a_iobytes_file(media_item["url"])
             file_size = io_object.size
         else:  # if the url is a local file path, just add it to the media group
             try:
                 file_path = url2pathname(media_item["url"])
                 file_size = os.path.getsize(file_path)
+                io_object = InputFile(media_item["url"])
             except Exception as e:  # the url is not a valid file path
                 logger.error(e)
                 continue
