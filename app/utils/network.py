@@ -5,14 +5,12 @@ import traceback
 from lxml import etree
 
 from app.models.classes import NamedBytesIO
-from app.utils.config import CHROME_USER_AGENT
+from app.utils.config import CHROME_USER_AGENT, HEADERS
 
 
 async def get_response(url: str, headers: dict = None) -> httpx.Response:
     if headers is None:
-        headers = {
-            "User-Agent": CHROME_USER_AGENT,
-        }
+        headers = HEADERS
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers)
         return resp
@@ -41,9 +39,15 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
         return selector
 
 
-async def download_a_iobytes_file(url, file_name=None):
+async def download_a_iobytes_file(
+    url, file_name=None, headers=None, referer=None
+) -> NamedBytesIO:
+    if headers is None:
+        headers = HEADERS
+    if referer is not None:
+        headers["referer"] = referer
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
+        response = await client.get(url=url, headers=headers)
     file_data = response.content
     if file_name is None:
         file_format = url.split(".")[-1]
