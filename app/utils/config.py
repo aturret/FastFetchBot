@@ -16,7 +16,10 @@ VIDEO_WEBSITE_PATTERNS = {
 }
 
 """
-fake user agent
+default headers
 """
 ua = UserAgent()
 CHROME_USER_AGENT = ua.chrome
+HEADERS = {
+    "User-Agent": CHROME_USER_AGENT,
+}
