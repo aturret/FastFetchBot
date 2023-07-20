@@ -151,7 +151,9 @@ class Threads(MetadataItem):
         }
         # make html components, and solve the pictures and videos
         user_component = f"<a href='https://threads.net/@{thread['username']}'>@{thread['username']}</a>:"
-        thread_info["content_group"] += user_component + thread["text"].replace("\n", "<br><br>")
+        thread_info["content_group"] += user_component + thread["text"].replace(
+            "\n", "<br><br>"
+        )
         thread_info["text_group"] += user_component + thread["text"] + "\n"
         if not thread["media_count"]:  # if the thread doesn't have multiple media files
             if thread["video"]:  # if the threads has only one video/gif
@@ -159,9 +161,9 @@ class Threads(MetadataItem):
                 thread_info["media_files"].append(
                     MediaFile(media_type="video", url=thread["video"], caption="")
                 )
-                thread_info["content_group"] += (
-                    f"<video controls=\"controls\" src=\"{thread['video']}\">"
-                )
+                thread_info[
+                    "content_group"
+                ] += f"<video controls=\"controls\" src=\"{thread['video']}\">"
             elif thread["image"]:  # if the threads has only one picture
                 thread_info["pics_url"].append(thread["image"])
                 thread_info["media_files"].append(
@@ -179,7 +181,9 @@ class Threads(MetadataItem):
                             caption="",
                         )
                     )
-                    thread_info["content_group"] += f"<video controls=\"controls\" src=\"{media['video_versions'][0]['url']}\">"
+                    thread_info[
+                        "content_group"
+                    ] += f"<video controls=\"controls\" src=\"{media['video_versions'][0]['url']}\">"
                 else:  # if the media is a picture
                     thread_info["pics_url"].append(
                         media["image_versions2"]["candidates"][0]["url"]
@@ -191,7 +195,9 @@ class Threads(MetadataItem):
                             caption="",
                         )
                     )
-                    thread_info["content_group"] += f"<img src=\"{media['image_versions2']['candidates'][0]['url']}\">"
+                    thread_info[
+                        "content_group"
+                    ] += f"<img src=\"{media['image_versions2']['candidates'][0]['url']}\">"
         thread_info["content_group"] += "<hr>"
         if thread["link"]:  # process the link item in the threads
             link_title = thread["link"]["title"]
