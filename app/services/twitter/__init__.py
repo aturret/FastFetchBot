@@ -36,7 +36,7 @@ class Twitter(MetadataItem):
         self.text = ""
         self.content = ""
         self.media_files = []
-        self.category = "Twitter"
+        self.category = "twitter"
         self.type = "short"
         # auxiliary fields
         self.tid = urlparse(url).path.split("/")[-1]
@@ -145,11 +145,6 @@ class Twitter(MetadataItem):
                             url=media["media_url_https"],
                             caption="",
                         )
-                        # {
-                        #     "media_type": "image",
-                        #     "url": media["media_url_https"],
-                        #     "caption": "",
-                        # }
                     )
                 elif media["type"] == "video":
                     highest_bitrate_item = max(
@@ -165,11 +160,6 @@ class Twitter(MetadataItem):
                             url=highest_bitrate_item["url"],
                             caption="",
                         )
-                        # {
-                        #     "media_type": "video",
-                        #     "url": highest_bitrate_item["url"],
-                        #     "caption": "",
-                        # }
                     )
         tweet_info["content_group"] = (
             tweet_info["content_group"].replace("\n", "<br>") + "<hr>"
