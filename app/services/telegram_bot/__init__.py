@@ -75,6 +75,8 @@ application = (
 )
 environment = Environment(loader=FileSystemLoader("app/templates/"))
 template = environment.get_template("social_media_message.jinja2")
+template.environment.trim_blocks = True
+template.environment.lstrip_blocks = True
 
 
 async def set_webhook(url: str) -> None:
