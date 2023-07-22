@@ -5,10 +5,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 from app.models.url_metadata import UrlMetadata
-from app.utils.config import (
-    SOCIAL_MEDIA_WEBSITE_PATTERNS,
-    VIDEO_WEBSITE_PATTERNS
-)
+from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 
 
 def get_html_text_length(html: str) -> int:
