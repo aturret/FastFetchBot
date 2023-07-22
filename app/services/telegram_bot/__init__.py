@@ -49,7 +49,7 @@ from .config import (
     HTTPS_URL_REGEX,
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
-    TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL,
+    TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
     REFERER_REQUIRED,
 )
 from ...models.url_metadata import UrlMetadata
@@ -411,7 +411,7 @@ async def media_files_packaging(
                 continue
         else:
             if (
-                file_size > TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL
+                file_size > TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API
             ):  # for local api sever, if the size is over 2GB, skip this file
                 continue
         # check media files' type and process them by their type
