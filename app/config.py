@@ -1,5 +1,6 @@
 import os
 import tempfile
+from jinja2 import Environment, FileSystemLoader
 
 env = os.environ
 
@@ -42,4 +43,9 @@ WORK_DIR = env.get("WORK_DIR", os.getcwd())
 
 
 # Services environment variables
+JINJA2_ENV = Environment(loader=FileSystemLoader("app/templates/"))
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
+
+
+# Utils environment variables
+HTTP_REQUEST_TIMEOUT = env.get("HTTP_REQUEST_TIMEOUT", 30)
