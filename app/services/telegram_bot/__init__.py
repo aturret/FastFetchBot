@@ -44,6 +44,7 @@ from app.config import (
     TELEBOT_API_SERVER,
     TELEGRAM_IMAGE_DIMENSION_LIMIT,
     TELEGRAM_IMAGE_SIZE_LIMIT,
+    JINJA2_ENV,
 )
 from .config import (
     HTTPS_URL_REGEX,
@@ -73,7 +74,7 @@ application = (
     .base_url(TELEBOT_API_SERVER)
     .build()
 )
-environment = Environment(loader=FileSystemLoader("app/templates/"))
+environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
 template.environment.trim_blocks = True
 template.environment.lstrip_blocks = True
@@ -353,7 +354,7 @@ def message_formatting(data: dict) -> str:
      the real line break. So we must enter it manually so that jinja2 may not render it correctly.
      We should find a way to solve this problem.
     """
-    message_template = environment.get_template("social_media_message.jinja2")
+    message_template = template
     text = message_template.render(data=data)
     print(text)
     return text
