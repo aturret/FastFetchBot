@@ -12,14 +12,21 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
 )
 from app.utils.network import get_selector, get_response_json
-from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.models.metadata_item import MetadataItem, MediaFile
+from app.utils.config import CHROME_USER_AGENT, HEADERS
+from app.config import JINJA2_ENV
+from .config import (
+    SHORT_LIMIT,
+    ZHIHU_COLUMNS_API_HOST,
+    ZHIHU_API_HOST,
+    ZHIHU_HOST,
+    ALL_METHODS,
+)
 
+environment = JINJA2_ENV
+short_text_template = environment.get_template("zhihu_short_text.jinja2")
+content_template = environment.get_template("zhihu_content.jinja2")
 
-SHORT_LIMIT = 600
-ZHIHU_COLUMNS_API_HOST = 'https://zhuanlan.zhihu.com/api'
-ZHIHU_API_HOST = 'https://www.zhihu.com/api/v4'
-ZHIHU_HOST = 'https://www.zhihu.com'
 
 class Zhihu(MetadataItem):
     def __init__(self, url: str, **kwargs):
@@ -42,32 +49,41 @@ class Zhihu(MetadataItem):
         self.text_group = ""
         self.raw_content = ""
         self.date = ""
+        self.updated = ""
+        self.retweet_html = ""
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
         self.method = kwargs.get("method", "api")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
+        # other hard-coded fields
+        self.zhihu_type_translate = {
+            "article": "专栏文章",
+            "answer": "回答",
+            "status": "想法",
+        }
 
     async def get_zhihu(self) -> Dict:
-        self.check_zhihu_type()
-        await self.get_zhihu_item()
+        """
+        Main function.
+        Get the zhihu item and return the metadata dict.
+        :return: Dict
+        """
+        self._check_zhihu_type()
+        await self._get_zhihu_item()
         return self.to_dict()
 
-    def check_zhihu_type(self):
+    def _check_zhihu_type(self) -> None:
+        """
+        Check the zhihu type of the url. The zhihu type can be one of the following:
+        - article (example: https://zhuanlan.zhihu.com/p/35142635)
+        - answer (example: https://www.zhihu.com/question/19998424/answer/603067076)
+        - status (example: https://www.zhihu.com/pin/1667965059081945088)
+        """
         urlparser = urlparse(self.url)
         host = urlparser.netloc
         path = urlparser.path
-        # if "m.zhihu" in host:  # parse the m.zhihu url
-        #     host = host.replace("m.zhihu", "zhihu")
-        #     if path.startswith("/movie/review"):
-        #         self.zhihu_type = "movie"
-        #         host = host.replace("zhihu", "movie.zhihu")
-        #         path = path.replace("/movie/", "/")
-        #     elif path.startswith("/book/review"):
-        #         self.zhihu_type = "book"
-        #         host = host.replace("zhihu", "book.zhihu")
-        #         path = path.replace("/book/", "/")
         if host.startswith("zhuanlan."):
             self.zhihu_type = "article"
         elif path.find("answer") != -1:
@@ -78,13 +94,14 @@ class Zhihu(MetadataItem):
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
 
-    async def get_zhihu_item(self):
+    async def _get_zhihu_item(self) -> None:
+        """
+        Get zhihu item via the corresponding method according to the zhihu type.
+        """
         function_dict = {
-            "movie": self.get_zhihu_movie_review,
-            "book": self.get_zhihu_book_review,
-            "note": self.get_zhihu_note,
-            "status": self.get_zhihu_status,
-            "group": self.get_zhihu_group_article,
+            "answer": self._get_zhihu_answer,
+            "article": self.get_zhihu_article,
+            "status": self._get_zhihu_status,
             "unknown": None,
         }
         await function_dict[self.zhihu_type]()
@@ -94,41 +111,53 @@ class Zhihu(MetadataItem):
         else:
             self.type = "short"
 
-    async def get_zhihu_answer(self):
-        selector = await get_selector(self.url, headers=self.headers)
-        upvote = selector.xpath('string(//button[contains(@class,"VoteButton")])')
-        self.raw_content = str(
-            etree.tostring(
-                selector.xpath(
-                    '//div[contains(@class,"RichContent-inner")]//span[contains(@class,"RichText") and @itemprop="text"]'
-                )[0],
+    async def _get_zhihu_answer(self) -> None:
+        """
+        parse the zhihu answer page and get the metadata.
+        support methods: html, json. Recommend: json
+        """
+        if self.method == "api":
+            pass  # zhihu v4 api does not open for answer
+        elif self.method == "json":
+            pass
+        elif self.method == "html":
+            selector = await get_selector(self.url, headers=self.headers)
+            upvote = selector.xpath('string(//button[contains(@class,"VoteButton")])')
+            self.raw_content = str(
+                etree.tostring(
+                    selector.xpath(
+                        '//div[contains(@class,"RichContent-inner")]//span[contains(@class,"RichText") and @itemprop="text"]'
+                    )[0],
+                    encoding="utf-8",
+                ),
                 encoding="utf-8",
-            ),
-            encoding="utf-8",
-        )
-        self.title = selector.xpath("string(//h1)")
-        self.author = selector.xpath(
-            'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
-        )
-        self.author_url = selector.xpath(
-            'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
-        )
-        if self.author_url == "https://www.zhihu.com/people/":
-            self.author_url = ""
-        self.content = "<p>" + upvote + "</p><br>" + self.raw_content
-        self.text = (
-            f'<a href="{self.author}">{self.author_url}</a>的豆瓣日记： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
+            )
+            self.title = selector.xpath("string(//h1)")
+            self.author = selector.xpath(
+                'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
+            )
+            self.author_url = selector.xpath(
+                'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
+            )
+            if self.author_url == "https://www.zhihu.com/people/":
+                self.author_url = ""
+            self.content = ("<p>" + upvote + "</p><br>" + self.raw_content).replace(
+                "\n", "<br>"
+            )
+            self.text = (
+                f'<a href="{self.author}">{self.author_url}</a>的知乎回答： \n'
+                f'<a href="{self.url}"><b>{self.title}</b></a>\n'
+            )
 
-    async def get_zhihu_status(self):
-        selector = await get_selector(self.url, headers=self.headers)
-        self.zhihu_type = "status"
+    async def _get_zhihu_status(self):
+        """
+        parse the zhihu status page and get the metadata.
+        support methods: api, html
+        """
         if self.method == "api":
             self.api_url = (
                 "https://www.zhihu.com/api/v4/pins/"
-                + re.findall(r"pin/(\d+)\D*", self.url)[0]
+                + self.urlparser.path.split("/")[-1]
             )
             print(self.api_url)
             json_data = await get_response_json(
@@ -137,15 +166,15 @@ class Zhihu(MetadataItem):
             # json_data = await get_zhihu_json_data(self.api_url, headers=self.headers)
             self.author = json_data["author"]["name"]
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
-            self.title = self.author + "的想法"
+            self.title = self.author + "的知乎想法"
             self.content = json_data["content_html"]
-            self.get_zhihu_short_text()
-            self.created = unix_timestamp_to_utc(json_data["created"])
+            self.zhihu_short_text_process()
+            self.date = unix_timestamp_to_utc(json_data["created"])
             self.updated = unix_timestamp_to_utc(json_data["updated"])
             timestamp = (
                 "修改于：" + self.updated
                 if json_data["updated"] > json_data["created"]
-                else "发布于：" + self.created
+                else "发布于：" + self.date
             )
             upvote = json_data["like_count"]
             self.content = (
@@ -159,7 +188,7 @@ class Zhihu(MetadataItem):
                 + timestamp
             )
         elif self.method == "html":
-            selector = get_selector(url=self.url, headers=self.headers)
+            selector = await get_selector(self.url, headers=self.headers)
             content = str(
                 etree.tostring(
                     selector.xpath(
@@ -191,7 +220,7 @@ class Zhihu(MetadataItem):
                     )
                     != '<div class="RichText ztext PinItem-remainContentRichText"/>'
                 ):  # 如果转发内容有图
-                    pichtml = html.fromstring(
+                    pic_html = html.fromstring(
                         str(
                             etree.tostring(
                                 selector.xpath(
@@ -203,7 +232,7 @@ class Zhihu(MetadataItem):
                         )
                     )
                     self.retweet_html = str(
-                        html.tostring(pichtml, pretty_print=True)
+                        html.tostring(pic_html, pretty_print=True)
                     ).replace("b'<div", "<div")
                     print(type(self.retweet_html))
                     print(self.retweet_html)
@@ -244,7 +273,7 @@ class Zhihu(MetadataItem):
             self.api_url = (
                 ZHIHU_COLUMNS_API_HOST
                 + "/articles/"
-                + re.findall(r"/p/(\d+)\D*", self.url)[0]
+                + self.urlparser.path.split("/")[-1]
             )
             json_data = await get_response_json(self.api_url, headers=self.headers)
             self.title = json_data["title"]
@@ -252,7 +281,7 @@ class Zhihu(MetadataItem):
             self.author = json_data["author"]["name"]
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
             upvote = json_data["voteup_count"]
-            self.get_zhihu_short_text()
+            self.zhihu_short_text_process()
         elif self.method == "html":
             self.zhihu_type = "article"
             selector = get_selector(url=self.url, headers=self.headers)
@@ -269,7 +298,7 @@ class Zhihu(MetadataItem):
                 ),
                 encoding="utf-8",
             )
-            self.get_zhihu_short_text()
+            self.zhihu_short_text_process()
             self.content = upvote + "<br>" + self.content
             self.author = selector.xpath(
                 'string(//div[contains(@class,"AuthorInfo-head")]//a)'
@@ -299,30 +328,16 @@ class Zhihu(MetadataItem):
         for figure in soup.find_all("figure"):
             figure.append(BeautifulSoup("<br>", "html.parser"))
             figure.decompose()
-        print(self.content)
-        if self.zhihu_type == "status":
-            self.text = (
-                '<a href="'
-                + self.aurl
-                + '"><b>'
-                + self.title
-                + "</b>"
-                + "</a>："
-                + str(soup)
-            )
-        else:
-            self.text = (
-                '<a href="'
-                + self.aurl
-                + '"><b>'
-                + self.title
-                + "</b> - "
-                + self.author
-                + "的"
-                + zhihu_type_translate[self.zhihu_type]
-                + "</a>：\n"
-                + str(soup)
-            )
+        content = str(soup)
+        self.text = short_text_template.render(
+            zhihu_type=self.zhihu_type,
+            translated_zhihu_type=self.zhihu_type_translate[self.zhihu_type],
+            title=self.title,
+            author=self.author,
+            author_url=self.author_url,
+            url=self.url,
+            content=content,
+        )
         soup = BeautifulSoup(self.text, "html.parser")
         soup = format_telegram_short_text(soup)
         for p in soup.find_all("p"):
