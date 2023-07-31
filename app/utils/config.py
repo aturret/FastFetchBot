@@ -9,6 +9,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     "instagram": [r"instagram\.com"],
     "zhihu": [r"zhihu\.com"],
     "douban": [r"douban\.com"],
+    "threads": [r"threads\.net"],
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [r"youtube\.com", r"youtu\.be"],
