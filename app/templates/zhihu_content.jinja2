@@ -1,0 +1,13 @@
+{# templates/zhihu_short_text.html #}
+
+{% if zhihu_type == "status" %}
+    <a href="{{ url }}">
+        <b>{{ title }}</b>
+    </a>:
+    {{ content }}
+{% else %}
+    <a href="{{ url }}">
+        <b>{{ title }}</b> - {{ author }}的{{ translated_zhihu_type }}
+    </a>
+    {{ content }}
+{% endif %}
