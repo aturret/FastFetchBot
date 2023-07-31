@@ -35,7 +35,7 @@ class Twitter(MetadataItem):
         self.author_url = ""
         self.text = ""
         self.content = ""
-        self.media_files = []
+        self.media_files: list[MediaFile] = []
         self.category = "twitter"
         self.type = "short"
         # auxiliary fields
@@ -51,27 +51,21 @@ class Twitter(MetadataItem):
         self.params = {}
 
     async def get_twitter(self) -> Dict:
-        tweet_data = await self.get_response_tweet_data()
-        self.process_tweet(tweet_data)
+        tweet_data = await self._get_response_tweet_data()
+        self._process_tweet(tweet_data)
         return self.to_dict()
 
-    async def get_response_tweet_data(self) -> Dict:
+    async def _get_response_tweet_data(self) -> Dict:
         scrapers = ALL_SCRAPER if self.instruction == "threads" else ALL_SINGLE_SCRAPER
         for scraper in scrapers:
             self.scraper = scraper
-            self.get_request_headers_and_params()
+            self._get_request_headers()
             async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url=self.host, headers=self.headers, params=self.params
-                )
+                response = await client.get(url=self.host, headers=self.headers, params=self.params)
                 if response.status_code == 200:
                     tweet_data = response.json()
-                    if (
-                        type(tweet_data) == dict
-                        and ("errors" in tweet_data or "detail" in tweet_data)
-                    ) or (
-                        type(tweet_data) == str
-                        and ("400" in tweet_data or "429" in tweet_data)
+                    if (type(tweet_data) == dict and ("errors" in tweet_data or "detail" in tweet_data)) or (
+                        type(tweet_data) == str and ("400" in tweet_data or "429" in tweet_data)
                     ):
                         #  if the response is not valid, try next scraper
                         continue
@@ -81,16 +75,14 @@ class Twitter(MetadataItem):
                     continue
         raise Exception("No valid response from all Twitter scrapers")
 
-    def process_tweet(self, tweet_data: Dict):
+    def _process_tweet(self, tweet_data: Dict):
         if self.scraper == "Twitter135":
             self.process_tweet_Twitter135(tweet_data)
         elif self.scraper in ["Twitter154", "twitter-v24"]:
             self.process_tweet_Twitter154(tweet_data)
 
     def process_tweet_Twitter135(self, tweet_data: Dict):
-        entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][
-            "instructions"
-        ][0]["entries"]
+        entries = tweet_data["data"]["threaded_conversation_with_injections_v2"]["instructions"][0]["entries"]
         tweets = []
         for i in entries:
             if (
@@ -128,17 +120,13 @@ class Twitter(MetadataItem):
             "text_group": "",
             "content_group": "",
         }
-        user_component = (
-            f"<a href='https://twitter.com/{tweet['username']}'>@{tweet['name']}</a>"
-        )
+        user_component = f"<a href='https://twitter.com/{tweet['username']}'>@{tweet['name']}</a>"
         tweet_info["content_group"] += f"<p>{user_component}: {text}</p>"
         tweet_info["text_group"] += f"{user_component}: {text}\n"
         if tweet["media"]:
             for media in tweet["media"]:
                 if media["type"] == "photo":
-                    tweet_info[
-                        "content_group"
-                    ] += f"<img src='{media['media_url_https']}'/>"
+                    tweet_info["content_group"] += f"<img src='{media['media_url_https']}'/>"
                     tweet_info["media_files"].append(
                         MediaFile(
                             media_type="image",
@@ -161,9 +149,7 @@ class Twitter(MetadataItem):
                             caption="",
                         )
                     )
-        tweet_info["content_group"] = (
-            tweet_info["content_group"].replace("\n", "<br>") + "<hr>"
-        )
+        tweet_info["content_group"] = tweet_info["content_group"].replace("\n", "<br>") + "<hr>"
         return tweet_info
 
     @staticmethod
@@ -186,12 +172,11 @@ class Twitter(MetadataItem):
     def process_tweet_Twitter154(self, tweet_data: Dict):
         pass
 
-    def get_request_headers_and_params(self):
+    def _get_request_headers(self):
         self.host = SCRAPER_INFO[self.scraper]["host"]
         self.headers = {
             "X-RapidAPI-Key": X_RAPIDAPI_KEY,
-            "X-RapidAPI-Host": SCRAPER_INFO[self.scraper]["top_domain"]
-            + X_RAPIDAPI_HOST,
+            "X-RapidAPI-Host": SCRAPER_INFO[self.scraper]["top_domain"] + X_RAPIDAPI_HOST,
             "content-type": "application/octet-stream",
         }
         self.params = {
