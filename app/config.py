@@ -43,7 +43,9 @@ WORK_DIR = env.get("WORK_DIR", os.getcwd())
 
 
 # Services environment variables
-JINJA2_ENV = Environment(loader=FileSystemLoader("app/templates/"))
+JINJA2_ENV = Environment(
+    loader=FileSystemLoader("app/templates/"), lstrip_blocks=True, trim_blocks=True
+)
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
 
 
