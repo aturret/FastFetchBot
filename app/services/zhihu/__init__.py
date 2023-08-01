@@ -1,10 +1,11 @@
+import json
 import re
-from lxml import html
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
+import jmespath
 from bs4 import BeautifulSoup
-from lxml import etree
+from lxml import etree, html
 
 from app.utils.parse import (
     get_html_text_length,
@@ -51,10 +52,11 @@ class Zhihu(MetadataItem):
         self.date = ""
         self.updated = ""
         self.retweet_html = ""
+        self.upvote = None
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
-        self.method = kwargs.get("method", "api")
+        self.method = kwargs.get("method", "json")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
         # other hard-coded fields
@@ -70,9 +72,35 @@ class Zhihu(MetadataItem):
         Get the zhihu item and return the metadata dict.
         :return: Dict
         """
-        self._check_zhihu_type()
         await self._get_zhihu_item()
         return self.to_dict()
+
+    async def _get_zhihu_item(self) -> None:
+        """
+        Get zhihu item via the corresponding method according to the zhihu type.
+        """
+        self._check_zhihu_type()
+        function_dict = {
+            "answer": self._get_zhihu_answer,
+            "article": self._get_zhihu_article,
+            "status": self._get_zhihu_status,
+            "unknown": None,
+        }
+        for method in ALL_METHODS:
+            try:
+                if self.method not in ALL_METHODS:
+                    self.method = "api"
+                else:
+                    self.method = method
+                await function_dict[self.zhihu_type]()
+            except:
+                continue
+        self._zhihu_short_text_process()
+        self._zhihu_content_process()
+        if get_html_text_length(self.content) > SHORT_LIMIT:
+            self.type = "long"
+        else:
+            self.type = "short"
 
     def _check_zhihu_type(self) -> None:
         """
@@ -86,30 +114,16 @@ class Zhihu(MetadataItem):
         path = urlparser.path
         if host.startswith("zhuanlan."):
             self.zhihu_type = "article"
+            self.article_id = self.urlparser.path.split("/")[-1]
         elif path.find("answer") != -1:
             self.zhihu_type = "answer"
+            self.answer_id = self.urlparser.path.split("/")[-1]
         elif path.startswith("/pin/"):
             self.zhihu_type = "status"
+            self.status_id = self.urlparser.path.split("/")[-1]
         else:
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
-
-    async def _get_zhihu_item(self) -> None:
-        """
-        Get zhihu item via the corresponding method according to the zhihu type.
-        """
-        function_dict = {
-            "answer": self._get_zhihu_answer,
-            "article": self.get_zhihu_article,
-            "status": self._get_zhihu_status,
-            "unknown": None,
-        }
-        await function_dict[self.zhihu_type]()
-        self.zhihu_short_text_process()
-        if get_html_text_length(self.content) > SHORT_LIMIT:
-            self.type = "long"
-        else:
-            self.type = "short"
 
     async def _get_zhihu_answer(self) -> None:
         """
@@ -118,36 +132,59 @@ class Zhihu(MetadataItem):
         """
         if self.method == "api":
             pass  # zhihu v4 api does not open for answer
-        elif self.method == "json":
-            pass
-        elif self.method == "html":
-            selector = await get_selector(self.url, headers=self.headers)
-            upvote = selector.xpath('string(//button[contains(@class,"VoteButton")])')
-            self.raw_content = str(
-                etree.tostring(
-                    selector.xpath(
-                        '//div[contains(@class,"RichContent-inner")]//span[contains(@class,"RichText") and @itemprop="text"]'
-                    )[0],
+        else:
+            try:
+                selector = await get_selector(self.url, headers=self.headers)
+            except:
+                raise Exception("Cannot get the selector")
+            if self.method == "json":
+                json_data = selector.xpath('string(//script[@id="js-initialData"])')
+                json_data = json.loads(json_data)
+                print(json.dumps(json_data, indent=4, ensure_ascii=False))
+                json_data = json_data["initialState"]["entities"]
+                answer_data = self._parse_answer_json_data(json_data)
+                self.question_id = answer_data["question_id"]
+                question_data = self._parse_question_json_data(json_data)
+                self.question = question_data["question_detail"]
+                self.question_date = unix_timestamp_to_utc(question_data["created"])
+                self.question_updated = unix_timestamp_to_utc(question_data["updated"])
+                self.question_follower_count = question_data["follower_count"]
+                self.question_answer_count = question_data["answer_count"]
+                self.title = question_data["title"]
+                self.author = answer_data["author"]
+                self.author_url = ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
+                self.raw_content = answer_data["content"]
+                self.date = unix_timestamp_to_utc(answer_data["created"])
+                self.updated = unix_timestamp_to_utc(answer_data["updated"])
+                self.comment_count = answer_data["comment_count"]
+                self.upvote = answer_data["voteup_count"]
+                self.ip_info = answer_data["ip_info"]
+            elif self.method == "html":
+                self.upvote = selector.xpath(
+                    'string(//button[contains(@class,"VoteButton")])'
+                )
+                self.raw_content = str(
+                    etree.tostring(
+                        selector.xpath(
+                            '//div[contains(@class,"RichContent-inner")]//span[contains(@class,"RichText") and @itemprop="text"]'
+                        )[0],
+                        encoding="utf-8",
+                    ),
                     encoding="utf-8",
-                ),
-                encoding="utf-8",
-            )
-            self.title = selector.xpath("string(//h1)")
-            self.author = selector.xpath(
-                'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
-            )
-            self.author_url = selector.xpath(
-                'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
-            )
-            if self.author_url == "https://www.zhihu.com/people/":
-                self.author_url = ""
-            self.content = ("<p>" + upvote + "</p><br>" + self.raw_content).replace(
-                "\n", "<br>"
-            )
-            self.text = (
-                f'<a href="{self.author}">{self.author_url}</a>的知乎回答： \n'
-                f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-            )
+                )
+                self.title = selector.xpath("string(//h1)")
+                self.author = selector.xpath(
+                    'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
+                )
+                self.author_url = selector.xpath(
+                    'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
+                )
+                if self.author_url == "https://www.zhihu.com/people/":
+                    self.author_url = ""
+        if (
+            self.title == ""
+        ):  # TODO: this is not a good way to check if the scraping is successful. To be improved.
+            raise Exception("Cannot get the answer")
 
     async def _get_zhihu_status(self):
         """
@@ -166,9 +203,9 @@ class Zhihu(MetadataItem):
             # json_data = await get_zhihu_json_data(self.api_url, headers=self.headers)
             self.author = json_data["author"]["name"]
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
-            self.title = self.author + "的知乎想法"
+            self.title = self.author + "的想法"
             self.content = json_data["content_html"]
-            self.zhihu_short_text_process()
+            self._zhihu_short_text_process()
             self.date = unix_timestamp_to_utc(json_data["created"])
             self.updated = unix_timestamp_to_utc(json_data["updated"])
             timestamp = (
@@ -187,41 +224,65 @@ class Zhihu(MetadataItem):
                 + "<br>"
                 + timestamp
             )
-        elif self.method == "html":
-            selector = await get_selector(self.url, headers=self.headers)
-            content = str(
-                etree.tostring(
-                    selector.xpath(
-                        '//span[contains(@class,"RichText") and @itemprop="text"]'
-                    )[0],
-                    encoding="utf-8",
-                ),
-                encoding="utf-8",
-            )
-            upvote = selector.xpath(
-                'string(//button[contains(@class,"VoteButton")]//span)'
-            )
-            timestamp = selector.xpath('string(//div[@class="ContentItem-time"]//span)')
-            if (
-                selector.xpath(
-                    'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
-                ).find("PinItem-content-originpin")
-                != -1
-            ):  # 是否存在转发
-                if (
-                    str(
-                        etree.tostring(
-                            selector.xpath(
-                                '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
-                            )[0],
-                            encoding="utf-8",
-                        ),
+        else:
+            try:
+                selector = await get_selector(self.url, headers=self.headers)
+            except:
+                raise Exception("zhihu request failed")
+            if self.method == "json":
+                json_data = selector.xpath('string(//script[@id="js-initialData"])')
+                json_data = json.loads(json_data)
+                print(json.dumps(json_data, indent=4, ensure_ascii=False))
+            elif self.method == "html":
+                self.raw_content = str(
+                    etree.tostring(
+                        selector.xpath(
+                            '//span[contains(@class,"RichText") and @itemprop="text"]'
+                        )[0],
                         encoding="utf-8",
-                    )
-                    != '<div class="RichText ztext PinItem-remainContentRichText"/>'
-                ):  # 如果转发内容有图
-                    pic_html = html.fromstring(
+                    ),
+                    encoding="utf-8",
+                )
+                self.upvote = selector.xpath(
+                    'string(//button[contains(@class,"VoteButton")]//span)'
+                )
+                self.date = selector.xpath('string(//div[@class="ContentItem-time"]//span)')
+                if (
+                    selector.xpath(
+                        'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
+                    ).find("PinItem-content-originpin")
+                    != -1
+                ):  # 是否存在转发
+                    if (
                         str(
+                            etree.tostring(
+                                selector.xpath(
+                                    '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
+                                )[0],
+                                encoding="utf-8",
+                            ),
+                            encoding="utf-8",
+                        )
+                        != '<div class="RichText ztext PinItem-remainContentRichText"/>'
+                    ):  # 如果转发内容有图
+                        pic_html = html.fromstring(
+                            str(
+                                etree.tostring(
+                                    selector.xpath(
+                                        '//div[contains(@class,"PinItem-content-originpin")]'
+                                    )[0],
+                                    encoding="utf-8",
+                                ),
+                                encoding="utf-8",
+                            )
+                        )
+                        self.retweet_html = str(
+                            html.tostring(pic_html, pretty_print=True)
+                        ).replace("b'<div", "<div")
+                        print(type(self.retweet_html))
+                        print(self.retweet_html)
+                    else:
+                        self.retweet_html = str(
                             etree.tostring(
                                 selector.xpath(
                                     '//div[contains(@class,"PinItem-content-originpin")]'
@@ -230,44 +291,28 @@ class Zhihu(MetadataItem):
                             ),
                             encoding="utf-8",
                         )
-                    )
-                    self.retweet_html = str(
-                        html.tostring(pic_html, pretty_print=True)
-                    ).replace("b'<div", "<div")
-                    print(type(self.retweet_html))
-                    print(self.retweet_html)
-                else:
-                    self.retweet_html = str(
-                        etree.tostring(
-                            selector.xpath(
-                                '//div[contains(@class,"PinItem-content-originpin")]'
-                            )[0],
-                            encoding="utf-8",
-                        ),
-                        encoding="utf-8",
-                    )
-                    print(self.retweet_html)
-            self.content = (
-                "点赞数："
-                + upvote
-                + "<br>"
-                + content
-                + "<br>"
-                + self.retweet_html
-                + "<br>"
-                + timestamp
-            )
-            self.author = selector.xpath(
-                'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
-            )
-            self.author_url = selector.xpath(
-                'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
-            )
-            self.title = self.author + "的想法"
-        self.text = f'<a href="{self.url}"><b>{self.title}</b></a>：\n'
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
+                        print(self.retweet_html)
+                self.content = (
+                    "点赞数："
+                    + self.upvote
+                    + "<br>"
+                    + self.raw_content
+                    + "<br>"
+                    + self.retweet_html
+                    + "<br>"
+                    + self.date
+                )
+                self.author = selector.xpath(
+                    'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
+                )
+                self.author_url = selector.xpath(
+                    'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
+                )
+                self.title = self.author + "的想法"
+            self.text = f'<a href="{self.url}"><b>{self.title}</b></a>：\n'
+            self.content = self.text.replace("\n", "<br>") + self.raw_content
 
-    async def get_zhihu_article(self):
+    async def _get_zhihu_article(self):
         self.zhihu_type = "article"
         if self.method == "api":
             self.api_url = (
@@ -280,43 +325,39 @@ class Zhihu(MetadataItem):
             self.content = json_data["content"]
             self.author = json_data["author"]["name"]
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
-            upvote = json_data["voteup_count"]
-            self.zhihu_short_text_process()
-        elif self.method == "html":
-            self.zhihu_type = "article"
-            selector = get_selector(url=self.url, headers=self.headers)
-            self.title = selector.xpath("string(//h1)")
-            upvote = selector.xpath(
-                'string(//button[@class="Button VoteButton VoteButton--up"])'
-            )
-            self.content = str(
-                etree.tostring(
-                    selector.xpath(
-                        '//div[contains(@class,"RichText") and contains(@class,"ztext")]'
-                    )[0],
+            self.upvote = json_data["voteup_count"]
+        else:
+            try:
+                selector = await get_selector(self.url, headers=self.headers)
+            except:
+                raise Exception("zhihu request failed")
+            if self.method == "json":
+                json_data = selector.xpath('string(//script[@id="js-initialData"])')
+                json_data = json.loads(json_data)
+                print(json.dumps(json_data, indent=4, ensure_ascii=False))
+            elif self.method == "html":
+                self.title = selector.xpath("string(//h1)")
+                self.upvote = selector.xpath(
+                    'string(//button[@class="Button VoteButton VoteButton--up"])'
+                )
+                self.raw_content = str(
+                    etree.tostring(
+                        selector.xpath(
+                            '//div[contains(@class,"RichText") and contains(@class,"ztext")]'
+                        )[0],
+                        encoding="utf-8",
+                    ),
                     encoding="utf-8",
-                ),
-                encoding="utf-8",
-            )
-            self.zhihu_short_text_process()
-            self.content = upvote + "<br>" + self.content
-            self.author = selector.xpath(
-                'string(//div[contains(@class,"AuthorInfo-head")]//a)'
-            )
-            self.author_url = "https:" + selector.xpath(
-                'string(//a[@class="UserLink-link"]/@href)'
-            )
-        self.text = (
-            f'<a href="{self.group_url}">{self.group_name}</a>： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = (
-            f'<p>作者：<a href="{self.author_url}">{self.author}</p>'
-            f'<p>来自<a href="{self.group_url}">{self.group_name}</p>' + self.raw_content
-        )
+                )
+                self.author = selector.xpath(
+                    'string(//div[contains(@class,"AuthorInfo-head")]//a)'
+                )
+                self.author_url = "https:" + selector.xpath(
+                    'string(//a[@class="UserLink-link"]/@href)'
+                )
 
-    def zhihu_short_text_process(self):
-        soup = BeautifulSoup(self.content, "html.parser")
+    def _zhihu_short_text_process(self):
+        soup = BeautifulSoup(self.raw_content, "html.parser")
         for img in soup.find_all("img"):
             if img["src"].find("data:image") != -1:
                 continue
@@ -351,3 +392,39 @@ class Zhihu(MetadataItem):
             .replace("<br />", "")
             .replace("<hr/>", "\n")
         )
+
+    def _zhihu_content_process(self):
+        data = self.__dict__
+        data["raw_content"] = data["raw_content"].replace("\n", "<br>")
+        self.content = content_template.render(data=data)
+
+    def _parse_answer_json_data(self, data: Dict) -> Dict:
+        result = jmespath.search(
+            f"""{{
+                question_id: answers.{self.answer_id}.question.id,
+                author: answers.{self.answer_id}.author.name,
+                author_url_token: answers.{self.answer_id}.author.urlToken,
+                content: answers.{self.answer_id}.content,
+                created: answers.{self.answer_id}.createdTime
+                updated: answers.{self.answer_id}.updatedTime,
+                comment_count: answers.{self.answer_id}.commentCount,
+                voteup_count: answers.{self.answer_id}.voteupCount,
+                ip_info: answers.{self.answer_id}.ipInfo,
+            }}""",
+            data,
+        )
+        return result
+
+    def _parse_question_json_data(self, data: Dict) -> Dict:
+        result = jmespath.search(
+            f"""{{
+                title: questions.{self.question_id}.title,
+                question_detail: questions.{self.question_id}.detail,
+                answer_count: questions.{self.question_id}.answerCount,
+                follower_count: questions.{self.question_id}.followerCount,
+                created: questions.{self.question_id}.created,
+                updated: questions.{self.question_id}.updatedTime,
+            }}""",
+            data,
+        )
+        return result
