@@ -1,5 +1,6 @@
 import json
 import re
+import traceback
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
@@ -89,24 +90,30 @@ class Zhihu(MetadataItem):
         for method in ALL_METHODS:
             try:
                 if self.method not in ALL_METHODS:
-                    self.method = "api"
+                    self.method = "json"
                 else:
                     self.method = method
                 await function_dict[self.zhihu_type]()
-            except:
+            except Exception as e:
+                traceback.print_exc()
+                if method == ALL_METHODS[-1]:
+                    print("all methods failed")
+                else:
+                    print(
+                        f"zhihu {self.zhihu_type} {self.method} failed, try the next method"
+                    )
                 continue
         self._zhihu_short_text_process()
         self._zhihu_content_process()
-        if get_html_text_length(self.content) > SHORT_LIMIT:
-            self.type = "long"
-        else:
-            self.type = "short"
+        self.type = (
+            "long" if get_html_text_length(self.content) > SHORT_LIMIT else "short"
+        )
 
     def _check_zhihu_type(self) -> None:
         """
         Check the zhihu type of the url. The zhihu type can be one of the following:
-        - article (example: https://zhuanlan.zhihu.com/p/35142635)
         - answer (example: https://www.zhihu.com/question/19998424/answer/603067076)
+        - article (example: https://zhuanlan.zhihu.com/p/35142635)
         - status (example: https://www.zhihu.com/pin/1667965059081945088)
         """
         urlparser = urlparse(self.url)
@@ -152,7 +159,9 @@ class Zhihu(MetadataItem):
                 self.question_answer_count = question_data["answer_count"]
                 self.title = question_data["title"]
                 self.author = answer_data["author"]
-                self.author_url = ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
+                self.author_url = (
+                    ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
+                )
                 self.raw_content = answer_data["content"]
                 self.date = unix_timestamp_to_utc(answer_data["created"])
                 self.updated = unix_timestamp_to_utc(answer_data["updated"])
@@ -205,7 +214,6 @@ class Zhihu(MetadataItem):
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
             self.title = self.author + "的想法"
             self.content = json_data["content_html"]
-            self._zhihu_short_text_process()
             self.date = unix_timestamp_to_utc(json_data["created"])
             self.updated = unix_timestamp_to_utc(json_data["updated"])
             timestamp = (
@@ -246,7 +254,9 @@ class Zhihu(MetadataItem):
                 self.upvote = selector.xpath(
                     'string(//button[contains(@class,"VoteButton")]//span)'
                 )
-                self.date = selector.xpath('string(//div[@class="ContentItem-time"]//span)')
+                self.date = selector.xpath(
+                    'string(//div[@class="ContentItem-time"]//span)'
+                )
                 if (
                     selector.xpath(
                         'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
@@ -334,7 +344,21 @@ class Zhihu(MetadataItem):
             if self.method == "json":
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
                 json_data = json.loads(json_data)
-                print(json.dumps(json_data, indent=4, ensure_ascii=False))
+                json_data = json_data["initialState"]["entities"]
+                article_data = self._parse_article_json_data(json_data)
+                self.title = article_data["title"]
+                self.raw_content = article_data["content"]
+                self.author = article_data["author"]
+                self.author_url = (
+                    ZHIHU_HOST + "/people/" + article_data["author_url_token"]
+                )
+                self.upvote = article_data["voteup_count"]
+                self.comment_count = article_data["comment_count"]
+                self.date = unix_timestamp_to_utc(article_data["created"])
+                self.updated = unix_timestamp_to_utc(article_data["updated"])
+                self.column = article_data["column"]
+                self.column_url = article_data["column_url"]
+                self.column_intro = article_data["column_intro"]
             elif self.method == "html":
                 self.title = selector.xpath("string(//h1)")
                 self.upvote = selector.xpath(
@@ -399,32 +423,53 @@ class Zhihu(MetadataItem):
         self.content = content_template.render(data=data)
 
     def _parse_answer_json_data(self, data: Dict) -> Dict:
-        result = jmespath.search(
-            f"""{{
-                question_id: answers.{self.answer_id}.question.id,
-                author: answers.{self.answer_id}.author.name,
-                author_url_token: answers.{self.answer_id}.author.urlToken,
-                content: answers.{self.answer_id}.content,
-                created: answers.{self.answer_id}.createdTime
-                updated: answers.{self.answer_id}.updatedTime,
-                comment_count: answers.{self.answer_id}.commentCount,
-                voteup_count: answers.{self.answer_id}.voteupCount,
-                ip_info: answers.{self.answer_id}.ipInfo,
-            }}""",
-            data,
-        )
+        expression = f"""{{
+                question_id: answers."{self.answer_id}".question.id,
+                author: answers."{self.answer_id}".author.name,
+                author_url_token: answers."{self.answer_id}".author.urlToken,
+                content: answers."{self.answer_id}".content,
+                created: answers."{self.answer_id}".createdTime
+                updated: answers."{self.answer_id}".updatedTime,
+                comment_count: answers."{self.answer_id}".commentCount,
+                voteup_count: answers."{self.answer_id}".voteupCount,
+                ip_info: answers."{self.answer_id}".ipInfo
+            }}"""
+        result = jmespath.search(expression, data)
         return result
 
     def _parse_question_json_data(self, data: Dict) -> Dict:
-        result = jmespath.search(
-            f"""{{
-                title: questions.{self.question_id}.title,
-                question_detail: questions.{self.question_id}.detail,
-                answer_count: questions.{self.question_id}.answerCount,
-                follower_count: questions.{self.question_id}.followerCount,
-                created: questions.{self.question_id}.created,
-                updated: questions.{self.question_id}.updatedTime,
-            }}""",
-            data,
-        )
+        expression = f"""{{
+                "title": questions."{self.question_id}".title,
+                "question_detail": questions."{self.question_id}".detail,
+                "answer_count": questions."{self.question_id}".answerCount,
+                "follower_count": questions."{self.question_id}".followerCount,
+                "created": questions."{self.question_id}".created,
+                "updated": questions."{self.question_id}".updatedTime
+            }}"""
+        result = jmespath.search(expression, data)
+        return result
+
+    def _parse_article_json_data(self, data: Dict) -> Dict:
+        expression = f"""{{
+            "title": articles."{self.article_id}".title,
+            "content": articles."{self.article_id}".content,
+            "author": articles."{self.article_id}".author.name,
+            "author_url_token": articles."{self.article_id}".author.urlToken,
+            "voteup_count": articles."{self.article_id}".voteupCount,
+            "comment_count": articles."{self.article_id}".commentCount,
+            "created": articles."{self.article_id}".created,
+            "updated": articles."{self.article_id}".updated,
+            "column": articles."{self.article_id}".column.title,
+            "column_url": articles."{self.article_id}".column.url,
+            "column_intro": articles."{self.article_id}".column.intro
+        }}"""
+        result = jmespath.search(expression, data)
+        return result
+
+    def _parse_status_json_data(self, data: Dict) -> Dict:
+        expression = f"""{{
+                title: status.{self.status_id}.title,
+                
+                }}"""
+        result = jmespath.search(expression, data)
         return result
