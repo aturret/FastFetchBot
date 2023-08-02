@@ -18,7 +18,7 @@ def get_html_text_length(html: str) -> int:
 
 def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
     decompose_list = ["br"]
-    unwrap_list = ["span", "div", "blockquote", "h2", "ol"]
+    unwrap_list = ["span", "div", "blockquote", "h2", "ol", "ul"]
     new_line_list = ["p", "li"]
     for decompose in decompose_list:
         for item in soup.find_all(decompose):
