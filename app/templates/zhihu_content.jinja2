@@ -41,16 +41,36 @@
         {% if data.updated != data.date %}
             更新于：{{ data.updated }}
         {% endif %}</p>
-        更新于：{{ data.updated }}
-        <br>
-        <p>{% if data.upvote %}
-            点赞数：{{ data.upvote }}
-        {% endif %}
+    更新于：{{ data.updated }}
+    <br>
+    <p>{% if data.upvote %}
+        点赞数：{{ data.upvote }}
+    {% endif %}
         {% if data.comment_count %}
             评论数：{{ data.comment_count }}
         {% endif %}</p>
     <br>
     {{ data.raw_content }}
 {% elif data.zhihu_type == "status" %}
-
+    <p>
+        发表于{{ data.date }} 点赞数：{{ data.upvote }} 评论数：{{ data.comment_count }}
+    </p>
+    <p>
+        <a href="{{ data.author_url }}">
+            @{{ data.author }}
+        </a>：{{ data.raw_content }}
+    </p>
+    {{ data.pic_content }}
+    {% if data.origin_pin_author != "" %}
+        <hr>
+        <p>
+            发表于{{ data.origin_pin_date }} 点赞数：{{ data.origin_pin_upvote }} 评论数：{{ data.origin_pin_comment_count }}
+        </p>
+        <p>
+            <a href="{{ data.origin_pin_author_url }}">
+                @{{ data.origin_pin_author }}
+            </a>：{{ data.origin_pin_content }}
+        </p>
+        {{ data.origin_pin_pic_content }}
+    {% endif %}
 {% endif %}

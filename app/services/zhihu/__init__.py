@@ -54,6 +54,7 @@ class Zhihu(MetadataItem):
         self.updated = ""
         self.retweet_html = ""
         self.upvote = None
+        self.retweeted = False
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
@@ -150,14 +151,16 @@ class Zhihu(MetadataItem):
                 print(json.dumps(json_data, indent=4, ensure_ascii=False))
                 json_data = json_data["initialState"]["entities"]
                 answer_data = self._parse_answer_json_data(json_data)
-                self.question_id = answer_data["question_id"]
-                question_data = self._parse_question_json_data(json_data)
-                self.question = question_data["question_detail"]
-                self.question_date = unix_timestamp_to_utc(question_data["created"])
-                self.question_updated = unix_timestamp_to_utc(question_data["updated"])
-                self.question_follower_count = question_data["follower_count"]
-                self.question_answer_count = question_data["answer_count"]
-                self.title = question_data["title"]
+                self.question = answer_data["question_detail"]
+                self.question_date = unix_timestamp_to_utc(
+                    answer_data["question_created"]
+                )
+                self.question_updated = unix_timestamp_to_utc(
+                    answer_data["question_updated"]
+                )
+                self.question_follower_count = answer_data["follower_count"]
+                self.question_answer_count = answer_data["answer_count"]
+                self.title = answer_data["title"]
                 self.author = answer_data["author"]
                 self.author_url = (
                     ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
@@ -206,41 +209,94 @@ class Zhihu(MetadataItem):
                 + self.urlparser.path.split("/")[-1]
             )
             print(self.api_url)
-            json_data = await get_response_json(
-                self.api_url, headers=self.headers, test=True
-            )
-            # json_data = await get_zhihu_json_data(self.api_url, headers=self.headers)
+            json_data = await get_response_json(self.api_url, headers=self.headers)
             self.author = json_data["author"]["name"]
             self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
             self.title = self.author + "的想法"
-            self.content = json_data["content_html"]
+            self.raw_content = json_data["content_html"]
             self.date = unix_timestamp_to_utc(json_data["created"])
             self.updated = unix_timestamp_to_utc(json_data["updated"])
-            timestamp = (
-                "修改于：" + self.updated
-                if json_data["updated"] > json_data["created"]
-                else "发布于：" + self.date
-            )
-            upvote = json_data["like_count"]
-            self.content = (
-                "点赞数："
-                + str(upvote)
-                + "<br>"
-                + self.content
-                + "<br>"
-                + self.retweet_html
-                + "<br>"
-                + timestamp
-            )
+            self.upvote = json_data["like_count"]
         else:
             try:
                 selector = await get_selector(self.url, headers=self.headers)
             except:
                 raise Exception("zhihu request failed")
             if self.method == "json":
+
+                def _process_picture(pictures, content_attr):
+                    if not hasattr(self, content_attr):
+                        setattr(self, content_attr, "")
+                    for pic in pictures:
+                        if pic["type"] == "image":
+                            if pic["is_gif"]:
+                                media_type = "gif"
+                                setattr(
+                                    self,
+                                    content_attr,
+                                    getattr(self, content_attr)
+                                    + f'<br><video controls="controls" src="{pic["originalUrl"]}"><br>',
+                                )
+                            else:
+                                media_type = "image"
+                                setattr(
+                                    self,
+                                    content_attr,
+                                    getattr(self, content_attr)
+                                    + f'<br><img src="{pic["originalUrl"]}"><br>',
+                                )
+                        elif pic["type"] == "video":
+                            media_type = "video"
+                            setattr(
+                                self,
+                                content_attr,
+                                getattr(self, content_attr)
+                                + f'<br><video controls="controls" src="{pic["originalUrl"]}"><br>',
+                            )
+                        media_item = MediaFile.from_dict(
+                            {
+                                "media_type": media_type,
+                                "url": pic["originalUrl"],
+                                "caption": "",
+                            }
+                        )
+                        self.media_files.append(media_item)
+
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
-                json_data = json.loads(json_data)
+                json_data = json.loads(json_data)["initialState"]["entities"]
                 print(json.dumps(json_data, indent=4, ensure_ascii=False))
+                status_data = self._parse_status_json_data(json_data)
+                if status_data["origin_pin_url"] is not None:
+                    self.retweeted = True
+                    self.origin_pin_author = status_data["origin_author"]
+                    self.origin_pin_author_url = (
+                        ZHIHU_HOST + "/people/" + status_data["origin_author_url_token"]
+                    )
+                    self.origin_pin_raw_content = status_data["origin_pin_content"]
+                    self.origin_pin_date = unix_timestamp_to_utc(
+                        status_data["origin_created"]
+                    )
+                    self.origin_pin_updated = unix_timestamp_to_utc(
+                        status_data["origin_updated"]
+                    )
+                    self.origin_pin_upvote = status_data["origin_pin_like_count"]
+                    self.origin_pin_comment_count = status_data[
+                        "origin_pin_comment_count"
+                    ]
+                    _process_picture(
+                        status_data["origin_pin_pictures"], "origin_pin_pic_content"
+                    )
+                self.title = status_data["author"] + "的想法"
+                self.author = status_data["author"]
+                self.author_url = (
+                    ZHIHU_HOST + "/people/" + status_data["author_url_token"]
+                )
+                self.raw_content = status_data["content"]
+                self.date = unix_timestamp_to_utc(status_data["created"])
+                self.updated = unix_timestamp_to_utc(status_data["updated"])
+                self.upvote = status_data["like_count"]
+                self.comment_count = status_data["comment_count"]
+                _process_picture(status_data["pictures"], "pic_content")
             elif self.method == "html":
                 self.raw_content = str(
                     etree.tostring(
@@ -302,16 +358,6 @@ class Zhihu(MetadataItem):
                             encoding="utf-8",
                         )
                         print(self.retweet_html)
-                self.content = (
-                    "点赞数："
-                    + self.upvote
-                    + "<br>"
-                    + self.raw_content
-                    + "<br>"
-                    + self.retweet_html
-                    + "<br>"
-                    + self.date
-                )
                 self.author = selector.xpath(
                     'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
                 )
@@ -319,8 +365,6 @@ class Zhihu(MetadataItem):
                     'string(//div[@class="AuthorInfo"]//meta[@itemprop="url"]/@content)'
                 )
                 self.title = self.author + "的想法"
-            self.text = f'<a href="{self.url}"><b>{self.title}</b></a>：\n'
-            self.content = self.text.replace("\n", "<br>") + self.raw_content
 
     async def _get_zhihu_article(self):
         self.zhihu_type = "article"
@@ -381,27 +425,29 @@ class Zhihu(MetadataItem):
                 )
 
     def _zhihu_short_text_process(self):
-        soup = BeautifulSoup(self.raw_content, "html.parser")
-        for img in soup.find_all("img"):
-            if img["src"].find("data:image") != -1:
-                continue
-            media_item = MediaFile.from_dict(
-                {"media_type": "image", "url": img["src"], "caption": ""}
-            )
-            self.media_files.append(media_item)
-            img.decompose()
-        for figure in soup.find_all("figure"):
-            figure.append(BeautifulSoup("<br>", "html.parser"))
-            figure.decompose()
-        content = str(soup)
+        def _html_process(raw_html: str) -> str:
+            soup = BeautifulSoup(raw_html, "html.parser")
+            for img in soup.find_all("img"):
+                if img["src"].find("data:image") != -1:
+                    continue
+                media_item = MediaFile.from_dict(
+                    {"media_type": "image", "url": img["src"], "caption": ""}
+                )
+                self.media_files.append(media_item)
+                img.decompose()
+            for figure in soup.find_all("figure"):
+                figure.append(BeautifulSoup("<br>", "html.parser"))
+                figure.decompose()
+
+        data = self.__dict__
+        data["translated_zhihu_type"] = self.zhihu_type_translate[self.zhihu_type]
+        content = _html_process(self.raw_content)
+        data["content"] = content
+        if self.zhihu_type == "status" and self.retweeted:
+            origin_pin_content = _html_process(self.origin_pin_raw_content)
+            data["origin_pin_content"] = origin_pin_content
         self.text = short_text_template.render(
-            zhihu_type=self.zhihu_type,
-            translated_zhihu_type=self.zhihu_type_translate[self.zhihu_type],
-            title=self.title,
-            author=self.author,
-            author_url=self.author_url,
-            url=self.url,
-            content=content,
+            data=data
         )
         soup = BeautifulSoup(self.text, "html.parser")
         soup = format_telegram_short_text(soup)
@@ -435,18 +481,16 @@ class Zhihu(MetadataItem):
                 ip_info: answers."{self.answer_id}".ipInfo
             }}"""
         result = jmespath.search(expression, data)
-        return result
-
-    def _parse_question_json_data(self, data: Dict) -> Dict:
+        self.question_id = result["question_id"]
         expression = f"""{{
-                "title": questions."{self.question_id}".title,
-                "question_detail": questions."{self.question_id}".detail,
-                "answer_count": questions."{self.question_id}".answerCount,
-                "follower_count": questions."{self.question_id}".followerCount,
-                "created": questions."{self.question_id}".created,
-                "updated": questions."{self.question_id}".updatedTime
-            }}"""
-        result = jmespath.search(expression, data)
+                        "title": questions."{self.question_id}".title,
+                        "question_detail": questions."{self.question_id}".detail,
+                        "answer_count": questions."{self.question_id}".answerCount,
+                        "follower_count": questions."{self.question_id}".followerCount,
+                        "question_created": questions."{self.question_id}".created,
+                        "question_updated": questions."{self.question_id}".updatedTime
+                    }}"""
+        result.update(jmespath.search(expression, data))
         return result
 
     def _parse_article_json_data(self, data: Dict) -> Dict:
@@ -468,8 +512,26 @@ class Zhihu(MetadataItem):
 
     def _parse_status_json_data(self, data: Dict) -> Dict:
         expression = f"""{{
-                title: status.{self.status_id}.title,
-                
+                "author_url_token": pins."{self.status_id}".author,
+                "created": pins."{self.status_id}".created,
+                "updated": pins."{self.status_id}".updated,
+                "content": pins."{self.status_id}".content[0].content,
+                "pictures": pins."{self.status_id}".content[1:],
+                "like_count": pins."{self.status_id}".likeCount,
+                "comment_count": pins."{self.status_id}".commentCount,
+                "origin_pin_url": pins."{self.status_id}".originPin.url,
+                "origin_pin_author": pins."{self.status_id}".originPin.author.name,
+                "origin_pin_author_url_token": pins."{self.status_id}".originPin.author.urlToken,
+                "origin_pin_content": pins."{self.status_id}".originPin.content[0].content,
+                "origin_pin_pictures": pins."{self.status_id}".originPin.content[1:],
+                "origin_pin_like_count": pins."{self.status_id}".originPin.likeCount,
+                "origin_pin_comment_count": pins."{self.status_id}".originPin.commentCount
                 }}"""
         result = jmespath.search(expression, data)
+        print(result)
+        author_url_token = result["author_url_token"]
+        expression = f"""{{
+                        "author": users."{author_url_token}".name
+                        }}"""
+        result.update(jmespath.search(expression, data))
         return result
