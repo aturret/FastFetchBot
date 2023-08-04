@@ -1,8 +1,17 @@
-import io
+from io import BytesIO
 
 
-class NamedBytesIO(io.BytesIO):
-    def __init__(self, content, name):
+class NamedBytesIO(BytesIO):
+    @property
+    def name(self):
+        return self._name
+
+    def __init__(self, content=None, name=None):
         super().__init__(content)
-        self.name = name
-        self.size = self.getbuffer().nbytes
+        self._name = name
+        if content is not None:
+            self.size = self.getbuffer().nbytes
+
+    @name.setter
+    def name(self, value):
+        self._name = value
