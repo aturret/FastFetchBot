@@ -37,7 +37,9 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
     """
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT)
-        if resp.history:  # if there is a redirect, the request will have a response chain
+        if (
+            resp.history
+        ):  # if there is a redirect, the request will have a response chain
             print("Request was redirected")
             for resp in resp.history:
                 print(resp.status_code, resp.url)
@@ -46,13 +48,16 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
         return selector
 
 
-async def download_a_iobytes_file(url, file_name=None, file_format=None, headers=None, referer=None) -> NamedBytesIO:
+async def download_a_iobytes_file(
+    url, file_name=None, file_format=None, headers=None, referer=None
+) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
+    :param file_format:
     :param url:
     :param file_name:
     :param headers:
-    :param referer:
+    :param referer: the referer of the request. Some CDN will check the referer.
     :return:
     """
     if headers is None:
@@ -60,7 +65,9 @@ async def download_a_iobytes_file(url, file_name=None, file_format=None, headers
     if referer is not None:
         headers["referer"] = referer
     async with httpx.AsyncClient() as client:
-        response = await client.get(url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT)
+        response = await client.get(
+            url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
+        )
     file_data = response.content
     if file_name is None:
         file_format = file_format if file_format else url.split(".")[-1]
