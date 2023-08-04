@@ -13,4 +13,4 @@ TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API = 2147483648  # 2GB
 """
 function constants
 """
-REFERER_REQUIRED = ["douban"]
+REFERER_REQUIRED = ["douban", "weibo"]
