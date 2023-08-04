@@ -229,7 +229,7 @@ class Zhihu(MetadataItem):
                         setattr(self, content_attr, "")
                     for pic in pictures:
                         if pic["type"] == "image":
-                            if pic["is_gif"]:
+                            if pic["isGif"]:
                                 media_type = "gif"
                                 setattr(
                                     self,
@@ -268,16 +268,19 @@ class Zhihu(MetadataItem):
                 status_data = self._parse_status_json_data(json_data)
                 if status_data["origin_pin_url"] is not None:
                     self.retweeted = True
-                    self.origin_pin_author = status_data["origin_author"]
+                    self.origin_pin_url = status_data["origin_pin_url"]
+                    self.origin_pin_author = status_data["origin_pin_author"]
                     self.origin_pin_author_url = (
-                        ZHIHU_HOST + "/people/" + status_data["origin_author_url_token"]
+                        ZHIHU_HOST
+                        + "/people/"
+                        + status_data["origin_pin_author_url_token"]
                     )
                     self.origin_pin_raw_content = status_data["origin_pin_content"]
                     self.origin_pin_date = unix_timestamp_to_utc(
-                        status_data["origin_created"]
+                        status_data["origin_pin_created"]
                     )
                     self.origin_pin_updated = unix_timestamp_to_utc(
-                        status_data["origin_updated"]
+                        status_data["origin_pin_updated"]
                     )
                     self.origin_pin_upvote = status_data["origin_pin_like_count"]
                     self.origin_pin_comment_count = status_data[
@@ -430,14 +433,16 @@ class Zhihu(MetadataItem):
             for img in soup.find_all("img"):
                 if img["src"].find("data:image") != -1:
                     continue
-                media_item = MediaFile.from_dict(
-                    {"media_type": "image", "url": img["src"], "caption": ""}
-                )
-                self.media_files.append(media_item)
-                img.decompose()
+                if self.zhihu_type != "status":
+                    media_item = MediaFile.from_dict(
+                        {"media_type": "image", "url": img["src"], "caption": ""}
+                    )
+                    self.media_files.append(media_item)
+                    img.decompose()
             for figure in soup.find_all("figure"):
                 figure.append(BeautifulSoup("<br>", "html.parser"))
                 figure.decompose()
+            return str(soup)
 
         data = self.__dict__
         data["translated_zhihu_type"] = self.zhihu_type_translate[self.zhihu_type]
@@ -446,9 +451,7 @@ class Zhihu(MetadataItem):
         if self.zhihu_type == "status" and self.retweeted:
             origin_pin_content = _html_process(self.origin_pin_raw_content)
             data["origin_pin_content"] = origin_pin_content
-        self.text = short_text_template.render(
-            data=data
-        )
+        self.text = short_text_template.render(data=data)
         soup = BeautifulSoup(self.text, "html.parser")
         soup = format_telegram_short_text(soup)
         for p in soup.find_all("p"):
@@ -522,6 +525,8 @@ class Zhihu(MetadataItem):
                 "origin_pin_url": pins."{self.status_id}".originPin.url,
                 "origin_pin_author": pins."{self.status_id}".originPin.author.name,
                 "origin_pin_author_url_token": pins."{self.status_id}".originPin.author.urlToken,
+                "origin_pin_created": pins."{self.status_id}".originPin.created,
+                "origin_pin_updated": pins."{self.status_id}".originPin.updated,
                 "origin_pin_content": pins."{self.status_id}".originPin.content[0].content,
                 "origin_pin_pictures": pins."{self.status_id}".originPin.content[1:],
                 "origin_pin_like_count": pins."{self.status_id}".originPin.likeCount,
