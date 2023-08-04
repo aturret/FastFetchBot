@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import traceback
+from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
@@ -52,12 +53,15 @@ from .config import (
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
     REFERER_REQUIRED,
 )
+from ...models.classes import NamedBytesIO
 from ...models.url_metadata import UrlMetadata
 
 """
 logging
 """
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 """
@@ -94,7 +98,9 @@ async def startup() -> None:
         callback=invalid_buttons,
         pattern=InvalidCallbackData,
     )
-    buttons_process_handler = CallbackQueryHandler(callback=buttons_process, pattern=dict)
+    buttons_process_handler = CallbackQueryHandler(
+        callback=buttons_process, pattern=dict
+    )
     # add handlers
     application.add_handlers(
         [
@@ -138,7 +144,9 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         await welcome_message.edit_text(text="No supported url found.")
         return
     else:
-        await welcome_message.edit_text(text=f"{url_metadata.source} url found. Processing...")
+        await welcome_message.edit_text(
+            text=f"{url_metadata.source} url found. Processing..."
+        )
         # create the inline keyboard
         special_function_keyboard = []
         basic_function_keyboard = []
@@ -197,7 +205,9 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
             text=f"Item processing...",
         )
         extra_args = data["extra_args"] if "extra_args" in data else {}
-        metadata_item = await content_process_function(url_metadata=data["metadata"], **extra_args)
+        metadata_item = await content_process_function(
+            url_metadata=data["metadata"], **extra_args
+        )
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
@@ -219,7 +229,9 @@ async def content_process_function(url_metadata: UrlMetadata, **kwargs) -> dict:
     return metadata_item
 
 
-async def send_item_message(data: dict, chat_id: Union[int, str] = None, message: Message = None) -> None:
+async def send_item_message(
+    data: dict, chat_id: Union[int, str] = None, message: Message = None
+) -> None:
     """
     :param data: (dict) metadata of the item
     :param chat_id: (int) any chat id for sending
@@ -228,7 +240,9 @@ async def send_item_message(data: dict, chat_id: Union[int, str] = None, message
     """
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
-    if (not chat_id) and message:  # this function supports directly reply to a message even if the chat_id is None
+    if (
+        not chat_id
+    ) and message:  # this function supports directly reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
@@ -239,11 +253,19 @@ async def send_item_message(data: dict, chat_id: Union[int, str] = None, message
         caption_text = message_formatting(data)
         if data["type"] == "short" and len(data["media_files"]) > 0:
             # if the type is short and there are some media files, send media group
-            media_message_group, file_group = await media_files_packaging(media_files=data["media_files"], data=data)
-            if len(media_message_group) > 0:  # if there are some media groups to send, send it
+            media_message_group, file_group = await media_files_packaging(
+                media_files=data["media_files"], data=data
+            )
+            if (
+                len(media_message_group) > 0
+            ):  # if there are some media groups to send, send it
                 reply_to_message_id = None
                 for i, media_group in enumerate(media_message_group):
-                    caption_text = caption_text if i == 0 else f"the {i+1}th part of the media item:"
+                    caption_text = (
+                        caption_text
+                        if i == 0
+                        else f"the {i+1}th part of the media item:"
+                    )
                     sent_message = await application.bot.send_media_group(
                         chat_id=discussion_chat_id,
                         media=media_group,
@@ -252,16 +274,25 @@ async def send_item_message(data: dict, chat_id: Union[int, str] = None, message
                     )
                 if discussion_chat_id != chat_id > 0:
                     # if the chat is a channel, get the latest pinned message from the channel and reply to it
-                    pinned_message = await application.bot.get_chat(chat_id=discussion_chat_id).pinned_message
-                    if pinned_message.forward_from_message_id == sent_message[-1].message_id:
+                    pinned_message = await application.bot.get_chat(
+                        chat_id=discussion_chat_id
+                    ).pinned_message
+                    if (
+                        pinned_message.forward_from_message_id
+                        == sent_message[-1].message_id
+                    ):
                         reply_to_message_id = (
-                            application.bot.get_chat(chat_id=discussion_chat_id).pinned_message.id
+                            application.bot.get_chat(
+                                chat_id=discussion_chat_id
+                            ).pinned_message.id
                             - len(sent_message)
                             + 1
                         )
                     else:
                         reply_to_message_id = sent_message[-1].message_id
-            if len(file_group) > 0:  # send files, the files messages should be replied to the message sent before
+            if (
+                len(file_group) > 0
+            ):  # send files, the files messages should be replied to the message sent before
                 application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
@@ -270,7 +301,9 @@ async def send_item_message(data: dict, chat_id: Union[int, str] = None, message
                     reply_to_message_id=reply_to_message_id,
                 )
                 for file in file_group:
-                    if file.name.endswith(".gif"):  # TODO: it's not a good way to determine whether it's a gif.
+                    if file.name.endswith(
+                        ".gif"
+                    ):  # TODO: it's not a good way to determine whether it's a gif.
                         await application.bot.send_video(
                             chat_id=discussion_chat_id,
                             animation=file,
@@ -294,12 +327,16 @@ async def send_item_message(data: dict, chat_id: Union[int, str] = None, message
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
-        await message.reply_text(text="Sorry, I could not send the item to the target 😕")
+        await message.reply_text(
+            text="Sorry, I could not send the item to the target 😕"
+        )
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_list = traceback.format_exception(
+        None, context.error, context.error.__traceback__
+    )
     tb_string = "".join(tb_list)
     update_str = update.to_dict() if isinstance(update, Update) else str(update)
     message = (
@@ -310,7 +347,9 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
         f"<pre>{html.escape(tb_string)}</pre>"
     )
-    await context.bot.send_message(chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML)
+    await context.bot.send_message(
+        chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
+    )
 
 
 def message_formatting(data: dict) -> str:
@@ -345,7 +384,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
     media_message_group = []
     media_group = []
     file_group = []
-    for media_item in media_files:  # To traverse all media items in the media files list
+    for (
+        media_item
+    ) in media_files:  # To traverse all media items in the media files list
         # check if we need to create a new media group
         if media_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT:
             # the limitation of media item for a single telegram media group message is 10
@@ -354,21 +395,30 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             media_counter = 0
         # check the url validity
         url_parser = urlparse(media_item["url"])
-        if url_parser.scheme in ["http", "https"]:  # if the url is a http url, download the file
+        if url_parser.scheme in [
+            "http",
+            "https",
+        ]:  # if the url is a http url, download the file
             referer = data["url"] if data["category"] in REFERER_REQUIRED else None
             file_format = "mp4" if media_item["media_type"] == "video" else None
-            io_object = await download_a_iobytes_file(media_item["url"], file_format=file_format, referer=referer)
+            io_object = await download_a_iobytes_file(
+                media_item["url"], file_format=file_format, referer=referer
+            )
+            filename = io_object.name
             file_size = io_object.size
         else:  # if the url is a local file path, just add it to the media group
             try:
                 file_path = url2pathname(media_item["url"])
                 file_size = os.path.getsize(file_path)
                 io_object = InputFile(media_item["url"])
+                filename = io_object.name
             except Exception as e:  # the url is not a valid file path
                 logger.error(e)
                 continue
         # check the file size
-        if not TELEBOT_API_SERVER:  # the official telegram bot api server only supports 50MB file
+        if (
+            not TELEBOT_API_SERVER
+        ):  # the official telegram bot api server only supports 50MB file
             if file_size > TELEGRAM_FILE_UPLOAD_LIMIT:
                 # if the size is over 50MB, skip this file
                 continue
@@ -382,20 +432,24 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             image = Image.open(io_object)
             img_width, img_height = image.size
             image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
-            media_group.append(InputMediaPhoto(image))
+            with BytesIO() as buffer:
+                image.save(buffer, format=image.format)
+                buffer.seek(0)
+                media_group.append(InputMediaPhoto(buffer, filename=filename))
+            # the image is not able to get json serialized
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                 or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
                 or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
             ):
                 io_object = await download_a_iobytes_file(url=image_url)
-                if not io_object.name.endswith(".gif"):  # TODO: it is not a good way to judge whether it is a gif...
+                if not io_object.name.endswith(".gif"):
+                    # TODO: it is not a good way to judge whether it is a gif...
                     file_group.append(io_object)
-                    # download again because Image.open method closed the previous io_object
-                    # if the image is too large, append the file into file_group
         elif media_item["media_type"] == "gif":
             io_object = await download_a_iobytes_file(
-                url=media_item["url"], file_name="gif_image-" + str(media_counter) + ".gif"
+                url=media_item["url"],
+                file_name="gif_image-" + str(media_counter) + ".gif",
             )
             io_object.name = io_object.name + ".gif"
             media_group.append(InputMediaAnimation(io_object))
