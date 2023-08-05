@@ -48,7 +48,9 @@ class InfoExtractService(object):
         return metadata_item
 
     async def get_weibo(self):
-        pass
+        weibo_item = weibo.Weibo(self.url, **self.kwargs)
+        metadata_item = await weibo_item.get_weibo()
+        return metadata_item
 
     async def get_douban(self):
         douban_item = douban.Douban(self.url, **self.kwargs)
