@@ -30,7 +30,7 @@ def to_class(c: Type[T], x: Any) -> dict:
 class MediaFile:
     media_type: str
     url: str
-    caption: str
+    caption: Union[str, None] = None
 
     @staticmethod
     def from_dict(obj: Any) -> "MediaFile":
