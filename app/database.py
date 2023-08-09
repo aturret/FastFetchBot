@@ -1,12 +1,13 @@
 from typing import Optional, Union, List
 
+from motor.motor_asyncio import AsyncIOMotorClient
 from odmantic import AIOEngine, Model
 
 from app.main import app
+from app.config import MONGODB_URL
 
-engine = AIOEngine(
-    database="telegram_bot",
-)
+client = AsyncIOMotorClient(MONGODB_URL)
+engine = AIOEngine(client=client, database="telegram_bot")
 
 
 async def startup() -> None:

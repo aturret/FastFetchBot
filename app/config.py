@@ -5,7 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 env = os.environ
 
 # FastAPI environment variables
-BASE_URL = env.get("BASE_URL", "")
+BASE_URL = env.get("BASE_URL", "localhost")
 API_KEY_NAME = env.get("API_KEY_NAME", "")
 API_KEY = env.get("API_KEY", "")
 TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", "")
@@ -35,6 +35,11 @@ TELEGRAM_IMAGE_SIZE_LIMIT = env.get("TELEGRAM_IMAGE_SIZE_LIMIT", None)
 TELEGRAM_IMAGE_SIZE_LIMIT = (
     int(TELEGRAM_IMAGE_SIZE_LIMIT) if TELEGRAM_IMAGE_SIZE_LIMIT else 5242880
 )
+
+# MongoDB environment variables
+MONGODB_PORT = int(env.get("MONGODB_PORT")) if env.get("MONGODB_PORT") else 27017
+MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
+MONGODB_URL = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
 
 
 # Filesystem environment variables

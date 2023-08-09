@@ -1,7 +1,8 @@
 from typing import Optional, Any
 
+from app.models.database_model import Metadata
 from app.models.url_metadata import UrlMetadata
-from app.models.metadata_item import MetadataItem
+from app.models.metadata_item import MetadataItem,MessageType
 from app.services import threads, twitter, instagram, weibo, telegraph, douban, zhihu
 from app.database import save_instances
 
@@ -24,18 +25,23 @@ class InfoExtractService(object):
             "bilibili": self.get_video,
         }
         self.kwargs = kwargs
+        self.store_database = False if kwargs.get("store_database") is False else True
+        self.store_telegraph = False if kwargs.get("store_telegraph") is False else True
 
     @property
     def category(self) -> str:
         return self.source
 
-    async def get_item(self):
+    async def get_item(self) -> MetadataItem:
         metadata_item = await self.service_functions[self.category]()
-        if metadata_item["type"] == "long":
+        if metadata_item.get("message_type") == MessageType.LONG:
+            self.store_telegraph = True
+        if self.store_telegraph:
             telegraph_item = telegraph.Telegraph.from_dict(metadata_item)
             telegraph_url = await telegraph_item.get_telegraph()
             metadata_item["telegraph_url"] = telegraph_url
-        print(metadata_item)
+        if self.store_database:
+            await save_instances(Metadata.from_dict(metadata_item))
         return metadata_item
 
     async def get_threads(self):
