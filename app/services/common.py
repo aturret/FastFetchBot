@@ -3,6 +3,7 @@ from typing import Optional, Any
 from app.models.url_metadata import UrlMetadata
 from app.models.metadata_item import MetadataItem
 from app.services import threads, twitter, instagram, weibo, telegraph, douban, zhihu
+from app.database import save_instances
 
 
 class InfoExtractService(object):
