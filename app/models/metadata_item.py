@@ -1,6 +1,6 @@
 from dataclasses import dataclass
+from enum import Enum, unique
 from typing import Any, List, TypeVar, Callable, Type, cast, Union
-
 
 """
 MetadataItem is a dataclass that represents a single item for our services. It would be saved in the database.
@@ -24,6 +24,12 @@ def from_list(f: Callable[[Any], T], x: Any) -> List[T]:
 def to_class(c: Type[T], x: Any) -> dict:
     assert isinstance(x, c)
     return cast(Any, x).to_dict()
+
+
+@unique
+class MessageType(str, Enum):
+    SHORT = "short"
+    LONG = "long"
 
 
 @dataclass
@@ -59,7 +65,7 @@ class MetadataItem:
     title: str
     author_url: str
     category: str
-    type: str
+    message_type: str
 
     @staticmethod
     def from_dict(obj: Any) -> "MetadataItem":
@@ -73,7 +79,7 @@ class MetadataItem:
         title = from_str(obj.get("title"))
         author_url = from_str(obj.get("author_url"))
         category = from_str(obj.get("category"))
-        type = from_str(obj.get("type"))
+        message_type = from_str(obj.get("message_type"))
         return MetadataItem(
             url,
             telegraph_url,
@@ -84,7 +90,7 @@ class MetadataItem:
             title,
             author_url,
             category,
-            type,
+            message_type,
         )
 
     def to_dict(self) -> dict:
@@ -100,7 +106,7 @@ class MetadataItem:
         result["title"] = from_str(self.title)
         result["author_url"] = from_str(self.author_url)
         result["category"] = from_str(self.category)
-        result["type"] = from_str(self.type)
+        result["message_type"] = from_str(self.message_type)
         return result
 
 

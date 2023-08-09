@@ -8,7 +8,7 @@ from lxml import etree
 from app.utils.parse import get_html_text_length
 from app.utils.network import get_selector
 from app.utils.config import CHROME_USER_AGENT, HEADERS
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 
 SHORT_LIMIT = 600
 
@@ -24,7 +24,7 @@ class Douban(MetadataItem):
         self.content = ""
         self.media_files = []
         self.category = "douban"
-        self.type = "short"
+        self.message_type = MessageType.SHORT
         # auxiliary fields
         self.item_title = ""
         self.item_url = ""
@@ -83,9 +83,9 @@ class Douban(MetadataItem):
         await function_dict[self.douban_type]()
         self.douban_short_text_process()
         if get_html_text_length(self.content) > SHORT_LIMIT:
-            self.type = "long"
+            self.message_type = MessageType.LONG
         else:
-            self.type = "short"
+            self.message_type = MessageType.SHORT
 
     async def get_douban_movie_review(self):
         selector = await get_selector(url=self.url, headers=self.headers)

@@ -7,7 +7,7 @@ import jmespath
 from bs4 import BeautifulSoup
 from lxml import html
 
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import CHROME_USER_AGENT
 from app.utils.network import get_response_json
 from app.utils.parse import get_html_text_length
@@ -141,8 +141,8 @@ class Weibo(MetadataItem):
             self.content += "<hr>" + self.retweeted_info["content"]
             self.media_files += self.retweeted_info["media_files"]
         # type check
-        self.type = (
-            "long" if get_html_text_length(self.text) > WEIBO_TEXT_LIMIT else "short"
+        self.message_type = (
+            MessageType.LONG if get_html_text_length(self.text) > WEIBO_TEXT_LIMIT else MessageType.SHORT
         )
 
     @staticmethod

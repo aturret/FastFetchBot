@@ -6,7 +6,7 @@ import jmespath
 from playwright.async_api import async_playwright
 
 from app.utils.parse import get_html_text_length, unix_timestamp_to_utc
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import HTTP_REQUEST_TIMEOUT
 
 SHORT_LIMIT = 600
@@ -23,7 +23,7 @@ class Threads(MetadataItem):
         self.content = ""
         self.media_files = []
         self.category = "threads"
-        self.type = "short"
+        self.message_type = MessageType.SHORT
         # auxiliary fields
         self.text_group = ""
         self.content_group = ""
@@ -105,7 +105,7 @@ class Threads(MetadataItem):
             self.process_single_threads(thread)
         self.text += self.text_group
         self.content += self.content_group
-        self.type = "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
+        self.message_type = MessageType.LONG if get_html_text_length(self.text) > SHORT_LIMIT else MessageType.SHORT
 
     def process_single_threads(self, thread: Dict) -> None:
         if thread["code"] == self.code:  # if the thread is the authoral post

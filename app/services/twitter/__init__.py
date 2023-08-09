@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import httpx
 import jmespath
 
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.parse import get_html_text_length
 from .config import (
     ALL_SCRAPER,
@@ -37,7 +37,7 @@ class Twitter(MetadataItem):
         self.content = ""
         self.media_files: list[MediaFile] = []
         self.category = "twitter"
-        self.type = "short"
+        self.message_type = MessageType.SHORT
         # auxiliary fields
         self.tid = urlparse(url).path.split("/")[-1]
         self.text_group = ""

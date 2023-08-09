@@ -14,7 +14,7 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
 )
 from app.utils.network import get_selector, get_response_json
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.config import JINJA2_ENV
 from .config import (
@@ -41,7 +41,7 @@ class Zhihu(MetadataItem):
         self.content = ""
         self.media_files: list[MediaFile] = []
         self.category = "zhihu"
-        self.type = "short"
+        self.message_type = MessageType.SHORT
         # auxiliary fields
         self.item_title = ""
         self.item_url = ""
@@ -106,8 +106,8 @@ class Zhihu(MetadataItem):
                 continue
         self._zhihu_short_text_process()
         self._zhihu_content_process()
-        self.type = (
-            "long" if get_html_text_length(self.content) > SHORT_LIMIT else "short"
+        self.message_type = (
+            MessageType.LONG if get_html_text_length(self.content) > SHORT_LIMIT else MessageType.SHORT
         )
 
     def _check_zhihu_type(self) -> None:
