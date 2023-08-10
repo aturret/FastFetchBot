@@ -21,6 +21,7 @@ class Metadata(Model):
     media_files: Optional[list:MediaFile] = None
     telegraph_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    scrape_status: bool = False
 
     def __init__(self, **data: Any):
         super().__init__(**data)
