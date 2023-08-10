@@ -1,5 +1,6 @@
 import re
 from typing import Dict, Optional
+from enum import Enum
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
@@ -9,11 +10,33 @@ from app.utils.parse import get_html_text_length
 from app.utils.network import get_selector
 from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
+from app.config import JINJA2_ENV
 
 SHORT_LIMIT = 600
 
+short_text_template = JINJA2_ENV.get_template("douban_short_text.jinja2")
+content_template = JINJA2_ENV.get_template("douban_content.jinja2")
+
+
+class DoubanType(str, Enum):
+    MOVIE_REVIEW = "movie_review"
+    BOOK_REVIEW = "book_review"
+    NOTE = "note"
+    STATUS = "status"
+    GROUP = "group"
+    UNKNOWN = "unknown"
+
 
 class Douban(MetadataItem):
+    item_title: Optional[str]
+    item_url: Optional[str]
+    group_name: Optional[str]
+    group_url: Optional[str]
+    douban_type: DoubanType
+    text_group: Optional[str]
+    raw_content: Optional[str]
+    date: Optional[str]
+
     def __init__(self, url: str, **kwargs):
         # metadata fields
         self.url = url
@@ -26,14 +49,14 @@ class Douban(MetadataItem):
         self.category = "douban"
         self.message_type = MessageType.SHORT
         # auxiliary fields
-        self.item_title = ""
-        self.item_url = ""
-        self.group_name = ""
-        self.group_url = ""
-        self.douban_type = ""
-        self.text_group = ""
-        self.raw_content = ""
-        self.date = ""
+        self.item_title: Optional[str] = None
+        self.item_url: Optional[str] = None
+        self.group_name: Optional[str] = None
+        self.group_url: Optional[str] = None
+        self.douban_type: DoubanType = DoubanType.UNKNOWN
+        self.text_group: Optional[str] = None
+        self.raw_content: Optional[str] = None
+        self.date: Optional[str] = None
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
@@ -50,37 +73,40 @@ class Douban(MetadataItem):
         if "m.douban" in host:  # parse the m.douban url
             host = host.replace("m.douban", "douban")
             if path.startswith("/movie/review"):
-                self.douban_type = "movie"
+                self.douban_type = DoubanType.MOVIE_REVIEW
                 host = host.replace("douban", "movie.douban")
                 path = path.replace("/movie/", "/")
             elif path.startswith("/book/review"):
-                self.douban_type = "book"
+                self.douban_type = DoubanType.BOOK_REVIEW
                 host = host.replace("douban", "book.douban")
                 path = path.replace("/book/", "/")
         if path.startswith("/note/"):
-            self.douban_type = "note"
+            self.douban_type = DoubanType.NOTE
         elif path.startswith("/status/"):
-            self.douban_type = "status"
+            self.douban_type = DoubanType.STATUS
         elif path.startswith("/group/topic/"):
-            self.douban_type = "group"
+            self.douban_type = DoubanType.GROUP
         elif host.startswith("movie.douban") and path.startswith("/review/"):
-            self.douban_type = "movie"
+            self.douban_type = DoubanType.MOVIE_REVIEW
         elif host.startswith("book.douban") and path.startswith("/review/"):
-            self.douban_type = "book"
+            self.douban_type = DoubanType.BOOK_REVIEW
         else:
-            self.douban_type = "unknown"
+            self.douban_type = DoubanType.UNKNOWN
         self.url = f"https://{host}{path}"
 
     async def get_douban_item(self):
         function_dict = {
-            "movie": self.get_douban_movie_review,
-            "book": self.get_douban_book_review,
-            "note": self.get_douban_note,
-            "status": self.get_douban_status,
-            "group": self.get_douban_group_article,
-            "unknown": None,
+            DoubanType.MOVIE_REVIEW: self.get_douban_movie_review,
+            DoubanType.BOOK_REVIEW: self.get_douban_book_review,
+            DoubanType.NOTE: self.get_douban_note,
+            DoubanType.STATUS: self.get_douban_status,
+            DoubanType.GROUP: self.get_douban_group_article,
+            DoubanType.UNKNOWN: None,
         }
         await function_dict[self.douban_type]()
+        data = self.__dict__
+        self.text = short_text_template.render(data=data)
+        self.content = content_template.render(data=data)
         self.douban_short_text_process()
         if get_html_text_length(self.content) > SHORT_LIMIT:
             self.message_type = MessageType.LONG
