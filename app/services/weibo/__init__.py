@@ -20,9 +20,8 @@ from .config import (
 )
 from app.config import JINJA2_ENV
 
-environment = JINJA2_ENV
-short_text_template = environment.get_template("short_text.html")
-content_template = environment.get_template("weibo_content.html")
+short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")
+content_template = JINJA2_ENV.get_template("weibo_content.jinja2")
 
 
 class Weibo(MetadataItem):
@@ -47,6 +46,7 @@ class Weibo(MetadataItem):
         self.media_files = []
         self.author = ""
         self.author_url = ""
+        self.category = "weibo"
         # auxiliary fields
         self.retweeted_info = {}
 
