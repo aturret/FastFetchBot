@@ -1,6 +1,7 @@
 import os
 import tempfile
 from jinja2 import Environment, FileSystemLoader
+import gettext
 
 env = os.environ
 
@@ -52,6 +53,12 @@ JINJA2_ENV = Environment(
     loader=FileSystemLoader("app/templates/"), lstrip_blocks=True, trim_blocks=True
 )
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
+
+
+# Locale environment variables
+localedir = os.path.join(os.path.dirname(__file__), "locale")
+translation = gettext.translation("messages", localedir=localedir, fallback=True)
+_ = translation.gettext
 
 
 # Utils environment variables
