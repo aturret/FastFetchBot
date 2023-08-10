@@ -1,0 +1,4 @@
+<a href="{{ data.author_url }}">@{{ data.author }}</a>：{{ data.raw_content }}
+{% if data.retweeted_info %}
+<a href="{{ data.retweeted_info.uthor_url }}">@{{ data.retweeted_info.author }}</a>：{{ data.raw_content }}
+{% endif %}

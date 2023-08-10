@@ -48,7 +48,7 @@ class Weibo(MetadataItem):
         self.author_url = ""
         self.category = "weibo"
         # auxiliary fields
-        self.retweeted_info = {}
+        self.retweeted_info = None
 
     async def get_weibo(self):
         weibo_info = await self._get_weibo_info()
@@ -101,7 +101,7 @@ class Weibo(MetadataItem):
         self.author_url = WEIBO_HOST + weibo_info.get("author_url")
         self.title = self.author + "的微博"
         # get basic metadata
-        self.date = weibo_info.get("created")
+        self.date = weibo_info.get("created", None)
         self.source = weibo_info.get("source", None)
         self.region_name = weibo_info.get("region_name", None)
         self.attitudes_count = self._string_to_int(weibo_info.get("attitudes_count", 0))
@@ -116,7 +116,7 @@ class Weibo(MetadataItem):
             # however, we cannot get the full text of such kind of weibo from longtext api (it will return None)
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
             text = weibo_info.get("text")
-            # TODO: add a branch to get the fulltext without using the webpage scraping. This branch needs cookies.
+            # TODO: to add a branch to get the fulltext without using the webpage scraping. This branch needs cookies.
         else:
             longtext_info = await self._get_weibo_info(method="webpage")
             text = longtext_info.get("text")
@@ -142,7 +142,9 @@ class Weibo(MetadataItem):
             self.media_files += self.retweeted_info["media_files"]
         # type check
         self.message_type = (
-            MessageType.LONG if get_html_text_length(self.text) > WEIBO_TEXT_LIMIT else MessageType.SHORT
+            MessageType.LONG
+            if get_html_text_length(self.text) > WEIBO_TEXT_LIMIT
+            else MessageType.SHORT
         )
 
     @staticmethod
