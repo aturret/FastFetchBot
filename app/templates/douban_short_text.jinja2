@@ -1,0 +1,22 @@
+{% if data.douban_type.value == 'note' %}
+<a href="{{ data.author }}">
+{{ data.author_url }}
+</a>的豆瓣日记：
+<a href="{{ data.url }}">
+<b>{{ data.title }}</b>
+</a>
+{% elif data.douban_type.value == 'group' %}
+    
+{% elif data.douban_type.value == 'status' %}
+
+{% elif data.douban_type.value in ['movie_review','book_review'] %}
+<a href="{{ data.author }}">
+{{ data.author_url }}
+</a>对
+<a href="{{ data.item_url }}">
+{{ data.item_title }}
+</a>的 {{ data.item_type }}：
+<a href="{{ data.url }}">
+<b>{{ data.title }}</b>
+</a>
+{% endif %}
