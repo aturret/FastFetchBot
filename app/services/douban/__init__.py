@@ -96,24 +96,24 @@ class Douban(MetadataItem):
 
     async def get_douban_item(self):
         function_dict = {
-            DoubanType.MOVIE_REVIEW: self.get_douban_movie_review,
-            DoubanType.BOOK_REVIEW: self.get_douban_book_review,
-            DoubanType.NOTE: self.get_douban_note,
-            DoubanType.STATUS: self.get_douban_status,
-            DoubanType.GROUP: self.get_douban_group_article,
+            DoubanType.MOVIE_REVIEW: self._get_douban_movie_review,
+            DoubanType.BOOK_REVIEW: self._get_douban_book_review,
+            DoubanType.NOTE: self._get_douban_note,
+            DoubanType.STATUS: self._get_douban_status,
+            DoubanType.GROUP: self._get_douban_group_article,
             DoubanType.UNKNOWN: None,
         }
         await function_dict[self.douban_type]()
         data = self.__dict__
         self.text = short_text_template.render(data=data)
         self.content = content_template.render(data=data)
-        self.douban_short_text_process()
+        self._douban_short_text_process()
         if get_html_text_length(self.content) > SHORT_LIMIT:
             self.message_type = MessageType.LONG
         else:
             self.message_type = MessageType.SHORT
 
-    async def get_douban_movie_review(self):
+    async def _get_douban_movie_review(self):
         selector = await get_selector(url=self.url, headers=self.headers)
         self.title = selector.xpath('string(//div[@id="content"]//h1//span)')
         self.author = selector.xpath('string(//header[@class="main-hd"]//span)')
@@ -127,14 +127,8 @@ class Douban(MetadataItem):
             ),
             encoding="utf-8",
         )
-        self.text = (
-            f'<a href="{self.author}">{self.author_url}</a>对'
-            f'<a href="{self.item_url}">{self.item_title}</a>的影评： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
 
-    async def get_douban_book_review(self):
+    async def _get_douban_book_review(self):
         selector = await get_selector(self.url, headers=self.headers)
         self.title = selector.xpath('string(//div[@id="content"]//h1//span)')
         self.author = selector.xpath('string(//header[@class="main-hd"]//span)')
@@ -147,14 +141,8 @@ class Douban(MetadataItem):
             ),
             encoding="utf-8",
         )
-        self.text = (
-            f'<a href="{self.author}">{self.author_url}</a>对'
-            f'<a href="{self.item_url}">{self.item_title}</a>的书评： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
 
-    async def get_douban_note(self):
+    async def _get_douban_note(self):
         selector = await get_selector(self.url, headers=self.headers)
         self.title = selector.xpath('string(//div[@id="content"]//h1)')
         self.author = selector.xpath('string(//div[@class="content"]/a)')
@@ -165,13 +153,8 @@ class Douban(MetadataItem):
             ),
             encoding="utf-8",
         )
-        self.text = (
-            f'<a href="{self.author}">{self.author_url}</a>的豆瓣日记： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
 
-    async def get_douban_status(self):
+    async def _get_douban_status(self):
         selector = await get_selector(self.url, headers=self.headers)
         self.author = selector.xpath('string(//div[@class="content"]/a)')
         self.author_url = selector.xpath('string(//div[@class="content"]/a/@href)')
@@ -188,10 +171,8 @@ class Douban(MetadataItem):
             .replace(">+<", "><")
             .replace("&#13;", "<br>")
         )
-        self.text = f'<a href="{self.url}"><b>{self.title}</b></a>：\n'
-        self.content = self.text.replace("\n", "<br>") + self.raw_content
 
-    async def get_douban_group_article(self):
+    async def _get_douban_group_article(self):
         selector = await get_selector(self.url, headers=self.headers)
         self.title = selector.xpath('string(//div[@id="content"]//h1)')
         self.title = self.title.replace("\n", "").strip()
@@ -209,16 +190,8 @@ class Douban(MetadataItem):
             ),
             encoding="utf-8",
         )
-        self.text = (
-            f'<a href="{self.group_url}">{self.group_name}</a>： \n'
-            f'<a href="{self.url}"><b>{self.title}</b></a>\n'
-        )
-        self.content = (
-            f'<p>作者：<a href="{self.author_url}">{self.author}</p>'
-            f'<p>来自<a href="{self.group_url}">{self.group_name}</p>' + self.raw_content
-        )
 
-    def douban_short_text_process(self):
+    def _douban_short_text_process(self):
         soup = BeautifulSoup(self.raw_content, "html.parser")
         for img in soup.find_all("img"):
             media_item = {"media_type": "image", "url": img["src"], "caption": ""}
