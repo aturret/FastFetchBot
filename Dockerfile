@@ -41,7 +41,8 @@ RUN apt-get update \
         curl \
         # deps for building python deps
         build-essential
-
+# install ffmpeg
+RUN apt-get install -y ffmpeg
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
 
@@ -54,6 +55,8 @@ RUN poetry install --no-dev
 
 # install the browser dependencies for playwright
 RUN poetry run playwright install
+
+
 
 # `production` image used for runtime
 FROM python-base as production
