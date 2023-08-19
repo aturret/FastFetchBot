@@ -8,7 +8,7 @@ on:
 env:
   APP_NAME: fastfetchbot
   DOCKERHUB_REPO: aturret/fastfetchbot
-  APP_VERSION: latest
+#   APP_VERSION: latest
 
 jobs:
   docker:
@@ -57,4 +57,4 @@ jobs:
             APP_VERSION=${{ env.APP_VERSION }}
           tags: |
             ${{ env.DOCKERHUB_REPO }}:latest
-            ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
+#             ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
