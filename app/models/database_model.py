@@ -18,18 +18,18 @@ class Metadata(Model):
     content_length: Optional[int] = Field(ge=0)
     category: Optional[str] = None
     source: Optional[str] = None
-    media_files: Optional[list:MediaFile] = None
+    media_files: Optional[list[MediaFile]] = None
     telegraph_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     scrape_status: bool = False
 
-    def __init__(self, **data: Any):
-        super().__init__(**data)
+    def __post_init__(self, **data: Any):
         if data.get("text"):
             self.text_length = get_html_text_length(data["text"])
         if data.get("content"):
             self.content_length = get_html_text_length(data["content"])
 
+    #
     @staticmethod
     def from_dict(obj: Any) -> "Metadata":
         assert isinstance(obj, dict)

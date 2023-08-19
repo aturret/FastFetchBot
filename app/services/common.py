@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 from app.models.database_model import Metadata
 from app.models.url_metadata import UrlMetadata
-from app.models.metadata_item import MetadataItem,MessageType
+from app.models.metadata_item import MetadataItem, MessageType
 from app.services import threads, twitter, instagram, weibo, telegraph, douban, zhihu
 from app.database import save_instances
 
