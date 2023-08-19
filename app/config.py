@@ -4,7 +4,7 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 
 env = os.environ
-
+print(env.get("PROJECT_ROOT"))
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
 API_KEY_NAME = env.get("API_KEY_NAME", "")
@@ -53,6 +53,10 @@ JINJA2_ENV = Environment(
     loader=FileSystemLoader("app/templates/"), lstrip_blocks=True, trim_blocks=True
 )
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
+
+
+# Open AI API environment variables
+OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
 
 
 # Locale environment variables
