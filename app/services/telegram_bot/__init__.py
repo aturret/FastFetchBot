@@ -38,6 +38,7 @@ from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type
 from app.utils.network import download_a_iobytes_file
 from app.utils.image import Image, image_compressing
+from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
 from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
@@ -46,15 +47,15 @@ from app.config import (
     TELEGRAM_IMAGE_SIZE_LIMIT,
     JINJA2_ENV,
 )
-from .config import (
+from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
     REFERER_REQUIRED,
 )
-from ...models.classes import NamedBytesIO
-from ...models.url_metadata import UrlMetadata
+from app.models.classes import NamedBytesIO
+from app.models.url_metadata import UrlMetadata
 
 """
 logging
@@ -94,6 +95,10 @@ async def startup() -> None:
         filters=filters.Regex(HTTPS_URL_REGEX),
         callback=https_url_process,
     )
+    https_url_auto_process_handler = MessageHandler(
+        filters=filters.ChatType.SUPERGROUP & filters.Regex(HTTPS_URL_REGEX),
+        callback=https_url_auto_process,
+    )
     invalid_buttons_handler = CallbackQueryHandler(
         callback=invalid_buttons,
         pattern=InvalidCallbackData,
@@ -105,6 +110,7 @@ async def startup() -> None:
     application.add_handlers(
         [
             https_url_process_handler,
+            https_url_auto_process_handler,
             all_messages_handler,
             invalid_buttons_handler,
             buttons_process_handler,
@@ -184,6 +190,15 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         await message.reply_text("Please choose:", reply_markup=reply_markup)
 
 
+async def https_url_auto_process(update: Update, context: CallbackContext) -> None:
+    message = update.message
+    url = context.matches[0].group(0)
+    url_metadata = await check_url_type(url)
+    if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
+        metadata_item = await content_process_function(url_metadata=url_metadata)
+        await send_item_message(metadata_item, chat_id=message.chat_id, message=message)
+
+
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
     print("webhook_update", update.message)
 
@@ -226,6 +241,7 @@ async def invalid_buttons(update: Update, context: CallbackContext) -> None:
 async def content_process_function(url_metadata: UrlMetadata, **kwargs) -> dict:
     item = InfoExtractService(url_metadata, **kwargs)
     metadata_item = await item.get_item()
+    metadata_item = metadata_item.to_dict()
     return metadata_item
 
 
@@ -246,7 +262,7 @@ async def send_item_message(
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
-    if the_chat.type == "channel":
+    if the_chat.content_type == "channel":
         if the_chat.linked_chat_id:
             discussion_chat_id = the_chat.linked_chat_id
     try:
@@ -264,7 +280,7 @@ async def send_item_message(
                     caption_text = (
                         caption_text
                         if i == 0
-                        else f"the {i+1}th part of the media item:"
+                        else f"the {i + 1}th part of the media item:"
                     )
                     sent_message = await application.bot.send_media_group(
                         chat_id=discussion_chat_id,
