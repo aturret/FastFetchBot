@@ -4,12 +4,17 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 
 env = os.environ
-print(env.get("PROJECT_ROOT"))
+
+
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
 API_KEY_NAME = env.get("API_KEY_NAME", "")
 API_KEY = env.get("API_KEY", "")
 TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", "")
+
+# Logging environment variables
+LOG_FILE_PATH = env.get("LOG_FILE_PATH", None)
+LOG_LEVEL = env.get("LOG_LEVEL", "DEBUG")
 
 # Telegram bot environment variables
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", "")
