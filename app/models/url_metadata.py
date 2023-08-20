@@ -19,12 +19,12 @@ def to_class(c: Type[T], x: Any) -> dict:
 class UrlMetadata:
     url: str
     source: str
-    type: str
+    content_type: str
 
     def __init__(self, url: str, source: str, the_type: str) -> None:
         self.url = url
         self.source = source
-        self.type = the_type
+        self.content_type = the_type
 
     @staticmethod
     def from_dict(obj: Any) -> "UrlMetadata":
@@ -38,7 +38,7 @@ class UrlMetadata:
         result: dict = {}
         result["url"] = from_str(self.url)
         result["source"] = from_str(self.source)
-        result["type"] = from_str(self.type)
+        result["type"] = from_str(self.content_type)
         return result
 
 
