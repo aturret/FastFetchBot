@@ -1,5 +1,6 @@
 # TODO: Implement Telegram Service
 # example: https://docs.python-telegram-bot.org/en/stable/examples.customwebhookbot.html
+import asyncio
 import html
 import json
 import logging
@@ -10,6 +11,7 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
 
+import aiofiles
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -465,9 +467,11 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         else:  # if the url is a local file path, just add it to the media group
             try:
                 file_path = url2pathname(media_item["url"])
-                file_size = os.path.getsize(file_path)
-                io_object = InputFile(media_item["url"])
-                filename = io_object.filename
+                async with aiofiles.open(file_path, mode="rb") as f:
+                    filename = os.path.basename(file_path)
+                    content = await f.read()
+                    io_object = NamedBytesIO(content=content, name=filename)
+                file_size = io_object.size
             except Exception as e:  # the url is not a valid file path
                 logger.error(e)
                 continue
