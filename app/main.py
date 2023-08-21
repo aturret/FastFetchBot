@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from app import database, auth
 from app.routers import telegram_bot
 from app.services import telegram_bot as telegram_bot_service
+from app.config import TELEGRAM_BOT_TOKEN
+from app.utils.logger import logger
 
 SENTRY_DSN = ""
 
@@ -19,12 +21,17 @@ sentry_sdk.init(
 )
 
 app = FastAPI()
-app.include_router(telegram_bot.router)
+if TELEGRAM_BOT_TOKEN is not None:
+    app.include_router(telegram_bot.router)
+else:
+    logger.warning("Telegram bot token not set, telegram bot disabled")
 
 
 @app.on_event("startup")
 async def on_startup():
-    await database.startup()
+    logger.debug("database startup")
+    # await database.startup()
+    logger.debug("telegram bot startup")
     await telegram_bot_service.startup()
 
 
