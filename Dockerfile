@@ -61,7 +61,8 @@ RUN poetry run playwright install
 # `production` image used for runtime
 FROM python-base as production
 ENV FASTAPI_ENV=production
+ENV PYTHONPATH /app:$PYTHONPATH
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
-COPY ./app /app/
+COPY ./ /app
 WORKDIR /app
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "wsgi:app"]
