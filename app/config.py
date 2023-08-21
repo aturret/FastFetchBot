@@ -1,5 +1,6 @@
 import os
 import tempfile
+import socket
 from jinja2 import Environment, FileSystemLoader
 import gettext
 
@@ -53,6 +54,8 @@ else:
     TELEGRAM_CHANNEL_ID = None
 TELEGRAM_WEBHOOK_URL = "https://" + BASE_URL + "/telegram/bot/webhook"
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
+if TELEBOT_API_SERVER_HOST:
+    TELEBOT_API_SERVER_HOST = socket.gethostbyname(TELEBOT_API_SERVER_HOST)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (
     f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/bot{0}/{1}"
