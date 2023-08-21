@@ -65,6 +65,13 @@ from app.models.url_metadata import UrlMetadata
 """
 application and handlers initialization
 """
+logger.debug(f"""
+TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}
+TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}
+TELEBOT_API_SERVER: {TELEBOT_API_SERVER}
+TELEBOT_API_SERVER_FILE: {TELEBOT_API_SERVER_FILE}
+LOCAL_FILE_MODE: {LOCAL_FILE_MODE}
+""")
 if TELEGRAM_BOT_TOKEN is not None:
     application = (
         Application.builder()
@@ -72,8 +79,8 @@ if TELEGRAM_BOT_TOKEN is not None:
         .updater(None)
         .arbitrary_callback_data(True)
         .base_url(TELEBOT_API_SERVER)
-        .local_mode(LOCAL_FILE_MODE)
         .base_file_url(TELEBOT_API_SERVER_FILE)
+        .local_mode(LOCAL_FILE_MODE)
         .build()
     )
 else:
