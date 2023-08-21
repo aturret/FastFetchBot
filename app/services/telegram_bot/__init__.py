@@ -86,6 +86,7 @@ if TELEGRAM_BOT_TOKEN is not None:
 else:
     logger.error("TELEGRAM_BOT_TOKEN is not set!")
     raise ValueError("TELEGRAM_BOT_TOKEN is not set!")
+
 environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
 

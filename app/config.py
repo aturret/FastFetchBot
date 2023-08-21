@@ -54,16 +54,16 @@ else:
     TELEGRAM_CHANNEL_ID = None
 TELEGRAM_WEBHOOK_URL = "https://" + BASE_URL + "/telegram/bot/webhook"
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
-if TELEBOT_API_SERVER_HOST:
-    TELEBOT_API_SERVER_HOST = socket.gethostbyname(TELEBOT_API_SERVER_HOST)
+# if TELEBOT_API_SERVER_HOST:
+#     TELEBOT_API_SERVER_HOST = socket.gethostbyname(TELEBOT_API_SERVER_HOST)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (
-    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/bot{0}/{1}"
+    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/bot"
     if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
     else "https://api.telegram.org/bot"
 )
 TELEBOT_API_SERVER_FILE = (
-    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/file/bot{0}/{1}"
+    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/file/bot"
     if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
     else "https://api.telegram.org/file/bot"
 )
