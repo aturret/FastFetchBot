@@ -21,10 +21,10 @@ class UrlMetadata:
     source: str
     content_type: str
 
-    def __init__(self, url: str, source: str, the_type: str) -> None:
+    def __init__(self, url: str, source: str, content_type: str) -> None:
         self.url = url
         self.source = source
-        self.content_type = the_type
+        self.content_type = content_type
 
     @staticmethod
     def from_dict(obj: Any) -> "UrlMetadata":
@@ -38,7 +38,7 @@ class UrlMetadata:
         result: dict = {}
         result["url"] = from_str(self.url)
         result["source"] = from_str(self.source)
-        result["type"] = from_str(self.content_type)
+        result["content_type"] = from_str(self.content_type)
         return result
 
 
