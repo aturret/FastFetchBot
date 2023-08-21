@@ -46,6 +46,8 @@ from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
     TELEBOT_API_SERVER,
+    TELEBOT_API_SERVER_FILE,
+    LOCAL_FILE_MODE,
     TELEGRAM_IMAGE_DIMENSION_LIMIT,
     TELEGRAM_IMAGE_SIZE_LIMIT,
     JINJA2_ENV,
@@ -70,6 +72,8 @@ if TELEGRAM_BOT_TOKEN is not None:
         .updater(None)
         .arbitrary_callback_data(True)
         .base_url(TELEBOT_API_SERVER)
+        .local_mode(LOCAL_FILE_MODE)
+        .base_file_url(TELEBOT_API_SERVER_FILE)
         .build()
     )
 else:

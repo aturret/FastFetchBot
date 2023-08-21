@@ -59,6 +59,12 @@ TELEBOT_API_SERVER = (
     if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
     else "https://api.telegram.org/bot"
 )
+TELEBOT_API_SERVER_FILE = (
+    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/file/bot{0}/{1}"
+    if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
+    else "https://api.telegram.org/file/bot"
+)
+LOCAL_FILE_MODE = False if TELEBOT_API_SERVER == "https://api.telegram.org/bot" else True
 TELEGRAM_IMAGE_DIMENSION_LIMIT = env.get("TELEGRAM_IMAGE_SIZE_LIMIT", None)
 TELEGRAM_IMAGE_DIMENSION_LIMIT = (
     int(TELEGRAM_IMAGE_DIMENSION_LIMIT) if TELEGRAM_IMAGE_DIMENSION_LIMIT else 1600
