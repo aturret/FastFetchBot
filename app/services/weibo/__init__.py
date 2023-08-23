@@ -37,7 +37,10 @@ class Weibo(MetadataItem):
         self.url = url
         self.method = method
         self.scraper = scraper
-        self.headers = {"User-Agent": user_agent, "Cookie": cookies}
+        self.text = ""
+        self.headers = {"User-Agent": user_agent}
+        if cookies:
+            self.headers["Cookie"] = cookies
         self.url_parser = urlparse(url)
         self.id = self.url_parser.path.split("/")[-1]
         self.ajax_url = AJAX_HOST + self.id
@@ -94,7 +97,7 @@ class Weibo(MetadataItem):
         return ajax_json
 
     async def _process_weibo_item(self, weibo_info: dict) -> None:
-        self.id = weibo_info.get("id")
+        self.id = str(weibo_info.get("id"))
         # get user info
         self.user_id = weibo_info.get("user_id")
         self.author = weibo_info.get("author")
@@ -359,8 +362,8 @@ class Weibo(MetadataItem):
             for a in soup.find_all("a"):
                 if a.text == "查看图片":
                     fw_pics.append(a.get("href"))
-            if "/n/" in a.get("href") and a.get("usercard"):
-                a["href"] = "https://weibo.com" + a.get("href")
+                if "/n/" in a.get("href") and a.get("usercard"):
+                    a["href"] = "https://weibo.com" + a.get("href")
             for i in soup.find_all("span"):
                 i.unwrap()
             res = (
