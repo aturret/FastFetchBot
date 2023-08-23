@@ -52,19 +52,19 @@ def second_to_time(second: int) -> str:
 async def check_url_type(url: str) -> UrlMetadata:
     url_object = urlparse(url)
     url_host = url_object.hostname
-    category, content_type = None, None
+    source, content_type = None, None
     # check if the url is a social media platform website
     for website, patterns in SOCIAL_MEDIA_WEBSITE_PATTERNS.items():
         for pattern in patterns:
             if re.search(pattern, url_host):
-                category = website
+                source = website
                 content_type = "social_media"
     # check if the url is a video website
-    if not category:
+    if not source:
         for website, patterns in VIDEO_WEBSITE_PATTERNS.items():
             for pattern in patterns:
                 if re.search(pattern, url_host):
-                    category = website
+                    source = website
                     content_type = "video"
     # TODO: check if the url is from Mastodon, according to the request cookie
-    return UrlMetadata(url, category, content_type)
+    return UrlMetadata(url=url, source=source, content_type=content_type)
