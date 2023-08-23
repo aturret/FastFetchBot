@@ -5,14 +5,15 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 
 env = os.environ
+current_directory = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_env_bool(var_name, default=False):
     """Retrieve environment variable as a boolean."""
-    true_values = {'true', '1', 'yes', 'on'}
-    false_values = {'false', '0', 'no', 'off'}
+    true_values = {"true", "1", "yes", "on"}
+    false_values = {"false", "0", "no", "off"}
 
-    value = env.get(var_name, '').lower()
+    value = env.get(var_name, "").lower()
 
     if value in true_values:
         return True
@@ -67,7 +68,9 @@ TELEBOT_API_SERVER_FILE = (
     if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
     else "https://api.telegram.org/file/bot"
 )
-LOCAL_FILE_MODE = False if TELEBOT_API_SERVER == "https://api.telegram.org/bot" else True
+LOCAL_FILE_MODE = (
+    False if TELEBOT_API_SERVER == "https://api.telegram.org/bot" else True
+)
 TELEGRAM_IMAGE_DIMENSION_LIMIT = env.get("TELEGRAM_IMAGE_SIZE_LIMIT", None)
 TELEGRAM_IMAGE_DIMENSION_LIMIT = (
     int(TELEGRAM_IMAGE_DIMENSION_LIMIT) if TELEGRAM_IMAGE_DIMENSION_LIMIT else 1600
@@ -84,8 +87,9 @@ YOUTUBE_DL_URL = f"http://{YOUTUBE_DL_HOST}:{YOUTUBE_DL_PORT}"
 DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
 
 # Services environment variables
+templates_directory = os.path.join(current_directory, "templates")
 JINJA2_ENV = Environment(
-    loader=FileSystemLoader("app/templates/"), lstrip_blocks=True, trim_blocks=True
+    loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
 
