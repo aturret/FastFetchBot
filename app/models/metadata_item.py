@@ -50,7 +50,7 @@ class MediaFile:
         result: dict = {}
         result["media_type"] = from_str(self.media_type)
         result["url"] = from_str(self.url)
-        result["caption"] = from_str(self.caption)
+        result["caption"] = self.caption
         return result
 
 
