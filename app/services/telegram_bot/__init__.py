@@ -47,7 +47,10 @@ from app.config import (
     TELEGRAM_CHANNEL_ID,
     TELEBOT_API_SERVER,
     TELEBOT_API_SERVER_FILE,
-    LOCAL_FILE_MODE,
+    TELEBOT_LOCAL_FILE_MODE,
+    TELEBOT_CONNECT_TIMEOUT,
+    TELEBOT_READ_TIMEOUT,
+    TELEBOT_WRITE_TIMEOUT,
     TELEGRAM_IMAGE_DIMENSION_LIMIT,
     TELEGRAM_IMAGE_SIZE_LIMIT,
     JINJA2_ENV,
@@ -71,7 +74,7 @@ TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}
 TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}
 TELEBOT_API_SERVER: {TELEBOT_API_SERVER}
 TELEBOT_API_SERVER_FILE: {TELEBOT_API_SERVER_FILE}
-LOCAL_FILE_MODE: {LOCAL_FILE_MODE}
+LOCAL_FILE_MODE: {TELEBOT_LOCAL_FILE_MODE}
 """
 )
 if TELEGRAM_BOT_TOKEN is not None:
@@ -80,9 +83,12 @@ if TELEGRAM_BOT_TOKEN is not None:
         .token(TELEGRAM_BOT_TOKEN)
         .updater(None)
         .arbitrary_callback_data(True)
+        .connect_timeout(TELEBOT_CONNECT_TIMEOUT)
+        .read_timeout(TELEBOT_READ_TIMEOUT)
+        .write_timeout(TELEBOT_WRITE_TIMEOUT)
         .base_url(TELEBOT_API_SERVER)
         .base_file_url(TELEBOT_API_SERVER_FILE)
-        .local_mode(LOCAL_FILE_MODE)
+        .local_mode(TELEBOT_LOCAL_FILE_MODE)
         .build()
     )
 else:
@@ -104,11 +110,11 @@ async def startup() -> None:
         callback=all_messages_process,
     )
     https_url_process_handler = MessageHandler(
-        filters=filters.Regex(HTTPS_URL_REGEX),
+        filters=filters.ChatType.PRIVATE & filters.Regex(HTTPS_URL_REGEX),
         callback=https_url_process,
     )
     https_url_auto_process_handler = MessageHandler(
-        filters=filters.ChatType.SUPERGROUP & filters.Regex(HTTPS_URL_REGEX),
+        filters=(filters.ChatType.SUPERGROUP | filters.ChatType.GROUP | filters.ChatType.GROUPS) & filters.Regex(HTTPS_URL_REGEX),
         callback=https_url_auto_process,
     )
     invalid_buttons_handler = CallbackQueryHandler(
@@ -139,7 +145,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-    data: dict,
+        data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -303,7 +309,7 @@ async def content_process_function(url_metadata: UrlMetadata, **kwargs) -> dict:
 
 
 async def send_item_message(
-    data: dict, chat_id: Union[int, str] = None, message: Message = None
+        data: dict, chat_id: Union[int, str] = None, message: Message = None
 ) -> None:
     """
     :param data: (dict) metadata of the item
@@ -314,7 +320,7 @@ async def send_item_message(
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
     if (
-        not chat_id
+            not chat_id
     ) and message:  # this function supports directly reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
@@ -330,7 +336,7 @@ async def send_item_message(
                 media_files=data["media_files"], data=data
             )
             if (
-                len(media_message_group) > 0
+                    len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
                 reply_to_message_id = None
                 for i, media_group in enumerate(media_message_group):
@@ -352,31 +358,31 @@ async def send_item_message(
                         chat_id=discussion_chat_id
                     ).pinned_message
                     if (
-                        pinned_message.forward_from_message_id
-                        == sent_message[-1].message_id
+                            pinned_message.forward_from_message_id
+                            == sent_message[-1].message_id
                     ):
                         reply_to_message_id = (
-                            application.bot.get_chat(
-                                chat_id=discussion_chat_id
-                            ).pinned_message.id
-                            - len(sent_message)
-                            + 1
+                                application.bot.get_chat(
+                                    chat_id=discussion_chat_id
+                                ).pinned_message.id
+                                - len(sent_message)
+                                + 1
                         )
                     else:
                         reply_to_message_id = sent_message[-1].message_id
             if (
-                len(file_group) > 0
+                    len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
                 application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
                     text="The following files are larger than the limitation of Telegram, "
-                    "so they are sent as files:",
+                         "so they are sent as files:",
                     reply_to_message_id=reply_to_message_id,
                 )
                 for file in file_group:
                     if file.name.endswith(
-                        ".gif"
+                            ".gif"
                     ):  # TODO: it's not a good way to determine whether it's a gif.
                         await application.bot.send_video(
                             chat_id=discussion_chat_id,
@@ -459,7 +465,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
     media_group = []
     file_group = []
     for (
-        media_item
+            media_item
     ) in media_files:  # To traverse all media items in the media files list
         # check if we need to create a new media group
         if media_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT:
@@ -493,7 +499,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 continue
         # check the file size
         if (
-            not TELEBOT_API_SERVER
+                not TELEBOT_API_SERVER
         ):  # the official telegram bot api server only supports 50MB file
             if file_size > TELEGRAM_FILE_UPLOAD_LIMIT:
                 # if the size is over 50MB, skip this file
@@ -514,9 +520,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
             if (
-                file_size > TELEGRAM_IMAGE_SIZE_LIMIT
-                or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
-                or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    file_size > TELEGRAM_IMAGE_SIZE_LIMIT
+                    or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
             ):
                 io_object = await download_a_iobytes_file(url=image_url)
                 if not io_object.name.endswith(".gif"):
