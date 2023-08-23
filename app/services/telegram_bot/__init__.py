@@ -255,6 +255,9 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
     message = update.message
     url = context.matches[0].group(0)
     url_metadata = await check_url_type(url)
+    if not url_metadata.source:
+        logger.debug(f"for url {url}, no supported url found.")
+        return
     if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
         metadata_item = await content_process_function(url_metadata=url_metadata)
         await send_item_message(metadata_item, chat_id=message.chat_id, message=message)
