@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from tests.common import AsyncTestBase
 from app.services.weibo import Weibo
+from .cases.weibo import weibo_cases
 
 
 class WeiboTestBase(AsyncTestBase):
@@ -20,9 +21,16 @@ class WeiboTestBase(AsyncTestBase):
 class GetWeiboTest(WeiboTestBase):
 
     async def test_pure_short_text(self):
-        await self.get_weibo("https://weibo.com/2611086417/NfPo2txqT")
-        self.assert_value_not_none()
+        for url in weibo_cases["pure_short_text"]:
+            await self.get_weibo(url)
+            self.assert_value_not_none()
 
     async def test_pure_long_text(self):
-        await self.get_weibo("https://weibo.com/6154203482/NfKHjekXP")
-        self.assert_value_not_none()
+        for url in weibo_cases["pure_long_text"]:
+            await self.get_weibo(url)
+            self.assert_value_not_none()
+
+    async def test_single_video_short_text(self):
+        for url in weibo_cases["single_video_short_text"]:
+            await self.get_weibo(url)
+            self.assert_value_not_none()
