@@ -133,6 +133,7 @@ class Weibo(MetadataItem):
         # render the text and content
         data = self.__dict__
         self.text = short_text_template.render(data=data)
+        self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
         self.content = content_template.render(data=data)
         # resolve retweet
         if weibo_info.get("retweeted_status"):
