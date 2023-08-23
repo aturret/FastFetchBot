@@ -178,7 +178,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         if TELEGRAM_CHANNEL_ID:
             special_function_keyboard.append(
                 InlineKeyboardButton(
-                    "Send to channel",
+                    "Send to Channel",
                     callback_data={"type": "channel", "metadata": url_metadata},
                 ),
             )
@@ -187,7 +187,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             basic_function_keyboard.extend(
                 [
                     InlineKeyboardButton(
-                        "Get video info",
+                        "Get Info",
                         callback_data={
                             "type": "video",
                             "metadata": url_metadata,
@@ -195,7 +195,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         },
                     ),
                     InlineKeyboardButton(
-                        "Download video",
+                        "Download",
                         callback_data={
                             "type": "video",
                             "metadata": url_metadata,
@@ -206,7 +206,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             special_function_keyboard.extend(
                 [
                     InlineKeyboardButton(
-                        "Transcribe video to text",
+                        "Transcribe Text",
                         callback_data={
                             "type": "video",
                             "metadata": url_metadata,
@@ -214,7 +214,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         },
                     ),
                     InlineKeyboardButton(
-                        "Download hd video",
+                        "Download HD",
                         callback_data={
                             "type": "video",
                             "metadata": url_metadata,
@@ -226,13 +226,13 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         elif url_metadata.content_type == "social_media":
             special_function_keyboard.append(
                 InlineKeyboardButton(
-                    "Force send in chat",
+                    "Force Send in Chat",
                     callback_data={"type": "force", "metadata": url_metadata},
                 )
             )
             basic_function_keyboard.append(
                 InlineKeyboardButton(
-                    "Send to me",
+                    "Send to Me",
                     callback_data={"type": "private", "metadata": url_metadata},
                 )
             )
