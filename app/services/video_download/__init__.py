@@ -6,7 +6,9 @@ from app.models.metadata_item import MetadataItem, MessageType, MediaFile
 from app.config import DOWNLOAD_DIR, YOUTUBE_DL_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.parse import unix_timestamp_to_utc, second_to_time
 from app.utils.logger import logger
+from app.config import JINJA2_ENV
 
+video_info_template = JINJA2_ENV.get_template("video_info.jinja2")
 
 class VideoDownloader(MetadataItem):
     def __init__(
@@ -107,30 +109,16 @@ class VideoDownloader(MetadataItem):
             meta_info["description"] = meta_info["description"][:800] + "..."
         self.created = meta_info["upload_date"]
         self.duration = meta_info["duration"]
-        self.text = (
-            '<a href="'
-            + self.url
-            + '"><b>'
-            + self.title
-            + "</b></a>\n"
-            + '作者：<a href="'
-            + self.author_url
-            + '">'
-            + self.author
-            + "</a>\n"
-            + "视频时长："
-            + self.duration
-            + "\n"
-            + "视频上传日期："
-            + self.created
-            + "\n"
-            + "播放数据："
-            + meta_info["playback_data"]
-            + "\n"
-            + "视频简介："
-            + meta_info["description"]
-            + "\n"
-        )
+        self.text = video_info_template.render(data={
+            "url": self.url,
+            "title": self.title,
+            "author": self.author,
+            "author_url": self.author_url,
+            "duration": self.duration,
+            "created": self.created,
+            "playback_data": meta_info["playback_data"],
+            "description": meta_info["description"],
+        })
         self.content = self.text.replace("\n", "<br>")
         if self.download:
             self.media_files = [MediaFile("video", self.file_path, "")]
