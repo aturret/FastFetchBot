@@ -23,5 +23,5 @@ async def telegram_bot_webhook(request: Request):
 async def telegram_bot_set_webhook():
     # mask api key
     logger.debug(f"set telegram webhook: {TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY[:2]}{'*' * (len(TELEGRAM_API_KEY) - 4)}{TELEGRAM_API_KEY[-2:]}")
-    await set_webhook(TELEGRAM_WEBHOOK_URL + f"?{API_KEY_NAME}={TELEGRAM_API_KEY}")
+    await set_webhook(f"{TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY}")
     return "ok"
