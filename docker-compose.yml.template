@@ -1,0 +1,59 @@
+version: "3"
+
+services:
+  fastfetchbot:
+    image: aturret/fast-fetch-bot:latest
+    container_name: fastfetchbot
+#     restart: always
+    volumes:
+      - ./conf:/app/conf
+      - video_file:/tmp
+    env_file:
+      - .env
+    ports:
+      - 10450:10450
+    command:
+      - gunicorn
+      - -k
+      - uvicorn.workers.UvicornWorker
+      - --bind
+      - 0.0.0.0:10450
+      - wsgi:app
+    depends_on:
+      - telegram-bot-api
+
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: telegrambotapi
+    restart: always
+    volumes:
+      - telegram-bot-api-data-cache:/var/lib/telegram-bot-api
+    ports:
+      - 8081:8081
+      - 8082:8082
+    environment:
+      - TELEGRAM_API_ID=
+      - TELEGRAM_API_HASH=
+      - TELEGRAM_LOCAL=TRUE
+      - TELEGRAM_LOG_FILE=tglog.log
+      - TELEGRAM_STAT=1
+      - TELEBOT_API_SERVER_PORT=8081
+
+  fast-yt-downloader:
+    image: aturret/fast-yt-downloader:latest
+    container_name: fastytd
+    restart: always
+    environment:
+      - PORT=4000
+    volumes:
+      - video_file:${DOWNLOAD_DIR}
+    ports:
+      - 4000:4000
+    depends_on:
+      - fastfetchbot
+
+
+
+volumes:
+  telegram-bot-api-data-cache:
+  video_file:
