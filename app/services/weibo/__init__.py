@@ -261,19 +261,11 @@ class Weibo(MetadataItem):
                 )
                 if not media_info:
                     media_info = weibo_info["page_info"]["media_info"]
-                video_url = media_info.get("mp4_720p_mp4")
-                if not video_url:
-                    video_url = media_info.get("mp4_hd_url")
-                if not video_url:
-                    video_url = media_info.get("hevc_mp4_hd")
-                if not video_url:
-                    video_url = media_info.get("mp4_sd_url")
-                if not video_url:
-                    video_url = media_info.get("mp4_ld_mp4")
-                if not video_url:
-                    video_url = media_info.get("stream_url_hd")
-                if not video_url:
-                    video_url = media_info.get("stream_url")
+                video_url_keys = ["mp4_720p_mp4", "mp4_hd_url", "hevc_mp4_hd", "mp4_sd_url", "mp4_ld_mp4", "stream_url_hd", "stream_url"]
+                for key in video_url_keys:
+                    video_url = media_info.get(key)
+                    if video_url:
+                        break
                 video_url_list.append(video_url)
         for url in video_url_list:
             media_files.append(MediaFile(url=url, media_type="video"))
