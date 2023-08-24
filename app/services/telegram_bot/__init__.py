@@ -79,6 +79,7 @@ TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}
 TELEBOT_API_SERVER: {TELEBOT_API_SERVER}
 TELEBOT_API_SERVER_FILE: {TELEBOT_API_SERVER_FILE}
 LOCAL_FILE_MODE: {TELEBOT_LOCAL_FILE_MODE}
+TELEBOT_DEBUG_CHANNEL: {TELEBOT_DEBUG_CHANNEL}
 """
 )
 if TELEGRAM_BOT_TOKEN is not None:
@@ -187,7 +188,9 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         )
         url_metadata = await check_url_type(url)
         if not url_metadata.source:
-            await process_message.edit_text(text=f"For the {i+1} th url, no supported url found.")
+            await process_message.edit_text(
+                text=f"For the {i+1} th url, no supported url found."
+            )
             return
         else:
             await process_message.edit_text(
@@ -335,8 +338,8 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         await send_item_message(metadata_item, chat_id=chat_id)
         if data["type"] == "channel":
             await query.message.reply_text(
-            text=f"Item sent to the channel.",
-        )
+                text=f"Item sent to the channel.",
+            )
         await replying_message.delete()
     await query.message.delete()
     context.drop_callback_data(query)
@@ -402,10 +405,17 @@ async def send_item_message(
                     )
                 if discussion_chat_id != chat_id and len(media_message_group) > 0:
                     # if the chat is a channel, get the latest pinned message from the channel and reply to it
-                    group_chat = await application.bot.get_chat(chat_id=discussion_chat_id)
+                    group_chat = await application.bot.get_chat(
+                        chat_id=discussion_chat_id
+                    )
                     pinned_message = group_chat.pinned_message
-                    if pinned_message.forward_from_message_id == sent_message[-1].message_id:
-                        reply_to_message_id = group_chat.pinned_message.id - len(sent_message) + 1
+                    if (
+                        pinned_message.forward_from_message_id
+                        == sent_message[-1].message_id
+                    ):
+                        reply_to_message_id = (
+                            group_chat.pinned_message.id - len(sent_message) + 1
+                        )
                     else:
                         # reply_to_message_id = sent_message[-1].message_id
                         reply_to_message_id = group_chat.pinned_message.id + 1
@@ -414,7 +424,9 @@ async def send_item_message(
             ):  # send files, the files messages should be replied to the message sent before
                 logger.debug(f"file group: {file_group}")
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
-                await asyncio.sleep(3)  # wait for several seconds to avoid missing the target message
+                await asyncio.sleep(
+                    3
+                )  # wait for several seconds to avoid missing the target message
                 application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
@@ -480,14 +492,17 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
         f"<pre>{html.escape(tb_string)}</pre>"
     )
-    if TELEBOT_DEBUG_CHANNEL:
-        await context.bot.send_message(
-            chat_id=TELEBOT_DEBUG_CHANNEL, text=message, parse_mode=ParseMode.HTML
+    debug_chat_id = update.message.chat_id
+    if TELEBOT_DEBUG_CHANNEL is not None:
+        debug_chat_id = TELEBOT_DEBUG_CHANNEL
+        logger.debug(
+            f"""
+        debug chat channel detected: {debug_chat_id}
+        """
         )
-    else:
-        await context.bot.send_message(
-            chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
-        )
+    await context.bot.send_message(
+        chat_id=debug_chat_id, text=message, parse_mode=ParseMode.HTML
+    )
 
 
 def message_formatting(data: dict) -> str:
@@ -577,7 +592,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 buffer.seek(0)
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
-            logger.debug(f"image size: {file_size}, width: {img_width}, height: {img_height}")
+            logger.debug(
+                f"image size: {file_size}, width: {img_width}, height: {img_height}"
+            )
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                 or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT

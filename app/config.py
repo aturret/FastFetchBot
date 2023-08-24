@@ -11,8 +11,8 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 
 def get_env_bool(var_name, default=False):
     """Retrieve environment variable as a boolean."""
-    true_values = {"true", "1", "yes", "on"}
-    false_values = {"false", "0", "no", "off"}
+    true_values = {"True","true", "1", "yes", "on"}
+    false_values = {"False","false", "0", "no", "off"}
 
     value = env.get(var_name, "").lower()
 
