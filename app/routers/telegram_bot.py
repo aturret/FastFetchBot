@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.requests import Request
 
 from app.services.telegram_bot import set_webhook, process_telegram_update
@@ -23,5 +23,8 @@ async def telegram_bot_set_webhook():
     logger.debug(
         f"set telegram webhook: {TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY[:2]}{'*' * (len(TELEGRAM_API_KEY) - 4)}{TELEGRAM_API_KEY[-2:]}"
     )
-    await set_webhook(f"{TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY}")
-    return "ok"
+    if await set_webhook():
+        return "ok"
+    else:
+        logger.error("set telegram webhook failed")
+        raise HTTPException(status_code=500, detail="set telegram webhook failed") 

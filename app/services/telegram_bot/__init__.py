@@ -45,6 +45,7 @@ from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
 from app.utils.logger import logger
 from app.config import (
     TELEGRAM_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_FULL_URL,
     TELEGRAM_CHANNEL_ID,
     TELEGRAM_CHANNEL_ADMIN_LIST,
     TELEBOT_DEBUG_CHANNEL,
@@ -101,8 +102,8 @@ environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
 
 
-async def set_webhook(url: str) -> None:
-    await application.bot.set_webhook(url=url)
+async def set_webhook() -> bool:
+    return await application.bot.set_webhook(url=TELEGRAM_WEBHOOK_FULL_URL)
 
 
 async def startup() -> None:
@@ -151,6 +152,7 @@ async def startup() -> None:
     webhook_info = await application.bot.get_webhook_info()
     logger.debug("webhook info: " + str(webhook_info))
     await application.start()
+    await set_webhook()
 
 
 async def shutdown() -> None:
