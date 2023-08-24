@@ -46,6 +46,7 @@ from app.utils.logger import logger
 from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
+    TELEGRAM_CHANNEL_ADMIN_LIST,
     TELEBOT_DEBUG_CHANNEL,
     TELEBOT_API_SERVER,
     TELEBOT_API_SERVER_FILE,
@@ -184,7 +185,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         )
         url_metadata = await check_url_type(url)
         if not url_metadata.source:
-            await process_message.edit_text(text="No supported url found.")
+            await process_message.edit_text(text=f"For the {i+1} th url, no supported url found.")
             return
         else:
             await process_message.edit_text(
@@ -193,7 +194,12 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             # create the inline keyboard
             special_function_keyboard = []
             basic_function_keyboard = []
-            if TELEGRAM_CHANNEL_ID:
+            logger.debug(f"telegram channel id: {TELEGRAM_CHANNEL_ID}")
+            logger.debug(f"telegram channel admin list: {TELEGRAM_CHANNEL_ADMIN_LIST}")
+            if TELEGRAM_CHANNEL_ID and (
+                TELEGRAM_CHANNEL_ADMIN_LIST
+                and str(message.from_user.id) in TELEGRAM_CHANNEL_ADMIN_LIST
+            ):
                 special_function_keyboard.append(
                     InlineKeyboardButton(
                         "Send to Channel",
@@ -302,7 +308,14 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
             await query.answer("Sending to you...")
         if data["type"] == "channel":
             await query.answer("Sending to channel...")
-            chat_id = await application.bot.get_chat(chat_id=TELEGRAM_CHANNEL_ID).id
+            channel_chat = await application.bot.get_chat(chat_id=TELEGRAM_CHANNEL_ID)
+            if channel_chat.type == "channel":
+                chat_id = channel_chat.id
+            else:
+                await query.message.reply_text(
+                    text="Sorry, the provided channel id does not exist or is not a channel."
+                )
+                chat_id = query.message.chat_id
         else:
             chat_id = query.message.chat_id
         if data["type"] == "video":
@@ -318,6 +331,7 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
             text=f"Item processed. Sending to the target...",
         )
         await send_item_message(metadata_item, chat_id=chat_id, message=query.message)
+        await replying_message.delete()
     await query.message.delete()
     context.drop_callback_data(query)
 

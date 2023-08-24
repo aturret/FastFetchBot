@@ -46,7 +46,7 @@ MONGODB_URL = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
 
 # Telegram bot environment variables
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
-telegram_channel_id = env.get("CHANNEL_ID", "")
+telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "")
 if telegram_channel_id.startswith("@"):
     TELEGRAM_CHANNEL_ID = telegram_channel_id
 elif telegram_channel_id.startswith("-1"):
@@ -60,7 +60,7 @@ elif telebot_debug_channel.startswith("-1"):
     TELEBOT_DEBUG_CHANNEL = int(telebot_debug_channel)
 else:
     TELEBOT_DEBUG_CHANNEL = None
-telegram_channel_admin_list = env.get("CHANNEL_ADMIN_LIST", "")
+telegram_channel_admin_list = env.get("TELEGRAM_CHANNEL_ADMIN_LIST", "")
 TELEGRAM_CHANNEL_ADMIN_LIST = [
     admin_id for admin_id in telegram_channel_admin_list.split(",")
 ]
