@@ -330,7 +330,11 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
-        await send_item_message(metadata_item, chat_id=chat_id, message=query.message)
+        await send_item_message(metadata_item, chat_id=chat_id)
+        if data["type"] == "channel":
+            await query.message.reply_text(
+            text=f"Item sent to the channel.",
+        )
         await replying_message.delete()
     await query.message.delete()
     context.drop_callback_data(query)
@@ -366,6 +370,7 @@ async def send_item_message(
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
+    logger.debug(f"the chat of sending message: {the_chat}")
     if the_chat.type == "channel":
         if the_chat.linked_chat_id:
             discussion_chat_id = the_chat.linked_chat_id
@@ -388,32 +393,26 @@ async def send_item_message(
                     )
                     logger.debug(f"media group: {media_group}")
                     sent_message = await application.bot.send_media_group(
-                        chat_id=discussion_chat_id,
+                        chat_id=chat_id,
                         media=media_group,
                         parse_mode=ParseMode.HTML,
                         caption=caption_text,
                     )
-                if discussion_chat_id != chat_id > 0:
+                if discussion_chat_id != chat_id and len(media_message_group) > 0:
                     # if the chat is a channel, get the latest pinned message from the channel and reply to it
-                    pinned_message = await application.bot.get_chat(
-                        chat_id=discussion_chat_id
-                    ).pinned_message
-                    if (
-                        pinned_message.forward_from_message_id
-                        == sent_message[-1].message_id
-                    ):
-                        reply_to_message_id = (
-                            application.bot.get_chat(
-                                chat_id=discussion_chat_id
-                            ).pinned_message.id
-                            - len(sent_message)
-                            + 1
-                        )
+                    group_chat = await application.bot.get_chat(chat_id=discussion_chat_id)
+                    pinned_message = group_chat.pinned_message
+                    if pinned_message.forward_from_message_id == sent_message[-1].message_id:
+                        reply_to_message_id = group_chat.pinned_message.id - len(sent_message) + 1
                     else:
-                        reply_to_message_id = sent_message[-1].message_id
+                        # reply_to_message_id = sent_message[-1].message_id
+                        reply_to_message_id = group_chat.pinned_message.id + 1
             if (
                 len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
+                logger.debug(f"file group: {file_group}")
+                logger.debug(f"reply_to_message_id: {reply_to_message_id}")
+                await asyncio.sleep(3)  # wait for several seconds to avoid missing the target message
                 application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
@@ -430,6 +429,7 @@ async def send_item_message(
                             animation=file,
                             reply_to_message_id=reply_to_message_id,
                             parse_mode=ParseMode.HTML,
+                            disable_notification=True,
                         )
                     else:
                         await application.bot.send_document(
@@ -437,20 +437,30 @@ async def send_item_message(
                             document=file,
                             reply_to_message_id=reply_to_message_id,
                             parse_mode=ParseMode.HTML,
+                            disable_notification=True,
                         )
         else:  # if there are no media files, send the caption text and also note the message
             await application.bot.send_message(
-                chat_id=discussion_chat_id,
+                chat_id=chat_id,
                 text=caption_text,
                 parse_mode=ParseMode.HTML,
+                reply_to_message_id=message.message_id if message else None,
                 disable_web_page_preview=True,
+                disable_notification=True,
             )
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
-        await message.reply_text(
-            text="Sorry, I could not send the item to the target 😕"
-        )
+        if message:
+            await message.reply_text(
+                text="Exception occurred while sending the item to the target 😕"
+            )
+        else:
+            await application.bot.send_message(
+                chat_id=chat_id,
+                text="Exception occurred while sending the item to the target 😕",
+                reply_to_message_id=message.message_id if message else None,
+            )
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -565,6 +575,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 buffer.seek(0)
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
+            logger.debug(f"image size: {file_size}, width: {img_width}, height: {img_height}")
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                 or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT

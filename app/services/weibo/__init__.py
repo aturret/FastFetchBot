@@ -54,7 +54,10 @@ class Weibo(MetadataItem):
         self.retweeted_info = None
 
     async def get_weibo(self):
-        weibo_info = await self._get_weibo_info()
+        try:
+            weibo_info = await self._get_weibo_info()
+        except:
+            weibo_info = await self._get_weibo_info(method="webpage" if self.method == "api" else "api")
         await self._process_weibo_item(weibo_info)
         return self.to_dict()
 
