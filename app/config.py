@@ -27,7 +27,7 @@ def get_env_bool(var_name, default=False):
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
 API_KEY_NAME = env.get("API_KEY_NAME", "pwd")
-API_KEY = env.get("API_KEY", "")
+API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
 TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", secrets.token_urlsafe(32))
 
 # Filesystem environment variables
