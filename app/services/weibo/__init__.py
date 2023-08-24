@@ -341,9 +341,9 @@ class Weibo(MetadataItem):
     @staticmethod
     def _weibo_html_text_clean(text, method="bs4"):
         if method == "bs4":
-            Weibo._weibo_html_text_clean_bs4(text)
+            return Weibo._weibo_html_text_clean_bs4(text)
         elif method == "lxml":
-            Weibo._weibo_html_text_clean_lxml(text)
+            return Weibo._weibo_html_text_clean_lxml(text)
         else:
             raise ValueError("method must be bs4 or lxml")
 
