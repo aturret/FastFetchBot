@@ -11,7 +11,6 @@ router = APIRouter(prefix="/inoreader")
 
 @router.post("/", dependencies=[Security(verify_api_key)])
 async def inoreader_repost_webhook(request: Request):
-    # TODO: add security check
     data = await request.json()
     url_metadata = {
         "url": data["url"],
