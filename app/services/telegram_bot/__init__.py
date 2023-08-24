@@ -46,6 +46,7 @@ from app.utils.logger import logger
 from app.config import (
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID,
+    TELEBOT_DEBUG_CHANNEL,
     TELEBOT_API_SERVER,
     TELEBOT_API_SERVER_FILE,
     TELEBOT_LOCAL_FILE_MODE,
@@ -174,104 +175,116 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
     welcome_message = await message.reply_text(
         text="Processing...",
     )
-    url = context.matches[0].group(0)  # get first match by the context.matches
-    url_metadata = await check_url_type(url)
-    if not url_metadata.source:
-        await welcome_message.edit_text(text="No supported url found.")
-        return
-    else:
-        await welcome_message.edit_text(
-            text=f"{url_metadata.source} url found. Processing..."
+    url_dict: dict = message.parse_entities(types=["url"])
+    print(url_dict)
+    await welcome_message.delete()
+    for i, url in enumerate(url_dict.values()):
+        process_message = await message.reply_text(
+            text=f"Processing the {i + 1}th url...",
         )
-        # create the inline keyboard
-        special_function_keyboard = []
-        basic_function_keyboard = []
-        if TELEGRAM_CHANNEL_ID:
-            special_function_keyboard.append(
-                InlineKeyboardButton(
-                    "Send to Channel",
-                    callback_data={"type": "channel", "metadata": url_metadata},
-                ),
+        url_metadata = await check_url_type(url)
+        if not url_metadata.source:
+            await process_message.edit_text(text="No supported url found.")
+            return
+        else:
+            await process_message.edit_text(
+                text=f"{url_metadata.source} url found. Processing..."
             )
-        # video content url buttons
-        if url_metadata.content_type == "video":
-            basic_function_keyboard.extend(
-                [
+            # create the inline keyboard
+            special_function_keyboard = []
+            basic_function_keyboard = []
+            if TELEGRAM_CHANNEL_ID:
+                special_function_keyboard.append(
                     InlineKeyboardButton(
-                        "Get Info",
-                        callback_data={
-                            "type": "video",
-                            "metadata": url_metadata,
-                            "extra_args": {"download": False},
-                        },
+                        "Send to Channel",
+                        callback_data={"type": "channel", "metadata": url_metadata},
                     ),
-                    InlineKeyboardButton(
-                        "Download",
-                        callback_data={
-                            "type": "video",
-                            "metadata": url_metadata,
-                        },
-                    ),
-                ]
-            )
-            special_function_keyboard.extend(
-                [
-                    InlineKeyboardButton(
-                        "Transcribe Text",
-                        callback_data={
-                            "type": "video",
-                            "metadata": url_metadata,
-                            "extra_args": {"audio_only": True},
-                        },
-                    ),
-                    InlineKeyboardButton(
-                        "Download HD",
-                        callback_data={
-                            "type": "video",
-                            "metadata": url_metadata,
-                            "extra_args": {"hd": True},
-                        },
-                    ),
-                ]
-            )
-        elif url_metadata.content_type == "social_media":
-            special_function_keyboard.append(
-                InlineKeyboardButton(
-                    "Force Send in Chat",
-                    callback_data={"type": "force", "metadata": url_metadata},
                 )
-            )
+            # video content url buttons
+            if url_metadata.content_type == "video":
+                basic_function_keyboard.extend(
+                    [
+                        InlineKeyboardButton(
+                            "Get Info",
+                            callback_data={
+                                "type": "video",
+                                "metadata": url_metadata,
+                                "extra_args": {"download": False},
+                            },
+                        ),
+                        InlineKeyboardButton(
+                            "Download",
+                            callback_data={
+                                "type": "video",
+                                "metadata": url_metadata,
+                            },
+                        ),
+                    ]
+                )
+                special_function_keyboard.extend(
+                    [
+                        InlineKeyboardButton(
+                            "Transcribe Text",
+                            callback_data={
+                                "type": "video",
+                                "metadata": url_metadata,
+                                "extra_args": {"audio_only": True},
+                            },
+                        ),
+                        InlineKeyboardButton(
+                            "Download HD",
+                            callback_data={
+                                "type": "video",
+                                "metadata": url_metadata,
+                                "extra_args": {"hd": True},
+                            },
+                        ),
+                    ]
+                )
+            elif url_metadata.content_type == "social_media":
+                special_function_keyboard.append(
+                    InlineKeyboardButton(
+                        "Force Send in Chat",
+                        callback_data={"type": "force", "metadata": url_metadata},
+                    )
+                )
+                basic_function_keyboard.append(
+                    InlineKeyboardButton(
+                        "Send to Me",
+                        callback_data={"type": "private", "metadata": url_metadata},
+                    )
+                )
             basic_function_keyboard.append(
                 InlineKeyboardButton(
-                    "Send to Me",
-                    callback_data={"type": "private", "metadata": url_metadata},
-                )
+                    "Cancel",
+                    callback_data={"type": "cancel"},
+                ),
             )
-        basic_function_keyboard.append(
-            InlineKeyboardButton(
-                "Cancel",
-                callback_data={"type": "cancel"},
-            ),
-        )
-        keyboard = [
-            special_function_keyboard,
-            basic_function_keyboard,
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await welcome_message.delete()
-        await message.reply_text("Please choose:", reply_markup=reply_markup)
+            keyboard = [
+                special_function_keyboard,
+                basic_function_keyboard,
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await process_message.reply_text(
+                f"For the {i + 1}th url: {url}, please choose the function you want to use:",
+                reply_markup=reply_markup,
+            )
+            await process_message.delete()
 
 
 async def https_url_auto_process(update: Update, context: CallbackContext) -> None:
     message = update.message
-    url = context.matches[0].group(0)
-    url_metadata = await check_url_type(url)
-    if not url_metadata.source:
-        logger.debug(f"for url {url}, no supported url found.")
-        return
-    if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
-        metadata_item = await content_process_function(url_metadata=url_metadata)
-        await send_item_message(metadata_item, chat_id=message.chat_id, message=message)
+    url_dict = message.parse_entities(types=["url"])
+    for i, url in enumerate(url_dict.values()):
+        url_metadata = await check_url_type(url)
+        if not url_metadata.source:
+            logger.debug(f"for the {i+1}th url {url}, no supported url found.")
+            return
+        if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
+            metadata_item = await content_process_function(url_metadata=url_metadata)
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id, message=message
+            )
 
 
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
@@ -441,9 +454,14 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
         f"<pre>{html.escape(tb_string)}</pre>"
     )
-    await context.bot.send_message(
-        chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
-    )
+    if TELEBOT_DEBUG_CHANNEL:
+        await context.bot.send_message(
+            chat_id=TELEBOT_DEBUG_CHANNEL, text=message, parse_mode=ParseMode.HTML
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.HTML
+        )
 
 
 def message_formatting(data: dict) -> str:

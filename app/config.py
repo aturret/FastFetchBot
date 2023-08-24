@@ -53,10 +53,21 @@ elif telegram_channel_id.startswith("-1"):
     TELEGRAM_CHANNEL_ID = int(telegram_channel_id)
 else:
     TELEGRAM_CHANNEL_ID = None
+telebot_debug_channel = env.get("TELEBOT_DEBUG_CHANNEL", "")
+if telebot_debug_channel.startswith("@"):
+    TELEBOT_DEBUG_CHANNEL = telebot_debug_channel
+elif telebot_debug_channel.startswith("-1"):
+    TELEBOT_DEBUG_CHANNEL = int(telebot_debug_channel)
+else:
+    TELEBOT_DEBUG_CHANNEL = None
+telegram_channel_admin_list = env.get("CHANNEL_ADMIN_LIST", "")
+TELEGRAM_CHANNEL_ADMIN_LIST = [
+    admin_id for admin_id in telegram_channel_admin_list.split(",")
+]
+if not TELEGRAM_CHANNEL_ADMIN_LIST:
+    TELEGRAM_CHANNEL_ADMIN_LIST = None
 TELEGRAM_WEBHOOK_URL = "https://" + BASE_URL + "/telegram/bot/webhook"
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
-# if TELEBOT_API_SERVER_HOST:
-#     TELEBOT_API_SERVER_HOST = socket.gethostbyname(TELEBOT_API_SERVER_HOST)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (
     f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/bot"
