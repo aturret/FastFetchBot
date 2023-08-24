@@ -2,13 +2,14 @@ from fastapi import APIRouter
 from fastapi.requests import Request
 
 from app.services.common import InfoExtractService
-from app.config import TELEGRAM_WEBHOOK_URL
+from fastapi import Security
+from app.auth import verify_api_key
 
 
 router = APIRouter(prefix="/inoreader")
 
 
-@router.post("/")
+@router.post("/", dependencies=[Security(verify_api_key)])
 async def inoreader_repost_webhook(request: Request):
     # TODO: add security check
     data = await request.json()

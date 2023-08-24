@@ -3,6 +3,7 @@ import tempfile
 import socket
 from jinja2 import Environment, FileSystemLoader
 import gettext
+import secrets
 
 env = os.environ
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -25,9 +26,9 @@ def get_env_bool(var_name, default=False):
 
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
-API_KEY_NAME = env.get("API_KEY_NAME", "")
+API_KEY_NAME = env.get("API_KEY_NAME", "pwd")
 API_KEY = env.get("API_KEY", "")
-TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", "")
+TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", secrets.token_urlsafe(32))
 
 # Filesystem environment variables
 TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
@@ -66,7 +67,7 @@ TELEGRAM_CHANNEL_ADMIN_LIST = [
 ]
 if not TELEGRAM_CHANNEL_ADMIN_LIST:
     TELEGRAM_CHANNEL_ADMIN_LIST = None
-TELEGRAM_WEBHOOK_URL = "https://" + BASE_URL + "/telegram/bot/webhook"
+TELEGRAM_WEBHOOK_URL = f"https://{BASE_URL}/telegram/bot/webhook?{API_KEY_NAME}={API_KEY}"
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (
