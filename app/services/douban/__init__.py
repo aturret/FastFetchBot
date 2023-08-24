@@ -197,21 +197,10 @@ class Douban(MetadataItem):
             media_item = {"media_type": "image", "url": img["src"], "caption": ""}
             self.media_files.append(MediaFile.from_dict(media_item))
             img.extract()
-        for p in soup.find_all("p"):
-            p.unwrap()
-        for span in soup.find_all("span"):
-            span.unwrap()
-        for div in soup.find_all("div"):
-            div.unwrap()
-        for link in soup.find_all("link"):
-            link.decompose()
-        for script in soup.find_all("script"):
-            script.decompose()
+        for item in soup.find_all(["p", "span", "div"]):
+            item.unwrap()
+        for item in soup.find_all(["link", "script"]):
+            item.decompose()
         self.text += str(soup)
-        while "\n\n" in self.text:
-            self.text = self.text.replace("\n\n", "\n")
-        self.text = (
-            self.text.replace("<br/>", "\n")
-            .replace("<br>", "\n")
-            .replace("<br />", "\n")
-        )
+        self.text = re.sub(r"\n{2,}", "\n", self.text)
+        self.text = re.sub(r"<br\s*/?>", "\n", self.text)
