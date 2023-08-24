@@ -11,7 +11,7 @@ env:
 #   APP_VERSION: latest
 
 concurrency: 
-  group: ${{ env.APP_NAME }}
+  group: fastfetchbot
   cancel-in-progress: true
 
 jobs:
