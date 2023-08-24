@@ -138,24 +138,17 @@ class VideoDownloader(MetadataItem):
 
     @staticmethod
     def _youtube_info_parse(video_info: dict) -> dict:
-        meta_info = {}
-        meta_info["id"] = video_info["id"]
-        meta_info["title"] = video_info["title"]
-        meta_info["author"] = video_info["uploader"]
-        meta_info["author_url"] = video_info["uploader_url"]
-        meta_info["description"] = video_info["description"]
-        meta_info["playback_data"] = (
-            "视频播放量："
-            + str(video_info["view_count"])
-            + " 点赞数："
-            + str(video_info["like_count"])
-            + " 评论数："
-            + str(video_info["comment_count"])
-        )
-        meta_info["author_avatar"] = video_info["thumbnail"]
-        meta_info["upload_date"] = str(video_info["upload_date"])
-        meta_info["duration"] = second_to_time(round(video_info["duration"]))
-        return meta_info
+        return {
+            "id": video_info["id"],
+            "title": video_info["title"],
+            "author": video_info["uploader"],
+            "author_url": video_info["uploader_url"],
+            "description": video_info["description"],
+            "playback_data": f"视频播放量：{video_info['view_count']} 点赞数：{video_info['like_count']} 评论数：{video_info['comment_count']}",
+            "author_avatar": video_info["thumbnail"],
+            "upload_date": str(video_info["upload_date"]),
+            "duration": second_to_time(round(video_info["duration"])),
+        }
 
     @staticmethod
     def _bilibili_info_parse(video_info: dict) -> dict:
