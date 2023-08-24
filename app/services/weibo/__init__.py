@@ -126,7 +126,7 @@ class Weibo(MetadataItem):
         else:
             longtext_info = await self._get_weibo_info(method="webpage")
             text = longtext_info.get("text")
-        cleaned_text, fw_pics = self._weibo_html_text_clean(text)
+        cleaned_text, fw_pics = Weibo._weibo_html_text_clean(text)
         for pic in fw_pics:
             self.media_files.append(MediaFile(url=pic, media_type="image"))
         self.text += cleaned_text.replace("<br />", "<br>").replace("br/", "br")
@@ -357,38 +357,48 @@ class Weibo(MetadataItem):
 
     @staticmethod
     def _weibo_html_text_clean(text, method="bs4"):
-        fw_pics = []
         if method == "bs4":
-            soup = BeautifulSoup(text, "html.parser")
-            for img in soup.find_all("img"):
-                alt_text = img.get("alt", "")
-                img.replace_with(alt_text)
-            for a in soup.find_all("a"):
-                if a.text == "查看图片":
-                    fw_pics.append(a.get("href"))
-                if "/n/" in a.get("href") and a.get("usercard"):
-                    a["href"] = "https://weibo.com" + a.get("href")
-            for i in soup.find_all("span"):
-                i.unwrap()
-            res = (
-                str(soup)
-                .replace('href="//', 'href="http://')
-                .replace('href="/n/', 'href="http://weibo.com/n/')
-            )
-            return res, fw_pics
+            Weibo._weibo_html_text_clean_bs4(text)
+        elif method == "lxml":
+            Weibo._weibo_html_text_clean_lxml(text)
+        else:
+            raise ValueError("method must be bs4 or lxml")
 
-        if method == "lxml":
-            selector = html.fromstring(text)
-            # remove all img tags and replace with alt text
-            for img in selector.xpath("//img"):
-                alt_text = img.get("alt", "")
-            # get innerhtml pure text of the parent tag
-            parent_text = img.getparent().text_content() if img.getparent() else ""
-            replace_text = alt_text + parent_text
-            text_node = html.fromstring(replace_text)
-            img.addprevious(text_node)
-            img.getparent().remove(img)
-            # make text_node become pure text
-            text_node.text = text_node.text_content()
-            # return the html document after cleaning
-            return html.tostring(selector, encoding="unicode")
+
+    @staticmethod
+    def _weibo_html_text_clean_bs4(text):
+        fw_pics = []
+        soup = BeautifulSoup(text, "html.parser")
+        for img in soup.find_all("img"):
+            alt_text = img.get("alt", "")
+            img.replace_with(alt_text)
+        for a in soup.find_all("a"):
+            if a.text == "查看图片":
+                fw_pics.append(a.get("href"))
+            if "/n/" in a.get("href") and a.get("usercard"):
+                a["href"] = "https://weibo.com" + a.get("href")
+        for i in soup.find_all("span"):
+            i.unwrap()
+        res = (
+            str(soup)
+            .replace('href="//', 'href="http://')
+            .replace('href="/n/', 'href="http://weibo.com/n/')
+        )
+        return res, fw_pics
+
+    @staticmethod
+    def _weibo_html_text_clean_lxml(text):
+        selector = html.fromstring(text)
+        # remove all img tags and replace with alt text
+        for img in selector.xpath("//img"):
+            alt_text = img.get("alt", "")
+        # get innerhtml pure text of the parent tag
+        parent_text = img.getparent().text_content() if img.getparent() else ""
+        replace_text = alt_text + parent_text
+        text_node = html.fromstring(replace_text)
+        img.addprevious(text_node)
+        img.getparent().remove(img)
+        # make text_node become pure text
+        text_node.text = text_node.text_content()
+        # return the html document after cleaning
+        return html.tostring(selector, encoding="unicode")
