@@ -345,7 +345,7 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
 async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     await update.callback_query.answer("Invalid button!")
     await update.effective_message.edit_text(
-        "Sorry, I could not process this button click 😕 Please send /start to get a new keyboard."
+        "Sorry, Error Occured, I could not process this button click 😕."
     )
 
 
