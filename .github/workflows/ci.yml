@@ -10,6 +10,10 @@ env:
   DOCKERHUB_REPO: aturret/fastfetchbot
 #   APP_VERSION: latest
 
+concurrency: 
+  group: ${{ env.APP_NAME }}
+  cancel-in-progress: true
+
 jobs:
   docker:
     runs-on: ubuntu-latest
