@@ -309,20 +309,11 @@ class Weibo(MetadataItem):
                     )
                 elif item.get("type") == "video":
                     video_url = item.get("stream_url_hd")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("mp4_720p_mp4")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("mp4_hd_url")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("hevc_mp4_hd")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("mp4_sd_url")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("mp4_ld_mp4")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("stream_url_hd")
-                    if not video_url:
-                        video_url = item["data"]["media_info"].get("stream_url")
+                    video_keys = [ "mp4_720p_mp4", "mp4_hd_url", "hevc_mp4_hd", "mp4_sd_url", "mp4_ld_mp4", "stream_url_hd", "stream_url"]
+                    for key in video_keys:
+                        video_url = item["data"]["media_info"].get(key)
+                        if video_url:
+                            break
                     media_files.append(MediaFile(url=video_url, media_type="video"))
         return media_files
 
