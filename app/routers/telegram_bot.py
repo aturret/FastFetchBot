@@ -7,8 +7,6 @@ from app.utils.logger import logger
 from fastapi import Security
 from app.auth import verify_api_key, verify_telegram_api_key
 
-from urllib.parse import urlparse
-
 router = APIRouter(prefix="/telegram")
 
 
@@ -22,6 +20,8 @@ async def telegram_bot_webhook(request: Request):
 @router.get("/bot/set_webhook", dependencies=[Security(verify_api_key)])
 async def telegram_bot_set_webhook():
     # mask api key
-    logger.debug(f"set telegram webhook: {TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY[:2]}{'*' * (len(TELEGRAM_API_KEY) - 4)}{TELEGRAM_API_KEY[-2:]}")
+    logger.debug(
+        f"set telegram webhook: {TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY[:2]}{'*' * (len(TELEGRAM_API_KEY) - 4)}{TELEGRAM_API_KEY[-2:]}"
+    )
     await set_webhook(f"{TELEGRAM_WEBHOOK_URL}?{API_KEY_NAME}={TELEGRAM_API_KEY}")
     return "ok"
