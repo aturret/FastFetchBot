@@ -471,7 +471,7 @@ async def send_item_message(
             )
         else:
             await application.bot.send_message(
-                chat_id=chat_id,
+                chat_id=discussion_chat_id,
                 text="Exception occurred while sending the item to the target 😕",
                 reply_to_message_id=message.message_id if message else None,
             )
