@@ -54,6 +54,10 @@ class Weibo(MetadataItem):
         # auxiliary fields
         self.retweeted_info = None
 
+    async def get_item(self) -> dict:
+        await self.get_weibo()
+        return self.to_dict()
+
     async def get_weibo(self) -> None:
         try:
             weibo_info = await self._get_weibo_info()

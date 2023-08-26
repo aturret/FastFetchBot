@@ -50,10 +50,13 @@ class Twitter(MetadataItem):
         self.headers = {}
         self.params = {}
 
-    async def get_twitter(self) -> Dict:
+    async def get_item(self) -> dict:
+        await self.get_twitter()
+        return self.to_dict()
+
+    async def get_twitter(self) -> None:
         tweet_data = await self._get_response_tweet_data()
         self._process_tweet(tweet_data)
-        return self.to_dict()
 
     async def _get_response_tweet_data(self) -> Dict:
         scrapers = ALL_SCRAPER if self.instruction == "threads" else ALL_SINGLE_SCRAPER

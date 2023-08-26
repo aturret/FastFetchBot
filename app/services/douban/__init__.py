@@ -61,10 +61,13 @@ class Douban(MetadataItem):
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
 
-    async def get_douban(self) -> Dict:
+    async def get_item(self) -> dict:
+        await self.get_douban()
+        return self.to_dict()
+
+    async def get_douban(self) -> None:
         self.check_douban_type()
         await self.get_douban_item()
-        return self.to_dict()
 
     def check_douban_type(self):
         urlparser = urlparse(self.url)
