@@ -459,7 +459,9 @@ async def send_item_message(
                 text=caption_text,
                 parse_mode=ParseMode.HTML,
                 reply_to_message_id=message.message_id if message else None,
-                disable_web_page_preview=True,
+                disable_web_page_preview=True
+                if data["message_type"] == "short"
+                else False,
                 disable_notification=True,
             )
     except Exception as e:
