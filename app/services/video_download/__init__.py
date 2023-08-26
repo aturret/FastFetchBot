@@ -10,6 +10,7 @@ from app.config import JINJA2_ENV
 
 video_info_template = JINJA2_ENV.get_template("video_info.jinja2")
 
+
 class VideoDownloader(MetadataItem):
     def __init__(
         self,
@@ -40,7 +41,11 @@ class VideoDownloader(MetadataItem):
         instance.url = await instance._parse_url(instance.url)
         return instance
 
-    async def get_video(self):
+    async def get_item(self) -> dict:
+        await self.get_video()
+        return self.to_dict()
+
+    async def get_video(self) -> None:
         content_info = await self._get_video_info()
         video_info_funcs = {
             "youtube": self._youtube_info_parse,
@@ -48,7 +53,6 @@ class VideoDownloader(MetadataItem):
         }
         meta_info = video_info_funcs[self.extractor](content_info)
         self._video_info_formatting(meta_info)
-        return self.to_dict()
 
     async def _parse_url(self, url: str) -> str:
         logger.info(f"parsing original video url: {url} for {self.extractor}")
@@ -109,16 +113,18 @@ class VideoDownloader(MetadataItem):
             meta_info["description"] = meta_info["description"][:800] + "..."
         self.created = meta_info["upload_date"]
         self.duration = meta_info["duration"]
-        self.text = video_info_template.render(data={
-            "url": self.url,
-            "title": self.title,
-            "author": self.author,
-            "author_url": self.author_url,
-            "duration": self.duration,
-            "created": self.created,
-            "playback_data": meta_info["playback_data"],
-            "description": meta_info["description"],
-        })
+        self.text = video_info_template.render(
+            data={
+                "url": self.url,
+                "title": self.title,
+                "author": self.author,
+                "author_url": self.author_url,
+                "duration": self.duration,
+                "created": self.created,
+                "playback_data": meta_info["playback_data"],
+                "description": meta_info["description"],
+            }
+        )
         self.content = self.text.replace("\n", "<br>")
         if self.download:
             self.media_files = [MediaFile("video", self.file_path, "")]

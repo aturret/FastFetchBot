@@ -68,14 +68,17 @@ class Zhihu(MetadataItem):
             "status": "想法",
         }
 
-    async def get_zhihu(self) -> Dict:
+    async def get_item(self) -> dict:
+        await self.get_zhihu()
+        return self.to_dict()
+
+    async def get_zhihu(self) -> None:
         """
         Main function.
         Get the zhihu item and return the metadata dict.
         :return: Dict
         """
         await self._get_zhihu_item()
-        return self.to_dict()
 
     async def _get_zhihu_item(self) -> None:
         """
@@ -107,7 +110,9 @@ class Zhihu(MetadataItem):
         self._zhihu_short_text_process()
         self._zhihu_content_process()
         self.message_type = (
-            MessageType.LONG if get_html_text_length(self.content) > SHORT_LIMIT else MessageType.SHORT
+            MessageType.LONG
+            if get_html_text_length(self.content) > SHORT_LIMIT
+            else MessageType.SHORT
         )
 
     def _check_zhihu_type(self) -> None:

@@ -19,6 +19,7 @@ from .config import (
     WEIBO_TEXT_LIMIT,
 )
 from app.config import JINJA2_ENV
+from ...utils.logger import logger
 
 short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")
 content_template = JINJA2_ENV.get_template("weibo_content.jinja2")
@@ -53,13 +54,18 @@ class Weibo(MetadataItem):
         # auxiliary fields
         self.retweeted_info = None
 
-    async def get_weibo(self):
+    async def get_item(self) -> dict:
+        await self.get_weibo()
+        return self.to_dict()
+
+    async def get_weibo(self) -> None:
         try:
             weibo_info = await self._get_weibo_info()
         except:
-            weibo_info = await self._get_weibo_info(method="webpage" if self.method == "api" else "api")
+            weibo_info = await self._get_weibo_info(
+                method="webpage" if self.method == "api" else "api"
+            )
         await self._process_weibo_item(weibo_info)
-        return self.to_dict()
 
     async def _get_weibo_info(self, method=None) -> dict:
         if not method:
@@ -141,9 +147,10 @@ class Weibo(MetadataItem):
         # resolve retweet
         if weibo_info.get("retweeted_status"):
             retweeted_weibo_item = Weibo(
-                url=WEIBO_HOST + weibo_info["retweeted_status"]["url"]
+                url=WEIBO_WEB_HOST + weibo_info["retweeted_status"]["idstr"]
             )
-            self.retweeted_info = await retweeted_weibo_item.get_weibo()
+            await retweeted_weibo_item.get_weibo()
+            self.retweeted_info = retweeted_weibo_item.__dict__
             self.text += self.retweeted_info["text"]
             self.content += "<hr>" + self.retweeted_info["content"]
             self.media_files += self.retweeted_info["media_files"]
@@ -211,7 +218,7 @@ class Weibo(MetadataItem):
             pic_info = weibo_info["pics"]
             for pic in pic_info:
                 media_files.append(
-                    MediaFile(url=pic["large"]["url"], media_type="image")
+                    MediaFile(url=pic["large"]["url"], media_type="image", caption="")
                 )
         elif "pic_infos" in weibo_info and weibo_info.get("pic_num") > 0:
             pic_info = weibo_info["pic_infos"]
@@ -219,10 +226,16 @@ class Weibo(MetadataItem):
                 if pic_info[pic].get("type") == "pic":
                     media_files.append(
                         MediaFile(
-                            url=pic_info[pic]["original"]["url"], media_type="image"
+                            url=pic_info[pic]["original"]["url"],
+                            media_type="image",
+                            caption="",
                         )
                     ) if pic_info[pic]["original"] else media_files.append(
-                        MediaFile(url=pic_info[pic]["large"]["url"], media_type="image")
+                        MediaFile(
+                            url=pic_info[pic]["large"]["url"],
+                            media_type="image",
+                            caption="",
+                        )
                     )
                 elif pic_info[pic].get("type") in ["live_photo", "livephoto"]:
                     media_files.append(
@@ -261,7 +274,15 @@ class Weibo(MetadataItem):
                 )
                 if not media_info:
                     media_info = weibo_info["page_info"]["media_info"]
-                video_url_keys = ["mp4_720p_mp4", "mp4_hd_url", "hevc_mp4_hd", "mp4_sd_url", "mp4_ld_mp4", "stream_url_hd", "stream_url"]
+                video_url_keys = [
+                    "mp4_720p_mp4",
+                    "mp4_hd_url",
+                    "hevc_mp4_hd",
+                    "mp4_sd_url",
+                    "mp4_ld_mp4",
+                    "stream_url_hd",
+                    "stream_url",
+                ]
                 for key in video_url_keys:
                     video_url = media_info.get(key)
                     if video_url:
@@ -301,7 +322,15 @@ class Weibo(MetadataItem):
                     )
                 elif item.get("type") == "video":
                     video_url = item.get("stream_url_hd")
-                    video_keys = [ "mp4_720p_mp4", "mp4_hd_url", "hevc_mp4_hd", "mp4_sd_url", "mp4_ld_mp4", "stream_url_hd", "stream_url"]
+                    video_keys = [
+                        "mp4_720p_mp4",
+                        "mp4_hd_url",
+                        "hevc_mp4_hd",
+                        "mp4_sd_url",
+                        "mp4_ld_mp4",
+                        "stream_url_hd",
+                        "stream_url",
+                    ]
                     for key in video_keys:
                         video_url = item["data"]["media_info"].get(key)
                         if video_url:
@@ -346,7 +375,6 @@ class Weibo(MetadataItem):
             return Weibo._weibo_html_text_clean_lxml(text)
         else:
             raise ValueError("method must be bs4 or lxml")
-
 
     @staticmethod
     def _weibo_html_text_clean_bs4(text):

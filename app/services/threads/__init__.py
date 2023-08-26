@@ -5,6 +5,7 @@ from urllib.parse import urlparse, unquote
 import jmespath
 from playwright.async_api import async_playwright
 
+from app.utils.logger import logger
 from app.utils.parse import get_html_text_length, unix_timestamp_to_utc
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import HTTP_REQUEST_TIMEOUT
@@ -31,11 +32,14 @@ class Threads(MetadataItem):
         self.pics_url = []
         self.videos_url = []
 
-    async def get_threads(self):
+    async def get_item(self) -> dict:
+        await self.get_threads()
+        return self.to_dict()
+
+    async def get_threads(self) -> None:
         thread_data = await self.scrape_thread_data(self.url)
         self.process_threads_item(thread_data)
-        print(thread_data)
-        return self.to_dict()
+        logger.debug(thread_data)
 
     @staticmethod
     def parse_single_threads_data(data: Dict) -> Dict:
