@@ -73,7 +73,7 @@ class Douban(MetadataItem):
         urlparser = urlparse(self.url)
         host = urlparser.netloc
         path = urlparser.path
-        if "m.douban" in host:  # parse the m.douban url
+        if host.find("m.douban") != -1:  # parse the m.douban url
             host = host.replace("m.douban", "douban")
             if path.startswith("/movie/review"):
                 self.douban_type = DoubanType.MOVIE_REVIEW
