@@ -10,7 +10,6 @@
             <b>{{ data.title }}</b>
         </a>
     {% else %}<a href="{{ data.telegraph_url }}"><b>{{ data.title }}</b></a>{% endif %}
-
 via #{{ data.category }} - <a href="{{ data.author_url }}">{{ data.author }}</a>
     {# the message, which is from inoreader comment or telegram bot comment function (todo) #}
     {% if data.message %}{{ data.message }}{% endif %}
