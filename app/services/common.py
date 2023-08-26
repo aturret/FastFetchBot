@@ -19,12 +19,14 @@ from app.config import DATABASE_ON
 
 
 class InfoExtractService(object):
-    def __init__(self,
-                 url_metadata: UrlMetadata,
-                 data: Any = None,
-                 store_database: Optional[bool] = DATABASE_ON,
-                 store_telegraph: Optional[bool] = True,
-                 **kwargs):
+    def __init__(
+        self,
+        url_metadata: UrlMetadata,
+        data: Any = None,
+        store_database: Optional[bool] = DATABASE_ON,
+        store_telegraph: Optional[bool] = True,
+        **kwargs
+    ):
         url_metadata = url_metadata.to_dict()
         self.url = url_metadata["url"]
         self.content_type = url_metadata["content_type"]
@@ -73,7 +75,8 @@ class InfoExtractService(object):
 
     async def get_weibo(self) -> dict:
         weibo_item = weibo.Weibo(self.url, **self.kwargs)
-        metadata_item = await weibo_item.get_weibo()
+        await weibo_item.get_weibo()
+        metadata_item = weibo_item.to_dict()
         return metadata_item
 
     async def get_douban(self) -> dict:
