@@ -1,8 +1,7 @@
 {# templates/social_media_message.html #}
 
 {% if data.message_type == "short" %}
-{{ data.text }}
-#{{ data.category }}
+{{ data.text }}#{{ data.category }}
 {% else %}
     {# title #}
     {% if data.category in ['YouTube', 'Bilibili'] %}
