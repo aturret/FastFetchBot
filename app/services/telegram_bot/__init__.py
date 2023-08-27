@@ -397,6 +397,9 @@ async def send_item_message(
                         else f"the {i + 1}th part of the media item:"
                     )
                     logger.debug(f"media group: {media_group}")
+                    logger.debug(
+                        f"caption text: {caption_text},length={len(caption_text)}"
+                    )
                     sent_message = await application.bot.send_media_group(
                         chat_id=chat_id,
                         media=media_group,

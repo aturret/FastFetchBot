@@ -100,7 +100,7 @@ class Twitter(MetadataItem):
             self.process_single_tweet_Twitter135(parsed_tweet_data)
         self.text += self.text_group
         self.content += self.content_group
-        self.type = "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
+        self.message_type = "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
 
     def process_single_tweet_Twitter135(self, tweet: Dict) -> None:
         if tweet["tid"] == self.tid:
