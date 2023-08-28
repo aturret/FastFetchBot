@@ -1,7 +1,8 @@
 import datetime
+import os
 import re
 import mimetypes
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 from bs4 import BeautifulSoup
 
@@ -74,9 +75,8 @@ async def check_url_type(url: str) -> UrlMetadata:
 
 def get_ext_from_url(url: str) -> str:
     url_object = urlparse(url)
-    path = url_object.path
-    # get ext from last dot
-    ext = "." + path.split(".")[-1]
+    filename = unquote(url_object.path)
+    ext = os.path.splitext(filename)[1]
     # check if ext in mimetypes.types_map
     if ext in mimetypes.types_map:
         return ext

@@ -27,6 +27,7 @@ uvicorn = "^0.22.0"
 aiofiles = "^23.2.1"
 twitter-api-client = "^0.10.11"
 pillow = "^10.0.0"
+python-magic = "^0.4.27"
 
 
 [tool.poetry.group.dev.dependencies]
