@@ -1,17 +1,14 @@
 {# templates/zhihu_short_text.html #}
 
 {% if data.zhihu_type == "answer" %}
-    <h2>
-        <a href="{{ data.url }}" target="_blank">{{ data.title }}</a>
-    </h2>
+{#    <h2>#}
+{#        <a href="{{ data.url }}" target="_blank">{{ data.title }}</a>#}
+{#    </h2>#}
     {% if data.question is not none %}
         <p>
             {{ data.question }}
         </p>
-        <p>
-            发表于：{{ data.question_date }} 更新于：{{ data.question_updated }}
-            <br>
-            回答数：{{ data.question_answer_count }} 关注数：{{ data.question_follower_count }}
+        <p>发表于：{{ data.question_date }} 更新于：{{ data.question_updated }}<br>回答数：{{ data.question_answer_count }} 关注数：{{ data.question_follower_count }}
         </p>
         <hr>
     {% endif %}
@@ -74,3 +71,5 @@
         {{ data.origin_pin_pic_content }}
     {% endif %}
 {% endif %}
+<hr>
+<a href="{{ data.url }}">阅读原文</a>
