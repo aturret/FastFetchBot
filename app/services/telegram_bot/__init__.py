@@ -611,6 +611,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             logger.debug(
                 f"image size: {file_size}, width: {img_width}, height: {img_height}"
             )
+            logger.debug(
+                f"resized image size: {buffer.getbuffer().nbytes}, width: {image.width}, height: {image.height}"
+            )
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                 or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
