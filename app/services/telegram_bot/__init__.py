@@ -603,7 +603,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             img_width, img_height = image.size
             ratio = float(max(img_height, img_width)) / float(min(img_height, img_width))
             # don't try to resize image if the ratio is too large
-            if ratio > 5:
+            if ratio < 5:
                 image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
                 with BytesIO() as buffer:
                     # mime_type file format
