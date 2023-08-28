@@ -39,10 +39,10 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         # deps for installing poetry
         curl \
+        ffmpeg \
+        libmagic1 \
         # deps for building python deps
         build-essential
-# install ffmpeg
-RUN apt-get install -y ffmpeg
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
 

@@ -5,11 +5,15 @@ import html
 import json
 import logging
 import os
+import mimetypes
+import magic
 import traceback
 from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
+
+mimetypes.init()
 
 import aiofiles
 from telegram import (
@@ -589,11 +593,15 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         # check media files' type and process them by their type
         if media_item["media_type"] == "image":
             image_url = media_item["url"]
+            mime_type = magic.from_buffer(io_object.read(), mime=True)
+            io_object.seek(0)
             image = Image.open(io_object)
             img_width, img_height = image.size
             image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
             with BytesIO() as buffer:
-                image.save(buffer, format=image.format)
+                # mime_type file format
+                ext = mimetypes.guess_extension(mime_type)
+                image.save(buffer, format=ext[1:])
                 buffer.seek(0)
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
