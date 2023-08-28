@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 import httpx
 import jmespath
+from twitter.scraper import Scraper
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.parse import get_html_text_length
@@ -15,9 +16,8 @@ from .config import (
     SCRAPER_INFO,
     SHORT_LIMIT,
 )
-from app.config import (
-    X_RAPIDAPI_KEY,
-)
+from app.config import X_RAPIDAPI_KEY, TWITTER_EMAIL, TWITTER_PASSWORD, TWITTER_USERNAME
+from ...utils.logger import logger
 
 
 class Twitter(MetadataItem):
@@ -62,33 +62,52 @@ class Twitter(MetadataItem):
         scrapers = ALL_SCRAPER if self.instruction == "threads" else ALL_SINGLE_SCRAPER
         for scraper in scrapers:
             self.scraper = scraper
-            self._get_request_headers()
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url=self.host, headers=self.headers, params=self.params
-                )
-                if response.status_code == 200:
-                    tweet_data = response.json()
-                    if (
-                        type(tweet_data) == dict
-                        and ("errors" in tweet_data or "detail" in tweet_data)
-                    ) or (
-                        type(tweet_data) == str
-                        and ("400" in tweet_data or "429" in tweet_data)
-                    ):
-                        #  if the response is not valid, try next scraper
-                        continue
-                    else:
-                        return tweet_data
-                else:
-                    continue
+            try:
+                if self.scraper.startswith("Twitter"):
+                    tweet_data = await self._rapidapi_get_response_tweet_data()
+                    return tweet_data
+                elif self.scraper == "api-client":
+                    tweet_data = await self._api_client_get_response_tweet_data()
+                    return tweet_data
+            except Exception as e:
+                logger.error(e)
+                continue
         raise Exception("No valid response from all Twitter scrapers")
 
+    async def _rapidapi_get_response_tweet_data(self) -> Dict:
+        async with httpx.AsyncClient() as client:
+            self._get_request_headers()
+            response = await client.get(
+                url=self.host, headers=self.headers, params=self.params
+            )
+            if response.status_code == 200:
+                tweet_data = response.json()
+                if (
+                    type(tweet_data) == dict
+                    and ("errors" in tweet_data or "detail" in tweet_data)
+                ) or (
+                    type(tweet_data) == str
+                    and ("400" in tweet_data or "429" in tweet_data)
+                ):
+                    raise Exception("Invalid response from Twitter API")
+                else:
+                    return tweet_data
+            else:
+                raise Exception("Invalid response from Twitter API")
+
+    async def _api_client_get_response_tweet_data(self) -> Dict:
+        pass
+
     def _process_tweet(self, tweet_data: Dict):
-        if self.scraper == "Twitter135":
+        if self.scraper == "api-client":
+            self.process_twitter_api_client(tweet_data)
+        elif self.scraper == "Twitter135":
             self.process_tweet_Twitter135(tweet_data)
         elif self.scraper in ["Twitter154", "twitter-v24"]:
             self.process_tweet_Twitter154(tweet_data)
+
+    def process_twitter_api_client(self, tweet_data: Dict):
+        pass
 
     def process_tweet_Twitter135(self, tweet_data: Dict):
         entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][

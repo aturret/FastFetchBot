@@ -2,9 +2,9 @@
 scaper infos
 """
 
-ALL_SCRAPER = ["Twitter135"]
+ALL_SCRAPER = ["Twitter135", "api-client"]
 # ALL_SCRAPER = ["Twitter135", "Twitter154", "twitter-v24"]
-ALL_SINGLE_SCRAPER = ["Twitter154", "twitter-v24", "Twitter135"]
+ALL_SINGLE_SCRAPER = ["Twitter154", "twitter-v24", "Twitter135", "api-client"]
 SCRAPER_INFO = {
     "Twitter135": {
         "host": "https://twitter135.p.rapidapi.com/v2/TweetDetail/",

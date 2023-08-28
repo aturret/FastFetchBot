@@ -108,6 +108,9 @@ JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
+TWITTER_EMAIL = env.get("TWITTER_EMAIL", None)
+TWITTER_PASSWORD = env.get("TWITTER_PASSWORD", None)
+TWITTER_USERNAME = env.get("TWITTER_USERNAME", None)
 
 # Open AI API environment variables
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)

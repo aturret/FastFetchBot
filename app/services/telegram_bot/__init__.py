@@ -593,7 +593,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             img_width, img_height = image.size
             image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
             with BytesIO() as buffer:
-                image.save(buffer, format=image.format)
+                image.save(buffer)
                 buffer.seek(0)
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
