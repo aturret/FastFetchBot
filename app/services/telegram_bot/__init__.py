@@ -606,13 +606,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 # mime_type file format
                 image.save(buffer, format=ext)
                 buffer.seek(0)
+                logger.debug(
+                    f"resized image size: {buffer.getbuffer().nbytes}, width: {image.width}, height: {image.height}"
+                )
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
             logger.debug(
                 f"image size: {file_size}, width: {img_width}, height: {img_height}"
-            )
-            logger.debug(
-                f"resized image size: {buffer.getbuffer().nbytes}, width: {image.width}, height: {image.height}"
             )
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT
