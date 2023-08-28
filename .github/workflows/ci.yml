@@ -62,3 +62,8 @@ jobs:
           tags: |
             ${{ env.DOCKERHUB_REPO }}:latest
 #             ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
+      -
+        name: send curl request
+        run: |
+          curl -H 'Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}' ${{ secrets.WATCHTOWER_WEBHOOK_URL }}
+

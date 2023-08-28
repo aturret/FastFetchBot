@@ -5,11 +5,15 @@ import html
 import json
 import logging
 import os
+import mimetypes
+import magic
 import traceback
 from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
+
+mimetypes.init()
 
 import aiofiles
 from telegram import (
@@ -422,6 +426,13 @@ async def send_item_message(
                     else:
                         # reply_to_message_id = sent_message[-1].message_id
                         reply_to_message_id = group_chat.pinned_message.id + 1
+            elif len(media_message_group) == 0 and len(file_group) > 0:
+                reply_to_message = await application.bot.send_message(
+                    chat_id=chat_id,
+                    text=caption_text,
+                    parse_mode=ParseMode.HTML,
+                )
+                reply_to_message_id = reply_to_message.message_id
             if (
                 len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
@@ -589,16 +600,34 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         # check media files' type and process them by their type
         if media_item["media_type"] == "image":
             image_url = media_item["url"]
-            image = Image.open(io_object)
+            mime_type = magic.from_buffer(io_object.read(), mime=True)
+            ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
+            # jpg to jpeg, ignore case
+            if ext.lower() == "jpg":
+                ext = "JPEG"
+            io_object.seek(0)
+            image = Image.open(io_object, formats=[ext])
             img_width, img_height = image.size
-            image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
-            with BytesIO() as buffer:
-                image.save(buffer)
-                buffer.seek(0)
-                media_group.append(InputMediaPhoto(buffer, filename=filename))
+            ratio = float(max(img_height, img_width)) / float(
+                min(img_height, img_width)
+            )
+            # don't try to resize image if the ratio is too large
+            if ratio < 5:
+                image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
+                with BytesIO() as buffer:
+                    # mime_type file format
+                    image.save(buffer, format=ext)
+                    buffer.seek(0)
+                    resized_ratio = max(image.height, image.width) / min(
+                        image.height, image.width
+                    )
+                    logger.debug(
+                        f"resized image size: {buffer.getbuffer().nbytes}, ratio: {resized_ratio}, width: {image.width}, height: {image.height}"
+                    )
+                    media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
             logger.debug(
-                f"image size: {file_size}, width: {img_width}, height: {img_height}"
+                f"image size: {file_size}, ratio: {ratio}, width: {img_width}, height: {img_height}"
             )
             if (
                 file_size > TELEGRAM_IMAGE_SIZE_LIMIT

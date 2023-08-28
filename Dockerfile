@@ -14,7 +14,7 @@ ENV PYTHONUNBUFFERED=1 \
     \
     # poetry
     # https://python-poetry.org/docs/configuration/#using-environment-variables
-    POETRY_VERSION=1.5.1 \
+    POETRY_VERSION=1.6.1 \
     # make poetry install to this location
     POETRY_HOME="/opt/poetry" \
     # make poetry create the virtual environment in the project's root
@@ -39,10 +39,10 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         # deps for installing poetry
         curl \
+        ffmpeg \
+        libmagic1 \
         # deps for building python deps
         build-essential
-# install ffmpeg
-RUN apt-get install -y ffmpeg
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
 
@@ -62,6 +62,12 @@ RUN poetry run playwright install
 FROM python-base as production
 ENV FASTAPI_ENV=production
 ENV PYTHONPATH /app:$PYTHONPATH
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        # deps for installing poetry
+        curl \
+        ffmpeg \
+        libmagic1
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app

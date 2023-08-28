@@ -1,12 +1,15 @@
 import datetime
+import os
 import re
-from urllib.parse import urlparse
+import mimetypes
+from urllib.parse import urlparse, unquote
 
 from bs4 import BeautifulSoup
 
 from app.models.url_metadata import UrlMetadata
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 
+mimetypes.init()
 
 def get_html_text_length(html: str) -> int:
     if html is None:
@@ -68,3 +71,14 @@ async def check_url_type(url: str) -> UrlMetadata:
                     content_type = "video"
     # TODO: check if the url is from Mastodon, according to the request cookie
     return UrlMetadata(url=url, source=source, content_type=content_type)
+
+
+def get_ext_from_url(url: str) -> str:
+    url_object = urlparse(url)
+    filename = unquote(url_object.path)
+    ext = os.path.splitext(filename)[1]
+    # check if ext in mimetypes.types_map
+    if ext in mimetypes.types_map:
+        return ext
+    else:
+        return None
