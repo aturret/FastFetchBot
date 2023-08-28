@@ -426,6 +426,13 @@ async def send_item_message(
                     else:
                         # reply_to_message_id = sent_message[-1].message_id
                         reply_to_message_id = group_chat.pinned_message.id + 1
+            elif len(media_message_group) == 0 and len(file_group) > 0:
+                reply_to_message = await application.bot.send_message(
+                    chat_id=chat_id,
+                    text=caption_text,
+                    parse_mode=ParseMode.HTML,
+                )
+                reply_to_message_id = reply_to_message.message_id
             if (
                 len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
@@ -599,9 +606,11 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             if ext.lower() == "jpg":
                 ext = "JPEG"
             io_object.seek(0)
-            image = Image.open(io_object, formats = [ext])
+            image = Image.open(io_object, formats=[ext])
             img_width, img_height = image.size
-            ratio = float(max(img_height, img_width)) / float(min(img_height, img_width))
+            ratio = float(max(img_height, img_width)) / float(
+                min(img_height, img_width)
+            )
             # don't try to resize image if the ratio is too large
             if ratio < 5:
                 image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
@@ -609,7 +618,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     # mime_type file format
                     image.save(buffer, format=ext)
                     buffer.seek(0)
-                    resized_ratio = max(image.height, image.width) / min(image.height, image.width)
+                    resized_ratio = max(image.height, image.width) / min(
+                        image.height, image.width
+                    )
                     logger.debug(
                         f"resized image size: {buffer.getbuffer().nbytes}, ratio: {resized_ratio}, width: {image.width}, height: {image.height}"
                     )
