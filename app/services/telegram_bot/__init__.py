@@ -601,15 +601,18 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             io_object.seek(0)
             image = Image.open(io_object, formats = [ext])
             img_width, img_height = image.size
-            image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
-            with BytesIO() as buffer:
-                # mime_type file format
-                image.save(buffer, format=ext)
-                buffer.seek(0)
-                logger.debug(
-                    f"resized image size: {buffer.getbuffer().nbytes}, width: {image.width}, height: {image.height}"
-                )
-                media_group.append(InputMediaPhoto(buffer, filename=filename))
+            ratio = max(img_width, img_height) / min(img_width, img_height)
+            # don't try to resize image if the ratio is too large
+            if ratio > 5:
+                image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
+                with BytesIO() as buffer:
+                    # mime_type file format
+                    image.save(buffer, format=ext)
+                    buffer.seek(0)
+                    logger.debug(
+                        f"resized image size: {buffer.getbuffer().nbytes}, width: {image.width}, height: {image.height}"
+                    )
+                    media_group.append(InputMediaPhoto(buffer, filename=filename))
             # the image is not able to get json serialized
             logger.debug(
                 f"image size: {file_size}, width: {img_width}, height: {img_height}"
