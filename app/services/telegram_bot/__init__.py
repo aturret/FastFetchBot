@@ -601,7 +601,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             io_object.seek(0)
             image = Image.open(io_object, formats = [ext])
             img_width, img_height = image.size
-            image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
+            image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
             with BytesIO() as buffer:
                 # mime_type file format
                 image.save(buffer, format=ext)
