@@ -62,6 +62,12 @@ RUN poetry run playwright install
 FROM python-base as production
 ENV FASTAPI_ENV=production
 ENV PYTHONPATH /app:$PYTHONPATH
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        # deps for installing poetry
+        curl \
+        ffmpeg \
+        libmagic1
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
