@@ -16,11 +16,11 @@ def image_compressing(image: Image, limitation: int = DEFAULT_IMAGE_LIMITATION):
         if image.size[0] > image.size[1]:
             new_image = image.resize(
                 (limitation, int(image.size[1] * limitation / image.size[0])),
-                Image.ANTIALIAS,
+                Image.LANCZOS,
             )
         else:
             new_image = image.resize(
                 (int(image.size[0] * limitation / image.size[1]), limitation),
-                Image.ANTIALIAS,
+                Image.LANCZOS,
             )
     return new_image
