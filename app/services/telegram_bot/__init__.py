@@ -594,13 +594,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         if media_item["media_type"] == "image":
             image_url = media_item["url"]
             mime_type = magic.from_buffer(io_object.read(), mime=True)
+            ext = mimetypes.guess_extension(mime_type)
             io_object.seek(0)
-            image = Image.open(io_object)
+            image = Image.open(io_object, formats = [ext[1:]])
             img_width, img_height = image.size
             image = image_compressing(image, 2 * TELEGRAM_IMAGE_DIMENSION_LIMIT)
             with BytesIO() as buffer:
                 # mime_type file format
-                ext = mimetypes.guess_extension(mime_type)
                 image.save(buffer, format=ext[1:])
                 buffer.seek(0)
                 media_group.append(InputMediaPhoto(buffer, filename=filename))
