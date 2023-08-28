@@ -595,6 +595,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             image_url = media_item["url"]
             mime_type = magic.from_buffer(io_object.read(), mime=True)
             ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
+            # jpg to jpeg, ignore case
+            if ext.lower() == "jpg":
+                ext = "JPEG"
             io_object.seek(0)
             image = Image.open(io_object, formats = [ext])
             img_width, img_height = image.size
