@@ -12,6 +12,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     "instagram": [r"(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+"],
     "zhihu": [
         r"(www\.)?zhihu\.com\/question\/[0-9]+\/answer\/[0-9]+",
+        r"(www\.)?zhihu\.com\/answer\/[0-9]+",
         r"(www\.)?zhihu\.com\/pin\/[0-9]+",
         r"zhuanlan\.zhihu\.com\/p\/[0-9]+",
     ],

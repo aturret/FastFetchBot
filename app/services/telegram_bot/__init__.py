@@ -441,7 +441,7 @@ async def send_item_message(
                 await asyncio.sleep(
                     3
                 )  # wait for several seconds to avoid missing the target message
-                application.bot.send_message(
+                await application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
                     text="The following files are larger than the limitation of Telegram, "
@@ -600,7 +600,8 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         # check media files' type and process them by their type
         if media_item["media_type"] == "image":
             image_url = media_item["url"]
-            mime_type = magic.from_buffer(io_object.read(), mime=True)
+            loop = asyncio.get_running_loop()
+            mime_type = await loop.run_in_executor(None, lambda: magic.from_buffer(io_object.read(), mime=True))
             ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
             # jpg to jpeg, ignore case
             if ext.lower() == "jpg":
