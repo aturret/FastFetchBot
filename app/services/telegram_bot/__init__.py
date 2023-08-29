@@ -441,7 +441,7 @@ async def send_item_message(
                 await asyncio.sleep(
                     3
                 )  # wait for several seconds to avoid missing the target message
-                application.bot.send_message(
+                await application.bot.send_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
                     text="The following files are larger than the limitation of Telegram, "
