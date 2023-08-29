@@ -7,6 +7,7 @@ from lxml import etree
 from app.models.classes import NamedBytesIO
 from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.config import HTTP_REQUEST_TIMEOUT
+from app.utils.logger import logger
 
 
 async def get_response(url: str, headers: dict = None) -> httpx.Response:

@@ -1,9 +1,9 @@
 {# templates/zhihu_short_text.html #}
 
 {% if data.zhihu_type == "answer" %}
-{#    <h2>#}
-{#        <a href="{{ data.url }}" target="_blank">{{ data.title }}</a>#}
-{#    </h2>#}
+    <h2>
+<a href="https://www.zhihu.com/question/{{ data.question_id }}" target="_blank">{{ data.title }}</a>
+    </h2>
     {% if data.question is not none %}
         <p>
             {{ data.question }}
@@ -12,36 +12,35 @@
         </p>
         <hr>
     {% endif %}
+<p>
+回答作者：<a href="{{ data.author_url }}">{{ data.author }}</a></p>
     <p>
-        作者：<a href="{{ data.author_url }}">{{ data.author }}</a>
-    </p>
-    <p>
-        发表于：{{ data.date }} 更新于：{{ data.updated }}
-        <br>
-        点赞数：{{ self.upvote }}
-        {% if data.comment_count %}
-            评论数：{{ self.comment_count }}
-        {% endif %}
+发表于：{{ data.date }} 更新于：{{ data.updated }}
+<br>
+点赞数：{{ self.upvote }}
+{% if data.comment_count %}
+评论数：{{ self.comment_count }}
+{% endif %}
     </p>
     <br>
-    {{ data.raw_content }}
+{{ data.raw_content }}
 {% elif data.zhihu_type == "article" %}
     {% if data.column %}
-        <p>所属专栏：<a href="{{ data.column_url }}">{{ data.column }}</a>
-        </p>
-        <p>专栏简介：{{ data.column_intro }}
-        </p>
+<p>所属专栏：<a href="{{ data.column_url }}">{{ data.column }}</a>
+</p>
+<p>专栏简介：{{ data.column_intro }}
+</p>
     {% endif %}
-    <p>作者：<a href="{{ data.author_url }}">{{ data.author }}</a>
-    </p>
-    <p>发表于：{{ data.date }}
+<p>作者：<a href="{{ data.author_url }}">{{ data.author }}</a>
+</p>
+<p>发表于：{{ data.date }}
         {% if data.updated != data.date %}
-            更新于：{{ data.updated }}
+更新于：{{ data.updated }}
         {% endif %}</p>
-    更新于：{{ data.updated }}
+更新于：{{ data.updated }}
     <br>
     <p>{% if data.upvote %}
-        点赞数：{{ data.upvote }}
+点赞数：{{ data.upvote }}
     {% endif %}
         {% if data.comment_count %}
             评论数：{{ data.comment_count }}

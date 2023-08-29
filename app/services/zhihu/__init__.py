@@ -4,6 +4,7 @@ import traceback
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
+import httpx
 import jmespath
 from bs4 import BeautifulSoup
 from lxml import etree, html
@@ -24,6 +25,7 @@ from .config import (
     ZHIHU_HOST,
     ALL_METHODS,
 )
+from ...utils.logger import logger
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("zhihu_short_text.jinja2")
@@ -84,7 +86,7 @@ class Zhihu(MetadataItem):
         """
         Get zhihu item via the corresponding method according to the zhihu type.
         """
-        self._check_zhihu_type()
+        await self._check_zhihu_type()
         function_dict = {
             "answer": self._get_zhihu_answer,
             "article": self._get_zhihu_article,
@@ -102,6 +104,7 @@ class Zhihu(MetadataItem):
                 traceback.print_exc()
                 if method == ALL_METHODS[-1]:
                     print("all methods failed")
+                    raise e
                 else:
                     print(
                         f"zhihu {self.zhihu_type} {self.method} failed, try the next method"
@@ -115,7 +118,7 @@ class Zhihu(MetadataItem):
             else MessageType.SHORT
         )
 
-    def _check_zhihu_type(self) -> None:
+    async def _check_zhihu_type(self) -> None:
         """
         Check the zhihu type of the url. The zhihu type can be one of the following:
         - answer (example: https://www.zhihu.com/question/19998424/answer/603067076)
@@ -125,6 +128,12 @@ class Zhihu(MetadataItem):
         urlparser = urlparse(self.url)
         host = urlparser.netloc
         path = urlparser.path
+        logger.debug(
+            f"""
+        host: {host}
+        path: {path}
+        """
+        )
         if host.startswith("zhuanlan."):
             self.zhihu_type = "article"
             self.article_id = self.urlparser.path.split("/")[-1]
@@ -148,6 +157,10 @@ class Zhihu(MetadataItem):
         else:
             try:
                 selector = await get_selector(self.url, headers=self.headers)
+                logger.debug(
+                    "zhihu answer selector: %s",
+                    selector.xpath("string(//*)"),
+                )
             except:
                 raise Exception("Cannot get the selector")
             if self.method == "json":
