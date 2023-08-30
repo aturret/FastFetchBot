@@ -166,7 +166,6 @@ async def startup() -> None:
     if application.post_init:
         await application.post_init()
     await application.start()
-    await set_webhook()
 
 
 async def shutdown() -> None:
