@@ -16,8 +16,8 @@ from .config import (
     SCRAPER_INFO,
     SHORT_LIMIT,
 )
-from app.config import X_RAPIDAPI_KEY, TWITTER_EMAIL, TWITTER_PASSWORD, TWITTER_USERNAME
-from ...utils.logger import logger
+from app.config import X_RAPIDAPI_KEY, TWITTER_COOKIES
+from app.utils.logger import logger
 
 
 class Twitter(MetadataItem):
@@ -96,20 +96,22 @@ class Twitter(MetadataItem):
                 raise Exception("Invalid response from Twitter API")
 
     async def _api_client_get_response_tweet_data(self) -> Dict:
-        pass
+        scraper = Scraper(cookies=TWITTER_COOKIES)
+        tweet_data = scraper.tweets_details([int(self.tid)])
+        return tweet_data[0]
 
     def _process_tweet(self, tweet_data: Dict):
-        if self.scraper == "api-client":
-            self.process_twitter_api_client(tweet_data)
-        elif self.scraper == "Twitter135":
-            self.process_tweet_Twitter135(tweet_data)
+        # if self.scraper == "api-client":
+        #     self.process_twitter_api_client(tweet_data)
+        if self.scraper == ["api-client", "Twitter135"]:
+            self._process_tweet_Twitter135(tweet_data)
         elif self.scraper in ["Twitter154", "twitter-v24"]:
-            self.process_tweet_Twitter154(tweet_data)
+            self._process_tweet_Twitter154(tweet_data)
 
     def process_twitter_api_client(self, tweet_data: Dict):
         pass
 
-    def process_tweet_Twitter135(self, tweet_data: Dict):
+    def _process_tweet_Twitter135(self, tweet_data: Dict):
         entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][
             "instructions"
         ][0]["entries"]
@@ -207,7 +209,7 @@ class Twitter(MetadataItem):
         )
         return result
 
-    def process_tweet_Twitter154(self, tweet_data: Dict):
+    def _process_tweet_Twitter154(self, tweet_data: Dict):
         pass
 
     def _get_request_headers(self):

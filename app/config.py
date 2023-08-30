@@ -111,6 +111,12 @@ X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
 TWITTER_EMAIL = env.get("TWITTER_EMAIL", None)
 TWITTER_PASSWORD = env.get("TWITTER_PASSWORD", None)
 TWITTER_USERNAME = env.get("TWITTER_USERNAME", None)
+TWITTER_CT0 = env.get("TWITTER_CT0", None)
+TWITTER_AUTH_TOKEN = env.get("TWITTER_AUTH_TOKEN", None)
+TWITTER_COOKIES = {
+    "ct0": TWITTER_CT0,
+    "auth_token": TWITTER_AUTH_TOKEN,
+}
 
 # Open AI API environment variables
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
