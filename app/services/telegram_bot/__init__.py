@@ -38,6 +38,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters,
     InvalidCallbackData,
+    AIORateLimiter
 )
 from jinja2 import Environment, FileSystemLoader
 
@@ -98,6 +99,7 @@ if TELEGRAM_BOT_TOKEN is not None:
         .base_url(TELEBOT_API_SERVER)
         .base_file_url(TELEBOT_API_SERVER_FILE)
         .local_mode(TELEBOT_LOCAL_FILE_MODE)
+        .rate_limiter(AIORateLimiter())
         .build()
     )
 else:
