@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI):
     mutex.acquire()
     if started.value == 0:
         started.value = 1
-        mutex.release()
         await telegram_bot_service.set_webhook()
+    mutex.release()
 
     await telegram_bot_service.startup()
     yield
