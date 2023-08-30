@@ -22,7 +22,6 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
-manager = multiprocessing.Manager()
 started = multiprocessing.Value('i', 0)
 mutex = multiprocessing.Lock()
 
@@ -30,9 +29,9 @@ mutex = multiprocessing.Lock()
 async def lifespan(app: FastAPI):
     mutex.acquire()
     if started.value == 0:
-        await telegram_bot_service.set_webhook()
         started.value = 1
-    mutex.release()
+        mutex.release()
+        await telegram_bot_service.set_webhook()
 
     await telegram_bot_service.startup()
     yield
