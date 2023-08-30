@@ -37,7 +37,7 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
     :return: the selector of the target webpage parsed by etree.HTML
     """
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT)
+        resp = await client.get(url, headers=headers, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT)
         if (
             resp.history
         ):  # if there is a redirect, the request will have a response chain
@@ -45,7 +45,7 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
             for resp in resp.history:
                 print(resp.status_code, resp.url)
             print("Final destination:", resp.status_code, resp.url)
-        selector = etree.HTML(resp.content)  # the content of the final destination
+        selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
 
 

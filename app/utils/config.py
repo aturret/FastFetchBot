@@ -42,7 +42,5 @@ ua = UserAgent()
 CHROME_USER_AGENT = ua.chrome
 HEADERS = {
     "User-Agent": CHROME_USER_AGENT,
-    "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
 }
