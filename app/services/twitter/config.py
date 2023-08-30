@@ -2,7 +2,7 @@
 scaper infos
 """
 
-ALL_SCRAPER = ["Twitter135", "api-client"]
+ALL_SCRAPER = ["api-client", "Twitter135"]
 # ALL_SCRAPER = ["Twitter135", "Twitter154", "twitter-v24"]
 ALL_SINGLE_SCRAPER = ["Twitter154", "twitter-v24", "Twitter135", "api-client"]
 SCRAPER_INFO = {

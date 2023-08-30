@@ -98,6 +98,7 @@ class Twitter(MetadataItem):
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(cookies=TWITTER_COOKIES)
         tweet_data = scraper.tweets_details([int(self.tid)])
+        logger.debug(tweet_data)
         return tweet_data[0]
 
     def _process_tweet(self, tweet_data: Dict):
