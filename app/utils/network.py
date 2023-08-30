@@ -42,8 +42,8 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
             resp.history
         ):  # if there is a redirect, the request will have a response chain
             print("Request was redirected")
-            for resp in resp.history:
-                print(resp.status_code, resp.url)
+            for h in resp.history:
+                print(h.status_code, h.url)
             print("Final destination:", resp.status_code, resp.url)
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
