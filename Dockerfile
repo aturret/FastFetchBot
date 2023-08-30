@@ -71,4 +71,4 @@ RUN apt-get update \
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:fastapi_application", "--preload"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--preload"]

@@ -30,15 +30,15 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
-    fastapi_application = FastAPI(lifespan=lifespan)
+    fastapi_app = FastAPI(lifespan=lifespan)
     if TELEGRAM_BOT_TOKEN is not None:
-        fastapi_application.include_router(telegram_bot.router)
+        fastapi_app.include_router(telegram_bot.router)
     else:
         logger.warning("Telegram bot token not set, telegram bot disabled")
-    return fastapi_application
+    return fastapi_app
 
 
-fastapi_application = create_app()
+app = create_app()
 
 # @fastapi_application.on_event("shutdown")
 # async def on_shutdown():
