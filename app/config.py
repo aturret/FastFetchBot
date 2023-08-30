@@ -28,7 +28,6 @@ def get_env_bool(var_name, default=False):
 BASE_URL = env.get("BASE_URL", "localhost")
 API_KEY_NAME = env.get("API_KEY_NAME", "pwd")
 API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
-TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY", secrets.token_urlsafe(32))
 
 # Filesystem environment variables
 TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
@@ -47,6 +46,7 @@ MONGODB_URL = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
 
 # Telegram bot environment variables
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
+TELEGRAM_BOT_SECRET_TOKEN = env.get("TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32))
 telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "")
 if telegram_channel_id.startswith("@"):
     TELEGRAM_CHANNEL_ID = telegram_channel_id
@@ -68,7 +68,6 @@ TELEGRAM_CHANNEL_ADMIN_LIST = [
 if not TELEGRAM_CHANNEL_ADMIN_LIST:
     TELEGRAM_CHANNEL_ADMIN_LIST = None
 TELEGRAM_WEBHOOK_URL = f"https://{BASE_URL}/telegram/bot/webhook"
-TELEGRAM_WEBHOOK_FULL_URL = f"https://{BASE_URL}/telegram/bot/webhook?{API_KEY_NAME}={TELEGRAM_API_KEY}"
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (

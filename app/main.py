@@ -2,6 +2,7 @@ import asyncio
 import sentry_sdk
 
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
 from app import database, auth
 from app.routers import telegram_bot
@@ -20,26 +21,26 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
-app = FastAPI()
-if TELEGRAM_BOT_TOKEN is not None:
-    app.include_router(telegram_bot.router)
-else:
-    logger.warning("Telegram bot token not set, telegram bot disabled")
 
-
-@app.on_event("startup")
-async def on_startup():
-    logger.debug("database startup")
-    # await database.startup()
-    logger.debug("telegram bot startup")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await telegram_bot_service.startup()
-    await telegram_bot_service.set_webhook()
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    await database.shutdown()
+    yield
     await telegram_bot_service.shutdown()
 
-    # https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
-    await asyncio.sleep(0)
+
+def create_app():
+    fastapi_application = FastAPI(lifespan=lifespan)
+    if TELEGRAM_BOT_TOKEN is not None:
+        fastapi_application.include_router(telegram_bot.router)
+    else:
+        logger.warning("Telegram bot token not set, telegram bot disabled")
+    return fastapi_application
+
+
+fastapi_application = create_app()
+
+# @fastapi_application.on_event("shutdown")
+# async def on_shutdown():
+#     # await database.shutdown()
+#     await telegram_bot_service.shutdown()
