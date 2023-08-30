@@ -33,6 +33,7 @@ async def on_startup():
     # await database.startup()
     logger.debug("telegram bot startup")
     await telegram_bot_service.startup()
+    await telegram_bot_service.set_webhook()
 
 
 @app.on_event("shutdown")

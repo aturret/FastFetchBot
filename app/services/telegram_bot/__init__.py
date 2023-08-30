@@ -88,12 +88,9 @@ TELEBOT_DEBUG_CHANNEL: {TELEBOT_DEBUG_CHANNEL}
 """
 )
 
+
 async def set_webhook() -> bool:
     return await application.bot.set_webhook(url=TELEGRAM_WEBHOOK_FULL_URL)
-
-
-async def post_init(application: Application):
-    await set_webhook()
 
 if TELEGRAM_BOT_TOKEN is not None:
     application = (
@@ -108,7 +105,6 @@ if TELEGRAM_BOT_TOKEN is not None:
         .base_file_url(TELEBOT_API_SERVER_FILE)
         .local_mode(TELEBOT_LOCAL_FILE_MODE)
         .rate_limiter(AIORateLimiter())
-        .post_init(post_init)
         .build()
     )
 else:
