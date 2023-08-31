@@ -1,7 +1,7 @@
 from typing import Dict
 
 from lxml import etree
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import HEADERS
@@ -71,27 +71,29 @@ class Wechat(MetadataItem):
                 self.media_files.append(MediaFile(url=img_url, media_type="image"))
         for section_tag in soup.find_all("section"):
             # if no p tag in section tag, then we consider that all text tags are span tags. We divide paragraphs by
-            # <br/><br/> tags pair, unwrap all <span> tags, and wrap them with <p> tags.
-            if len(section_tag.find_all("p")) == 0:
+            # <br/><br/> tags pair, unwrap all other tags, and wrap them with <p> tags.
+            if not section_tag.find_all("section"):
                 new_p_tag = soup.new_tag("p")
-                for tag in section_tag.find_all(recursive=False):
-                    logger.debug(tag)
-                    if tag.name == "span":
-                        new_p_tag.append(tag)
-                        tag.unwrap()
-                    elif tag.name == "a":
-                        new_p_tag.append(tag)
-                    elif tag.name == "br" and tag.next_sibling and tag.next_sibling.name == "br":
-                        tag.decompose()
-                        tag.next_sibling.decompose()
-                        section_tag.append(new_p_tag)
-                        new_p_tag = soup.new_tag("p")
-                logger.debug(new_p_tag)
-                for span_tag in new_p_tag.find_all("span"):
-                    span_tag.unwrap()
-                if new_p_tag.text.strip():
+                logger.debug(f"content list:{section_tag.contents}")
+                contents = section_tag.contents[:]
+                for content in contents:
+                    content.extract()
+                for content in contents:
+                    if content.name == 'br' and content.next_sibling and content.next_sibling.name == 'br':
+                        content.decompose()
+                        content.next_sibling.decompose()
+                        if new_p_tag.contents:
+                            section_tag.append(new_p_tag)
+                            new_p_tag = soup.new_tag('p')
+                    elif content.name == 'p':
+                        if new_p_tag.contents:
+                            section_tag.append(new_p_tag)
+                            new_p_tag = soup.new_tag('p')
+                        section_tag.append(content)
+                    else:
+                        new_p_tag.append(content)
+                if new_p_tag.contents:
                     section_tag.append(new_p_tag)
-        logger.debug(soup)
         self.raw_content = str(soup)
         self.content = self.raw_content
         self.text = soup.get_text()
