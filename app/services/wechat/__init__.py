@@ -64,49 +64,34 @@ class Wechat(MetadataItem):
         self.author_url = ""
         soup = BeautifulSoup(wechat_data["content"], "lxml")
         for img_item in soup.find_all("img"):
-            if img_item.get("class") == ["rich_pages", "wxw-img"]:
+            if all(elem in img_item.get("class") for elem in ["rich_pages", "wxw-img"]):
                 img_url = img_item["data-src"]
                 img_item["src"] = img_url
                 img_item["data-src"] = img_url
                 self.media_files.append(MediaFile(url=img_url, media_type="image"))
-        for a_item in soup.find_all("a"):
-            parent_tag = a_item.find_parent()
-            next_sibling = next(a_item.next_siblings, None)
-            previous_sibling = next(a_item.previous_siblings, None)
-            if next_sibling and previous_sibling and next_sibling.name == "span" and previous_sibling.name == "span":
-                a_item.unwrap()
-            parent_tag.string = parent_tag.text.strip()
-        for span_item in soup.find_all("span"):
-            if span_item.find_parent("section"):
-                parent_tag = span_item.find_parent("section")
-                if len(parent_tag.find_all(recursive=False)) == 1:
-                    span_item.wrap(soup.new_tag("p"))
-                    logger.debug("executed wrap")
-                    for sub_span_item in span_item.find_all("span"):
-                        sub_span_item.unwrap()
-                        logger.debug("executed unwrap sub span")
-                    span_item.string = span_item.text.strip()
-                    text_blocks, current_text, br_count = [], "", 0
-                    for content in span_item.contents:
-                        if content.name == 'br':
-                            br_count += 1
-                            if br_count == 2:  # Two <br> tags encountered
-                                text_blocks.append(current_text.strip())
-                                current_text = ""
-                                br_count = 0  # Reset the <br> counter
-                            continue  # Skip adding <br> tags to the text
-                        else:
-                            current_text += str(content)
-                        current_text += str(content)
-                    if len(text_blocks) > 0:
-                        if current_text.strip():
-                            text_blocks.append(current_text.strip())
-                        new_tags = []
-                        for text in text_blocks:
-                            p_tag = soup.new_tag("p")
-                            p_tag.string = text
-                            new_tags.append(p_tag)
-                        span_item.replace_with(*new_tags)
-        self.raw_content = soup.prettify()
+        for section_tag in soup.find_all("section"):
+            # if no p tag in section tag, then we consider that all text tags are span tags. We divide paragraphs by
+            # <br/><br/> tags pair, unwrap all <span> tags, and wrap them with <p> tags.
+            if len(section_tag.find_all("p")) == 0:
+                new_p_tag = soup.new_tag("p")
+                for tag in section_tag.find_all(recursive=False):
+                    logger.debug(tag)
+                    if tag.name == "span":
+                        new_p_tag.append(tag)
+                        tag.unwrap()
+                    elif tag.name == "a":
+                        new_p_tag.append(tag)
+                    elif tag.name == "br" and tag.next_sibling and tag.next_sibling.name == "br":
+                        tag.decompose()
+                        tag.next_sibling.decompose()
+                        section_tag.append(new_p_tag)
+                        new_p_tag = soup.new_tag("p")
+                logger.debug(new_p_tag)
+                for span_tag in new_p_tag.find_all("span"):
+                    span_tag.unwrap()
+                if new_p_tag.text.strip():
+                    section_tag.append(new_p_tag)
+        logger.debug(soup)
+        self.raw_content = str(soup)
         self.content = self.raw_content
         self.text = soup.get_text()
