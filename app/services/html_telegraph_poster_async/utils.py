@@ -38,9 +38,8 @@ class DocumentPreprocessor:
             if new_image_url:
                 image_element.attrib.update({'src': new_image_url})
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             for image in images:
-                executor.submit(_upload_and_replace_url, image)
+                await _upload_and_replace_url(image)
 
     def _parse_document(self):
         if isinstance(self.input_document, str):
