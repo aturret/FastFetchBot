@@ -12,6 +12,7 @@ from app.services import (
     douban,
     zhihu,
     video_download,
+    wechat,
 )
 from app.database import save_instances
 from app.utils.logger import logger
@@ -36,6 +37,7 @@ class InfoExtractService(object):
             "twitter": twitter.Twitter,
             "threads": threads.Threads,
             "weibo": weibo.Weibo,
+            "wechat": wechat.Wechat,
             "instagram": instagram.Instagram,
             "douban": douban.Douban,
             "zhihu": zhihu.Zhihu,
