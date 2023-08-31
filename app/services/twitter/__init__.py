@@ -1,14 +1,15 @@
 # TODO: https://rapidapi.com/Glavier/api/twitter135
-
+import traceback
 from urllib.parse import urlparse
 from typing import Dict, Optional
 
 import httpx
 import jmespath
-from twitter.scraper import Scraper
+
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.parse import get_html_text_length
+from .twitter_client_api.scraper import Scraper
 from .config import (
     ALL_SCRAPER,
     ALL_SINGLE_SCRAPER,
@@ -71,6 +72,7 @@ class Twitter(MetadataItem):
                     return tweet_data
             except Exception as e:
                 logger.error(e)
+                traceback.print_exc()
                 continue
         raise Exception("No valid response from all Twitter scrapers")
 
@@ -96,15 +98,19 @@ class Twitter(MetadataItem):
                 raise Exception("Invalid response from Twitter API")
 
     async def _api_client_get_response_tweet_data(self) -> Dict:
-        scraper = Scraper(cookies=TWITTER_COOKIES)
-        tweet_data = scraper.tweets_details([int(self.tid)])
+        scraper = Scraper(
+            save=False,
+            debug=True,
+        )
+        await scraper.async_init(cookies=TWITTER_COOKIES)
+        tweet_data = await scraper.tweets_details([int(self.tid)])
         logger.debug(tweet_data)
         return tweet_data[0]
 
     def _process_tweet(self, tweet_data: Dict):
         # if self.scraper == "api-client":
         #     self.process_twitter_api_client(tweet_data)
-        if self.scraper == ["api-client", "Twitter135"]:
+        if self.scraper in ["api-client", "Twitter135"]:
             self._process_tweet_Twitter135(tweet_data)
         elif self.scraper in ["Twitter154", "twitter-v24"]:
             self._process_tweet_Twitter154(tweet_data)
