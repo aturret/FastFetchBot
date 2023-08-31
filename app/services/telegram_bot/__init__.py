@@ -38,7 +38,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters,
     InvalidCallbackData,
-    AIORateLimiter
+    AIORateLimiter,
 )
 from jinja2 import Environment, FileSystemLoader
 
@@ -50,7 +50,8 @@ from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
 from app.utils.logger import logger
 from app.config import (
     TELEGRAM_BOT_TOKEN,
-    TELEGRAM_WEBHOOK_FULL_URL,
+    TELEGRAM_WEBHOOK_URL,
+    TELEGRAM_BOT_SECRET_TOKEN,
     TELEGRAM_CHANNEL_ID,
     TELEGRAM_CHANNEL_ADMIN_LIST,
     TELEBOT_DEBUG_CHANNEL,
@@ -88,12 +89,12 @@ TELEBOT_DEBUG_CHANNEL: {TELEBOT_DEBUG_CHANNEL}
 """
 )
 
+
 async def set_webhook() -> bool:
-    return await application.bot.set_webhook(url=TELEGRAM_WEBHOOK_FULL_URL)
+    return await application.bot.set_webhook(
+        url=TELEGRAM_WEBHOOK_URL, secret_token=TELEGRAM_BOT_SECRET_TOKEN
+    )
 
-
-async def post_init(application: Application):
-    await set_webhook()
 
 if TELEGRAM_BOT_TOKEN is not None:
     application = (
@@ -108,7 +109,6 @@ if TELEGRAM_BOT_TOKEN is not None:
         .base_file_url(TELEBOT_API_SERVER_FILE)
         .local_mode(TELEBOT_LOCAL_FILE_MODE)
         .rate_limiter(AIORateLimiter())
-        .post_init(post_init)
         .build()
     )
 else:
@@ -161,13 +161,20 @@ async def startup() -> None:
         ]
     )
     application.add_error_handler(error_handler)
-    webhook_info = await application.bot.get_webhook_info()
-    logger.debug("webhook info: " + str(webhook_info))
+    # webhook_info = await application.bot.get_webhook_info()
+    # logger.debug("webhook info: " + str(webhook_info))
+    if application.post_init:
+        await application.post_init()
     await application.start()
 
 
 async def shutdown() -> None:
     await application.stop()
+    if application.post_stop:
+        await application.post_stop()
+    await application.shutdown()
+    if application.post_shutdown:
+        await application.post_shutdown()
 
 
 async def process_telegram_update(
@@ -607,7 +614,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         if media_item["media_type"] == "image":
             image_url = media_item["url"]
             loop = asyncio.get_running_loop()
-            mime_type = await loop.run_in_executor(None, lambda: magic.from_buffer(io_object.read(), mime=True))
+            mime_type = await loop.run_in_executor(
+                None, lambda: magic.from_buffer(io_object.read(), mime=True)
+            )
             ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
             # jpg to jpeg, ignore case
             if ext.lower() == "jpg":
