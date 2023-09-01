@@ -28,10 +28,14 @@ aiofiles = "^23.2.1"
 twitter-api-client = "^0.10.11"
 pillow = "^10.0.0"
 python-magic = "^0.4.27"
+python-magic-bin = { version = "^0.4.14", optional = true }
 
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
+
+[tool.poetry.extras]
+windows = ["python-magic-bin"]
 
 [build-system]
 requires = ["poetry-core"]
