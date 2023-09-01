@@ -64,7 +64,9 @@ class Wechat(MetadataItem):
         self.author_url = ""
         soup = BeautifulSoup(wechat_data["content"], "lxml")
         for img_item in soup.find_all("img"):
-            if all(elem in img_item.get("class") for elem in ["rich_pages", "wxw-img"]):
+            if img_item.get("class") and all(
+                elem in img_item.get("class") for elem in ["rich_pages", "wxw-img"]
+            ):
                 img_url = img_item["data-src"]
                 img_item["src"] = img_url
                 img_item["data-src"] = img_url
@@ -79,16 +81,20 @@ class Wechat(MetadataItem):
                 for content in contents:
                     content.extract()
                 for content in contents:
-                    if content.name == 'br' and content.next_sibling and content.next_sibling.name == 'br':
+                    if (
+                        content.name == "br"
+                        and content.next_sibling
+                        and content.next_sibling.name == "br"
+                    ):
                         content.decompose()
                         content.next_sibling.decompose()
                         if new_p_tag.contents:
                             section_tag.append(new_p_tag)
-                            new_p_tag = soup.new_tag('p')
-                    elif content.name == 'p':
+                            new_p_tag = soup.new_tag("p")
+                    elif content.name == "p":
                         if new_p_tag.contents:
                             section_tag.append(new_p_tag)
-                            new_p_tag = soup.new_tag('p')
+                            new_p_tag = soup.new_tag("p")
                         section_tag.append(content)
                     else:
                         new_p_tag.append(content)
