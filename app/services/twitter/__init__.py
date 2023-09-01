@@ -6,7 +6,6 @@ from typing import Dict, Optional
 import httpx
 import jmespath
 
-
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.parse import get_html_text_length
 from .twitter_client_api.scraper import Scraper
@@ -17,7 +16,7 @@ from .config import (
     SCRAPER_INFO,
     SHORT_LIMIT,
 )
-from app.config import X_RAPIDAPI_KEY, TWITTER_COOKIES
+from app.config import X_RAPIDAPI_KEY, TWITTER_COOKIES, DEBUG_MODE
 from app.utils.logger import logger
 
 
@@ -99,7 +98,7 @@ class Twitter(MetadataItem):
 
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(
-            save=False,
+            save=DEBUG_MODE,
             debug=True,
         )
         await scraper.async_init(cookies=TWITTER_COOKIES)
@@ -140,26 +139,31 @@ class Twitter(MetadataItem):
             "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
         )
 
-    def process_single_tweet_Twitter135(self, tweet: Dict) -> None:
-        if tweet["tid"] == self.tid:
+    def process_single_tweet_Twitter135(self, tweet: Dict, retweeted=False) -> None:
+        if tweet.get("tid") == self.tid:
             self.title = f"{tweet['name']}'s Tweet"
             self.author = tweet["name"]
             self.author_url = f"https://twitter.com/{tweet['username']}"
             self.date = tweet["date"]
-        tweet_info = self.parse_single_tweet_Twitter135(tweet)
+        tweet_info = self.parse_single_tweet_Twitter135(tweet, retweeted=retweeted)
         self.text_group += tweet_info["text_group"]
         self.content_group += tweet_info["content_group"]
         self.media_files += tweet_info["media_files"]
-        if tweet["quoted_tweet"] and tweet["tid"] == self.tid:
-            self.process_single_tweet_Twitter135(tweet["quoted_tweet"])
+        if tweet["quoted_tweet"]:
+            retweeted_tweet_info = self.parse_tweet_data_Twitter135(
+                tweet["quoted_tweet"]
+            )
+            self.process_single_tweet_Twitter135(retweeted_tweet_info, retweeted=True)
+        if tweet.get("tid") == self.tid:
+            self.content_group = self.content_group.replace("<hr>", "", 1)
 
     @staticmethod
-    def parse_single_tweet_Twitter135(tweet: Dict) -> Dict:
-        text = tweet["full_text"] if tweet["full_text"] else tweet["text"]
+    def parse_single_tweet_Twitter135(tweet: Dict, retweeted=False) -> Dict:
+        text = tweet["full_text"] if tweet.get("full_text") else tweet["text"]
         tweet_info = {
             "media_files": [],
             "text_group": "",
-            "content_group": "",
+            "content_group": "<hr>" if not retweeted else "<p>Quoted:</p>",
         }
         user_component = (
             f"<a href='https://twitter.com/{tweet['username']}'>@{tweet['name']}</a>"
@@ -194,9 +198,7 @@ class Twitter(MetadataItem):
                             caption="",
                         )
                     )
-        tweet_info["content_group"] = (
-            tweet_info["content_group"].replace("\n", "<br>") + "<hr>"
-        )
+        tweet_info["content_group"] = tweet_info["content_group"].replace("\n", "<br>")
         return tweet_info
 
     @staticmethod
@@ -210,7 +212,7 @@ class Twitter(MetadataItem):
             full_text: note_tweet.note_tweet_results.result.text,
             text: legacy.full_text,
             media: legacy.extended_entities.media,
-            quoted_tweet: core.quoted_status_result.result
+            quoted_tweet: quoted_status_result.result
             }""",
             data,
         )
