@@ -352,8 +352,8 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
                 await query.message.delete()
                 context.drop_callback_data(query)
                 return
-            else:
-                chat_id = query.message.chat_id
+        else:
+            chat_id = query.message.chat_id
         if data["type"] == "video":
             await query.answer("Video processing...")
         replying_message = await query.message.reply_text(
