@@ -33,6 +33,7 @@ API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
 TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
 WORK_DIR = env.get("WORK_DIR", os.getcwd())
 DOWNLOAD_DIR = env.get("DOWNLOAD_DIR", os.path.join(WORK_DIR, "download"))
+DEBUG_MODE = get_env_bool("DEBUG_MODE", False)
 
 # Logging environment variables
 LOG_FILE_PATH = env.get("LOG_FILE_PATH", TEMP_DIR)
