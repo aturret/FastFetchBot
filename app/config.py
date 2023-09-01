@@ -11,8 +11,8 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 
 def get_env_bool(var_name, default=False):
     """Retrieve environment variable as a boolean."""
-    true_values = {"True","true", "1", "yes", "on"}
-    false_values = {"False","false", "0", "no", "off"}
+    true_values = {"True", "true", "1", "yes", "on"}
+    false_values = {"False", "false", "0", "no", "off"}
 
     value = env.get(var_name, "").lower()
 
@@ -46,13 +46,17 @@ MONGODB_URL = f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}"
 
 # Telegram bot environment variables
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
-TELEGRAM_BOT_SECRET_TOKEN = env.get("TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32))
-telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "")
-if telegram_channel_id.startswith("@"):
-    TELEGRAM_CHANNEL_ID = telegram_channel_id
-elif telegram_channel_id.startswith("-1"):
-    TELEGRAM_CHANNEL_ID = int(telegram_channel_id)
-else:
+TELEGRAM_BOT_SECRET_TOKEN = env.get(
+    "TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32)
+)
+TELEGRAM_CHANNEL_ID = []
+telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "").split(",")
+for single_telegram_channel_id in telegram_channel_id:
+    if single_telegram_channel_id.startswith("@"):
+        TELEGRAM_CHANNEL_ID.append(single_telegram_channel_id)
+    elif single_telegram_channel_id.startswith("-1"):
+        TELEGRAM_CHANNEL_ID.append(int(single_telegram_channel_id))
+if len(TELEGRAM_CHANNEL_ID) == 0:
     TELEGRAM_CHANNEL_ID = None
 telebot_debug_channel = env.get("TELEBOT_DEBUG_CHANNEL", "")
 if telebot_debug_channel.startswith("@"):
@@ -115,6 +119,14 @@ TWITTER_AUTH_TOKEN = env.get("TWITTER_AUTH_TOKEN", None)
 TWITTER_COOKIES = {
     "ct0": TWITTER_CT0,
     "auth_token": TWITTER_AUTH_TOKEN,
+}
+XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)
+XIAOHONGSHU_WEBID = env.get("XIAOHONGSHU_WEBID", None)
+XIAOHONGSHU_WEBSESSION = env.get("XIAOHONGSHU_WEBSESSION", None)
+XIAOHONGSHU_COOKIES = {
+    "a1": XIAOHONGSHU_A1,
+    "web_id": XIAOHONGSHU_WEBID,
+    "web_session": XIAOHONGSHU_WEBSESSION,
 }
 
 # Open AI API environment variables

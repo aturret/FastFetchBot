@@ -216,8 +216,6 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             # create the inline keyboard
             special_function_keyboard = []
             basic_function_keyboard = []
-            logger.debug(f"telegram channel id: {TELEGRAM_CHANNEL_ID}")
-            logger.debug(f"telegram channel admin list: {TELEGRAM_CHANNEL_ADMIN_LIST}")
             if TELEGRAM_CHANNEL_ID and (
                 TELEGRAM_CHANNEL_ADMIN_LIST
                 and str(message.from_user.id) in TELEGRAM_CHANNEL_ADMIN_LIST
@@ -329,17 +327,33 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         if data["type"] == "private":
             await query.answer("Sending to you...")
         if data["type"] == "channel":
-            await query.answer("Sending to channel...")
-            channel_chat = await application.bot.get_chat(chat_id=TELEGRAM_CHANNEL_ID)
-            if channel_chat.type == "channel":
-                chat_id = channel_chat.id
-            else:
-                await query.message.reply_text(
-                    text="Sorry, the provided channel id does not exist or is not a channel."
+            if data.get("channel_id") or len(TELEGRAM_CHANNEL_ID) == 1:
+                channel_chat = await application.bot.get_chat(
+                    chat_id=data.get("channel_id")
+                    if data.get("channel_id")
+                    else TELEGRAM_CHANNEL_ID[0]
                 )
+                await query.answer("Sending to channel...")
+                if channel_chat.type == "channel":
+                    chat_id = channel_chat.id
+                else:
+                    await query.message.reply_text(
+                        text="Sorry, the provided channel id does not exist or is not a channel."
+                    )
+                    chat_id = query.message.chat_id
+            elif len(TELEGRAM_CHANNEL_ID) > 1:
+                choose_channel_keyboard = await _create_choose_channel_keyboard(
+                    data=data
+                )
+                await query.message.reply_text(
+                    text="Please choose the channel you want to send:",
+                    reply_markup=InlineKeyboardMarkup(choose_channel_keyboard),
+                )
+                await query.message.delete()
+                context.drop_callback_data(query)
+                return
+            else:
                 chat_id = query.message.chat_id
-        else:
-            chat_id = query.message.chat_id
         if data["type"] == "video":
             await query.answer("Video processing...")
         replying_message = await query.message.reply_text(
@@ -360,6 +374,33 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         await replying_message.delete()
     await query.message.delete()
     context.drop_callback_data(query)
+
+
+async def _create_choose_channel_keyboard(data: dict) -> list:
+    choose_channel_keyboard = []
+    for i, channel_id in enumerate(TELEGRAM_CHANNEL_ID):
+        channel_chat = await application.bot.get_chat(chat_id=channel_id)
+        choose_channel_keyboard.append(
+            [
+                InlineKeyboardButton(
+                    channel_chat.title,
+                    callback_data={
+                        "type": "channel",
+                        "metadata": data["metadata"],
+                        "channel_id": channel_id,
+                    },
+                )
+            ]
+        )
+    choose_channel_keyboard.append(
+        [
+            InlineKeyboardButton(
+                "Cancel",
+                callback_data={"type": "cancel"},
+            )
+        ]
+    )
+    return choose_channel_keyboard
 
 
 async def invalid_buttons(update: Update, context: CallbackContext) -> None:
