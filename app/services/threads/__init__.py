@@ -8,7 +8,6 @@ from playwright.async_api import async_playwright
 from app.utils.logger import logger
 from app.utils.parse import get_html_text_length, unix_timestamp_to_utc
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.config import HTTP_REQUEST_TIMEOUT
 
 SHORT_LIMIT = 600
 
