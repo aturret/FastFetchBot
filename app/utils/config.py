@@ -31,7 +31,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [r"(((m|www)\.)youtube\.com\/watch)", r"youtu\.be\/[A-Za-z0-9_-]+"],
     "bilibili": [
-        r"((www\.)?bilibili\.com\/video\/[A-Za-z0-9]+\/)",
+        r"((www\.)?bilibili\.com\/video\/[A-Za-z0-9]+)",
         r"b23\.tv\/[A-Za-z0-9]+",
     ],
 }
