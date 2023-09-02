@@ -139,6 +139,11 @@ class Weibo(MetadataItem):
         self.raw_content = self.text
         # resolve medias
         self.media_files = self._get_media_files(weibo_info)
+        for i in self.media_files:
+            if i.media_type == "video":
+                self.raw_content += f"<video src='{i.url}' controls='controls'></video>"
+            elif i.media_type == "image":
+                self.raw_content += f"<img src='{i.url}'></img>"
         # render the text and content
         data = self.__dict__
         self.text = short_text_template.render(data=data)
