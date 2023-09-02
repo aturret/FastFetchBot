@@ -10,11 +10,11 @@ from app.config import HTTP_REQUEST_TIMEOUT
 from app.utils.logger import logger
 
 
-async def get_response(url: str, headers: dict = None) -> httpx.Response:
+async def get_response(url: str, headers: dict = None, params: dict = None) -> httpx.Response:
     if headers is None:
         headers = HEADERS
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers)
+        resp = await client.get(url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT)
         return resp
 
 
@@ -39,7 +39,7 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT)
         if (
-            resp.history
+                resp.history
         ):  # if there is a redirect, the request will have a response chain
             print("Request was redirected")
             for h in resp.history:
@@ -50,7 +50,7 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
 
 
 async def download_a_iobytes_file(
-    url, file_name=None, file_format=None, headers=None, referer=None
+        url, file_name=None, file_format=None, headers=None, referer=None
 ) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
