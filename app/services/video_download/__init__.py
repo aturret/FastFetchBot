@@ -61,7 +61,7 @@ class VideoDownloader(MetadataItem):
             transcribe_text = await audio_transcribe.transcribe()
             self.message_type = MessageType.LONG
             self.text += "\n" + transcribe_text
-            self.content += "<hr>" + transcribe_text.replace(" ", "<br>")
+            self.content += "<hr>" + transcribe_text.replace("\n", "<br>")
 
     async def _parse_url(self, url: str) -> str:
         logger.info(f"parsing original video url: {url} for {self.extractor}")
