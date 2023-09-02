@@ -3,6 +3,7 @@ import os
 from urllib.parse import urlparse
 
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
+from app.services.audio_transcribe import AudioTranscribe
 from app.config import DOWNLOAD_DIR, YOUTUBE_DL_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.parse import unix_timestamp_to_utc, second_to_time
 from app.utils.logger import logger
@@ -19,12 +20,14 @@ class VideoDownloader(MetadataItem):
         download: bool = True,
         audio_only: bool = False,
         hd: bool = False,
+        transcribe: bool = False,
         **kwargs,
     ):
         self.extractor = category
         self.url = url
         self.download = download
         self.audio_only = audio_only
+        self.transcribe = transcribe
         self.hd = hd
         self.message_type = MessageType.SHORT
         self.file_path = None
@@ -53,6 +56,12 @@ class VideoDownloader(MetadataItem):
         }
         meta_info = video_info_funcs[self.extractor](content_info)
         self._video_info_formatting(meta_info)
+        if self.transcribe:
+            audio_transcribe = AudioTranscribe(self.file_path)
+            transcribe_text = await audio_transcribe.transcribe()
+            self.message_type = MessageType.LONG
+            self.text += "\n" + transcribe_text
+            self.content += "<hr>" + transcribe_text.replace(" ", "<br>")
 
     async def _parse_url(self, url: str) -> str:
         logger.info(f"parsing original video url: {url} for {self.extractor}")
