@@ -139,16 +139,15 @@ class Weibo(MetadataItem):
         self.raw_content = self.text
         # resolve medias
         self.media_files = self._get_media_files(weibo_info)
+        # render the text and content
+        self.text = short_text_template.render(data=self.__dict__)
+        self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
         for i in self.media_files:
             if i.media_type == "video":
                 self.raw_content += f"<video src='{i.url}' controls='controls'></video>"
             elif i.media_type == "image":
                 self.raw_content += f"<img src='{i.url}'></img>"
-        # render the text and content
-        data = self.__dict__
-        self.text = short_text_template.render(data=data)
-        self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
-        self.content = content_template.render(data=data)
+        self.content = content_template.render(data=self.__dict__)
         # resolve retweet
         if weibo_info.get("retweeted_status"):
             retweeted_weibo_item = Weibo(
@@ -250,9 +249,11 @@ class Weibo(MetadataItem):
                     ) if pic_info[pic]["original"] else media_files.append(
                         MediaFile(pic_info[pic]["large"]["url"])
                     )
-                    media_files.append(
-                        MediaFile(url=pic_info[pic]["video"], media_type="video")
-                    )
+                    live_pic_url = pic_info[pic]["video"]["url"]
+                    if not (live_pic_url[-4] == "." and live_pic_url[-3:] != "mp4"):
+                        media_files.append(
+                            MediaFile(url=pic_info[pic]["video"], media_type="video")
+                        )
                 elif pic_info[pic].get("type") == "gif":
                     media_files.append(
                         MediaFile(url=pic_info[pic]["video"], media_type="video")
