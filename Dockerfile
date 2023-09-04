@@ -41,7 +41,13 @@ RUN apt-get update \
         curl \
         ffmpeg \
         libmagic1 \
-        # deps for building python deps
+        # deps for building python deps \
+        # deps for weasyprint
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libjpeg-dev \
+        libopenjp2-7-dev \
+        libffi-dev \
         build-essential
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
@@ -68,6 +74,7 @@ RUN apt-get update \
         curl \
         ffmpeg \
         libmagic1 \
+        # deps for building python deps \
         # deps for weasyprint
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
