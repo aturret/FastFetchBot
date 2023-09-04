@@ -80,7 +80,7 @@ RUN apt-get update \
         libpangoft2-1.0-0 \
         libjpeg-dev \
         libopenjp2-7-dev \
-        libffi-dev \
+        libffi-dev
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
