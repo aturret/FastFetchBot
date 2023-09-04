@@ -247,3 +247,4 @@ fabric.properties
 # Local docker-compose development environment
 docker-compose.yml
 /data/
+/download/

@@ -1,0 +1,19 @@
+/*@font-face {*/
+/*    font-family: simsun;*/
+/*    src: url("./simsun.ttc");*/
+/*}*/
+
+* {
+    font-family: STSong-Light;
+}
+body{
+    font-size: 20px;
+    word-break:break-all;
+}
+
+@page {
+    size: A4;
+    margin: 1.5cm 1.5cm 3cm;
+    font-family: STSong-Light;
+    -pdf-word-wrap: CJK;
+}

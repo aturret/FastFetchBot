@@ -30,6 +30,7 @@ pillow = "^10.0.0"
 python-magic = "^0.4.27"
 python-magic-bin = { version = "^0.4.14", optional = true }
 pydub = "^0.25.1"
+xhtml2pdf = "^0.2.11"
 
 
 [tool.poetry.group.dev.dependencies]
