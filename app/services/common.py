@@ -27,7 +27,7 @@ class InfoExtractService(object):
         data: Any = None,
         store_database: Optional[bool] = DATABASE_ON,
         store_telegraph: Optional[bool] = True,
-        store_document: Optional[bool] = True,
+        store_document: Optional[bool] = False,
         **kwargs,
     ):
         url_metadata = url_metadata.to_dict()
@@ -71,7 +71,9 @@ class InfoExtractService(object):
                 logger.error(f"Error while getting telegraph: {e}")
                 telegraph_url = ""
             metadata_item["telegraph_url"] = telegraph_url
-        if self.store_document:
+        if self.store_document or (
+            not self.store_document and metadata_item["telegraph_url"] == ""
+        ):
             try:
                 pdf_document = document_export.pdf_export.PdfExport(
                     title=metadata_item["title"], html_string=metadata_item["content"]

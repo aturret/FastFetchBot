@@ -1,4 +1,3 @@
-import asyncio
 import sentry_sdk
 import multiprocessing
 
@@ -12,6 +11,7 @@ from app.config import TELEGRAM_BOT_TOKEN
 from app.utils.logger import logger
 
 SENTRY_DSN = ""
+
 
 # https://docs.sentry.io/platforms/python/guides/fastapi/
 sentry_sdk.init(

@@ -67,7 +67,13 @@ RUN apt-get update \
         # deps for installing poetry
         curl \
         ffmpeg \
-        libmagic1
+        libmagic1 \
+        # deps for weasyprint
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libjpeg-dev \
+        libopenjp2-7-dev \
+        libffi-dev \
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app

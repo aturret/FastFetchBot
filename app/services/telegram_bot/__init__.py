@@ -127,20 +127,20 @@ async def startup() -> None:
     )
     https_url_process_handler = MessageHandler(
         filters=filters.ChatType.PRIVATE
-                & filters.Entity(MessageEntity.URL)
-                & (~filters.FORWARDED)
-                & filters.USER,
+        & filters.Entity(MessageEntity.URL)
+        & (~filters.FORWARDED)
+        & filters.USER,
         callback=https_url_process,
     )
     https_url_auto_process_handler = MessageHandler(
         filters=(
-                        filters.ChatType.SUPERGROUP
-                        | filters.ChatType.GROUP
-                        | filters.ChatType.GROUPS
-                )
-                & filters.Entity(MessageEntity.URL)
-                & (~filters.FORWARDED)
-                & filters.USER,
+            filters.ChatType.SUPERGROUP
+            | filters.ChatType.GROUP
+            | filters.ChatType.GROUPS
+        )
+        & filters.Entity(MessageEntity.URL)
+        & (~filters.FORWARDED)
+        & filters.USER,
         callback=https_url_auto_process,
     )
     invalid_buttons_handler = CallbackQueryHandler(
@@ -178,7 +178,7 @@ async def shutdown() -> None:
 
 
 async def process_telegram_update(
-        data: dict,
+    data: dict,
 ) -> None:
     """
     Process telegram update, put it to the update queue.
@@ -217,8 +217,8 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             special_function_keyboard = []
             basic_function_keyboard = []
             if TELEGRAM_CHANNEL_ID and (
-                    TELEGRAM_CHANNEL_ADMIN_LIST
-                    and str(message.from_user.id) in TELEGRAM_CHANNEL_ADMIN_LIST
+                TELEGRAM_CHANNEL_ADMIN_LIST
+                and str(message.from_user.id) in TELEGRAM_CHANNEL_ADMIN_LIST
             ):
                 special_function_keyboard.append(
                     InlineKeyboardButton(
@@ -274,11 +274,21 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         callback_data={"type": "force", "metadata": url_metadata},
                     )
                 )
-                basic_function_keyboard.append(
-                    InlineKeyboardButton(
-                        "Send to Me",
-                        callback_data={"type": "private", "metadata": url_metadata},
-                    )
+                basic_function_keyboard.extend(
+                    [
+                        InlineKeyboardButton(
+                            "Send to Me",
+                            callback_data={"type": "private", "metadata": url_metadata},
+                        ),
+                        InlineKeyboardButton(
+                            "Send with PDF",
+                            callback_data={
+                                "type": "pdf",
+                                "metadata": url_metadata,
+                                "extra_args": {"store_document": True},
+                            },
+                        ),
+                    ]
                 )
             basic_function_keyboard.append(
                 InlineKeyboardButton(
@@ -417,7 +427,7 @@ async def content_process_function(url_metadata: UrlMetadata, **kwargs) -> dict:
 
 
 async def send_item_message(
-        data: dict, chat_id: Union[int, str] = None, message: Message = None
+    data: dict, chat_id: Union[int, str] = None, message: Message = None
 ) -> None:
     """
     :param data: (dict) metadata of the item
@@ -428,7 +438,7 @@ async def send_item_message(
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
     if (
-            not chat_id
+        not chat_id
     ) and message:  # this function supports directly reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
@@ -445,7 +455,7 @@ async def send_item_message(
                 media_files=data["media_files"], data=data
             )
             if (
-                    len(media_message_group) > 0
+                len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
                 reply_to_message_id = None
                 for i, media_group in enumerate(media_message_group):
@@ -471,11 +481,11 @@ async def send_item_message(
                     )
                     pinned_message = group_chat.pinned_message
                     if (
-                            pinned_message.forward_from_message_id
-                            == sent_message[-1].message_id
+                        pinned_message.forward_from_message_id
+                        == sent_message[-1].message_id
                     ):
                         reply_to_message_id = (
-                                group_chat.pinned_message.id - len(sent_message) + 1
+                            group_chat.pinned_message.id - len(sent_message) + 1
                         )
                     else:
                         # reply_to_message_id = sent_message[-1].message_id
@@ -488,7 +498,7 @@ async def send_item_message(
                 )
                 reply_to_message_id = reply_to_message.message_id
             if (
-                    len(file_group) > 0
+                len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
                 logger.debug(f"file group: {file_group}")
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
@@ -499,7 +509,7 @@ async def send_item_message(
                     chat_id=discussion_chat_id,
                     parse_mode=ParseMode.HTML,
                     text="The following files are larger than the limitation of Telegram, "
-                         "so they are sent as files:",
+                    "so they are sent as files:",
                     reply_to_message_id=reply_to_message_id,
                 )
                 await application.bot.send_media_group(
@@ -616,14 +626,19 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
     media_message_group = []
     media_group = []
     file_group = []
-    for media_item in media_files:  # To traverse all media items in the media files list
+    for (
+        media_item
+    ) in media_files:  # To traverse all media items in the media files list
         # check if we need to create a new media group
         if media_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT:
             # the limitation of media item for a single telegram media group message is 10
             media_message_group.append(media_group)
             media_group = []
             media_counter = 0
-        if not (media_item["media_type"] in ["image", "gif", "video"] and data["message_type"] == "long"):
+        if not (
+            media_item["media_type"] in ["image", "gif", "video"]
+            and data["message_type"] == "long"
+        ):
             # check the url validity
             url_parser = urlparse(media_item["url"])
             if url_parser.scheme in [
@@ -650,7 +665,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     continue
             # check the file size
             if (
-                    not TELEBOT_API_SERVER
+                not TELEBOT_API_SERVER
             ):  # the official telegram bot api server only supports 50MB file
                 if file_size > TELEGRAM_FILE_UPLOAD_LIMIT:
                     # if the size is over 50MB, skip this file
@@ -695,14 +710,16 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     f"image size: {file_size}, ratio: {ratio}, width: {img_width}, height: {img_height}"
                 )
                 if (
-                        file_size > TELEGRAM_IMAGE_SIZE_LIMIT
-                        or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
-                        or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    file_size > TELEGRAM_IMAGE_SIZE_LIMIT
+                    or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ):
                     io_object = await download_a_iobytes_file(url=image_url)
                     if not io_object.name.endswith(".gif"):
                         # TODO: it is not a good way to judge whether it is a gif...
-                        file_group.append(InputMediaDocument(io_object, parse_mode=ParseMode.HTML))
+                        file_group.append(
+                            InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
+                        )
             elif media_item["media_type"] == "gif":
                 io_object = await download_a_iobytes_file(
                     url=media_item["url"],
@@ -716,7 +733,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             elif media_item["media_type"] == "audio":
                 media_group.append(InputMediaAudio(io_object))
             elif media_item["media_type"] == "document":
-                file_group.append(InputMediaDocument(io_object, parse_mode=ParseMode.HTML))
+                file_group.append(
+                    InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
+                )
             media_counter += 1
             logger.info(
                 f"get the {media_counter}th media item,type: {media_item['media_type']}, url: {media_item['url']}"
