@@ -506,6 +506,7 @@ async def send_item_message(
                     chat_id=discussion_chat_id,
                     media=file_group,
                     reply_to_message_id=reply_to_message_id,
+                    parse_mode=ParseMode.HTML,
                     disable_notification=True,
                 )
 
@@ -701,7 +702,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     io_object = await download_a_iobytes_file(url=image_url)
                     if not io_object.name.endswith(".gif"):
                         # TODO: it is not a good way to judge whether it is a gif...
-                        file_group.append(io_object)
+                        file_group.append(InputMediaDocument(io_object, parse_mode=ParseMode.HTML))
             elif media_item["media_type"] == "gif":
                 io_object = await download_a_iobytes_file(
                     url=media_item["url"],
@@ -715,17 +716,17 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             elif media_item["media_type"] == "audio":
                 media_group.append(InputMediaAudio(io_object))
             elif media_item["media_type"] == "document":
-                file_group.append(InputMediaDocument(io_object))
+                file_group.append(InputMediaDocument(io_object, parse_mode=ParseMode.HTML))
             media_counter += 1
             logger.info(
                 f"get the {media_counter}th media item,type: {media_item['media_type']}, url: {media_item['url']}"
             )
-        # check if the media group is empty, if it is, return None
-        if len(media_message_group) == 0:
-            if len(media_group) == 0:
-                return media_message_group, file_group
-            else:  # if the media group is not empty, append the only media group
-                media_message_group.append(media_group)
-        elif len(media_group) > 0:  # append the last media group
+    # check if the media group is empty, if it is, return None
+    if len(media_message_group) == 0:
+        if len(media_group) == 0:
+            return media_message_group, file_group
+        else:  # if the media group is not empty, append the only media group
             media_message_group.append(media_group)
-        return media_message_group, file_group
+    elif len(media_group) > 0:  # append the last media group
+        media_message_group.append(media_group)
+    return media_message_group, file_group

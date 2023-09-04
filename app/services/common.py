@@ -72,17 +72,20 @@ class InfoExtractService(object):
                 telegraph_url = ""
             metadata_item["telegraph_url"] = telegraph_url
         if self.store_document:
-            pdf_document = document_export.pdf_export.PdfExport(
-                title=metadata_item["title"], html_string=metadata_item["content"]
-            )
-            output_filename = await pdf_document.export()
-            metadata_item["media_files"].append(
-                {
-                    "media_type": "document",
-                    "url": output_filename,
-                    "caption": "",
-                }
-            )
+            try:
+                pdf_document = document_export.pdf_export.PdfExport(
+                    title=metadata_item["title"], html_string=metadata_item["content"]
+                )
+                output_filename = await pdf_document.export()
+                metadata_item["media_files"].append(
+                    {
+                        "media_type": "document",
+                        "url": output_filename,
+                        "caption": "",
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error while exporting document: {e}")
         if self.store_database:
             await save_instances(Metadata.from_dict(metadata_item))
         return metadata_item
