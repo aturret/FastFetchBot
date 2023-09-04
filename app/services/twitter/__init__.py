@@ -166,7 +166,7 @@ class Twitter(MetadataItem):
             "content_group": "<hr>" if not retweeted else "<p>Quoted:</p>",
         }
         user_component = (
-            f"<a href='https://twitter.com/{tweet['username']}'>@{tweet['name']}</a>"
+            f"<a href='https://twitter.com/{tweet['username']}/status/{tweet['tid']}'>@{tweet['name']}</a>"
         )
         tweet_info["content_group"] += f"<p>{user_component}: {text}</p>"
         tweet_info["text_group"] += f"{user_component}: {text}\n"
