@@ -55,7 +55,6 @@ class Wechat(MetadataItem):
         for k, v in meta_data.items():
             new_string = v.replace("\n", "")
             meta_data[k] = new_string.strip()
-        logger.debug(meta_data)
         return meta_data
 
     def _process_wechat(self, wechat_data: Dict) -> None:
@@ -76,7 +75,6 @@ class Wechat(MetadataItem):
             # <br/><br/> tags pair, unwrap all other tags, and wrap them with <p> tags.
             if not section_tag.find_all("section"):
                 new_p_tag = soup.new_tag("p")
-                logger.debug(f"content list:{section_tag.contents}")
                 contents = section_tag.contents[:]
                 for content in contents:
                     content.extract()
