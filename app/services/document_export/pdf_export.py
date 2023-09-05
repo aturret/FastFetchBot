@@ -1,6 +1,7 @@
-import os
 import asyncio
 import functools
+import gc
+import os
 import uuid
 
 # from xhtml2pdf import pisa
@@ -27,9 +28,11 @@ class PdfExport:
         loop = asyncio.get_event_loop()
         css_string = await loop.run_in_executor(None, open, PDF_STYLESHEET, "r")
         css_string = await loop.run_in_executor(None, css_string.read)
-        logger.debug(f"""
+        logger.debug(
+            f"""
         html_string: {html_string}
-        """)
+        """
+        )
         await self.convert_html_to_pdf(
             html_string=html_string,
             css_string=css_string,
@@ -61,9 +64,14 @@ class PdfExport:
         css_item = CSS(string=css_string, font_config=font_config)
         html_item = HTML(string=html_string)
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
+        pdf_obj = await loop.run_in_executor(
             None,
             functools.partial(
                 html_item.write_pdf, output_filename, stylesheets=[css_item]
             ),
         )
+        del font_config
+        del css_item
+        del html_item
+        del pdf_obj
+        gc.collect()
