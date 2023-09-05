@@ -497,6 +497,17 @@ async def send_item_message(
                     parse_mode=ParseMode.HTML,
                 )
                 reply_to_message_id = reply_to_message.message_id
+            else:
+                await application.bot.send_message(
+                    chat_id=chat_id,
+                    text=caption_text,
+                    parse_mode=ParseMode.HTML,
+                    reply_to_message_id=message.message_id if message else None,
+                    disable_web_page_preview=True
+                    if data["message_type"] == "short"
+                    else False,
+                    disable_notification=True,
+                )
             if (
                 len(file_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
@@ -519,38 +530,6 @@ async def send_item_message(
                     parse_mode=ParseMode.HTML,
                     disable_notification=True,
                 )
-
-                # for file in file_group:
-                #     if file.name.endswith(
-                #             ".gif"
-                #     ):  # TODO: it's not a good way to determine whether it's a gif.
-                #         await application.bot.send_video(
-                #             chat_id=discussion_chat_id,
-                #             animation=file,
-                #             reply_to_message_id=reply_to_message_id,
-                #             parse_mode=ParseMode.HTML,
-                #             disable_notification=True,
-                #         )
-                #     else:
-                #         await application.bot.send_document(
-                #             chat_id=discussion_chat_id,
-                #             document=file,
-                #             reply_to_message_id=reply_to_message_id,
-                #             parse_mode=ParseMode.HTML,
-                #             disable_notification=True,
-                #         )
-
-        else:  # if there are no media files, send the caption text and also note the message
-            await application.bot.send_message(
-                chat_id=chat_id,
-                text=caption_text,
-                parse_mode=ParseMode.HTML,
-                reply_to_message_id=message.message_id if message else None,
-                disable_web_page_preview=True
-                if data["message_type"] == "short"
-                else False,
-                disable_notification=True,
-            )
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
@@ -602,7 +581,7 @@ def message_formatting(data: dict) -> str:
     """
     message_template = template
     text = message_template.render(data=data)
-    print(text)
+    logger.debug(f"message text: \n{text}")
     return text
 
 
