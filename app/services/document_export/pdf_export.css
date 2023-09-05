@@ -1,8 +1,3 @@
-@font-face {
-    font-family: 'simsun';
-    src: url("./simsun.ttc");
-}
-
 @page {
     size: A4;
     margin: 1.5cm 1.5cm 3cm;
