@@ -58,11 +58,17 @@ class InfoExtractService(object):
     async def get_item(self) -> dict:
         if self.content_type == "video":
             self.kwargs["category"] = self.category
-        scraper_item = self.service_classes[self.category](self.url, **self.kwargs)
-        metadata_item = await scraper_item.get_item()
+        try:
+            scraper_item = self.service_classes[self.category](self.url, **self.kwargs)
+            metadata_item = await scraper_item.get_item()
+        except Exception as e:
+            logger.error(f"Error while getting item: {e}")
+            raise e
+        logger.info(f"Got metadata item")
         logger.debug(metadata_item)
         if metadata_item.get("message_type") == MessageType.LONG:
             self.store_telegraph = True
+            logger.info("message type is long, store in telegraph")
         if self.store_telegraph:
             telegraph_item = telegraph.Telegraph.from_dict(metadata_item)
             try:
@@ -74,6 +80,7 @@ class InfoExtractService(object):
         if self.store_document or (
             not self.store_document and metadata_item["telegraph_url"] == ""
         ):
+            logger.info("store in document")
             try:
                 pdf_document = document_export.pdf_export.PdfExport(
                     title=metadata_item["title"], html_string=metadata_item["content"]
