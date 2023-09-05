@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 # from weasyprint.text.fonts import FontConfiguration
 
-from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL
+from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.logger import logger
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -45,8 +45,9 @@ class PdfExport:
             }
             request_url = FILE_EXPORTER_URL + "/pdfExport"
             logger.info(f"requesting pdf export from pdf server: {body}")
-            resp = await client.post(request_url, json=body)
+            resp = await client.post(request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT)
         output_filename = resp.json().get("output_filename")
+        logger.info(f"pdf export success: {output_filename}")
         return output_filename
 
     @staticmethod
