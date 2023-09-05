@@ -40,8 +40,7 @@ class Weibo(MetadataItem):
         self.scraper = scraper
         self.text = ""
         self.headers = {"User-Agent": user_agent}
-        if cookies:
-            self.headers["Cookie"] = cookies
+        self.headers["Cookies"] = cookies if cookies else ""
         self.url_parser = urlparse(url)
         self.id = self.url_parser.path.split("/")[-1]
         self.ajax_url = AJAX_HOST + self.id
@@ -100,9 +99,14 @@ class Weibo(MetadataItem):
 
     async def _get_weibo_info_api(self) -> dict:
         ajax_json = await get_response_json(self.ajax_url, headers=self.headers)
-        print(ajax_json)
+        logger.debug(f"weibo ajax_json info by api: {ajax_json}")
         if not ajax_json or ajax_json["ok"] == 0:
             return await self._get_weibo_info(method="webpage")
+        return ajax_json
+
+    async def _get_long_weibo_info_api(self) -> dict:
+        ajax_json = await get_response_json(self.ajax_longtext_url, headers=self.headers)
+        logger.debug(f"weibo ajax_json info by api: {ajax_json}")
         return ajax_json
 
     async def _process_weibo_item(self, weibo_info: dict) -> None:
@@ -121,17 +125,25 @@ class Weibo(MetadataItem):
         self.reposts_count = self._string_to_int(weibo_info.get("reposts_count", 0))
         # resolve text
         # check if the weibo is longtext weibo (which means >140 characters so has an excerpt) or not
-        if not weibo_info["is_long_text"] or (
-            weibo_info["pic_num"] > 9 and weibo_info["is_long_text"]
-        ):
+        text = weibo_info.get("text")
+        if weibo_info["is_long_text"] or text.endswith("...展开"):
             # if a weibo has more than 9 pictures, the isLongText will be True even if it is not a longtext weibo
             # however, we cannot get the full text of such kind of weibo from longtext api (it will return None)
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
-            text = weibo_info.get("text")
-            # TODO: to add a branch to get the fulltext without using the webpage scraping. This branch needs cookies.
+            try:
+                longtext_info = await self._get_weibo_info(method="webpage")
+                text = longtext_info.get("text")
+            except Exception as e:
+                logger.error(f"Failed to get longtext of weibo by webpage scraping.{e}")
+                try:
+                    longtext_info = await self._get_long_weibo_info_api()
+                    text = longtext_info.get("longTextContent")
+                except Exception as e:
+                    logger.error(f"Failed to get longtext of weibo by api.{e}")
+            # The two methods can both fail in some cases. So, we need to check if the text is None or not.
         else:
-            longtext_info = await self._get_weibo_info(method="webpage")
-            text = longtext_info.get("text")
+            # TODO: to add a branch to get the fulltext without using the webpage scraping. This branch needs cookies.
+            pass
         cleaned_text, fw_pics = Weibo._weibo_html_text_clean(text)
         for pic in fw_pics:
             self.media_files.append(MediaFile(url=pic, media_type="image"))

@@ -46,6 +46,11 @@ class PdfExport:
             "html.parser",
         )
         soup.body.append(BeautifulSoup(html_string, "html.parser"))
+        for tag in soup.find_all(True):
+            if "style" in tag.attrs:
+                del tag["style"]
+        for style_tag in soup.find_all("style"):
+            style_tag.decompose()
         return soup.prettify()
 
     @staticmethod
