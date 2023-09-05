@@ -14,6 +14,7 @@ class Inoreader(MetadataItem):
         self.category = data.get('tag')
         self.raw_content = data.get('content')
         self.content = self.raw_content
+        self.media_files = []
 
     async def get_item(self) -> dict:
         self._resolve_media_files()
