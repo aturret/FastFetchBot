@@ -458,7 +458,6 @@ async def send_item_message(
             if (
                 len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
-
                 for i, media_group in enumerate(media_message_group):
                     caption_text = (
                         caption_text
