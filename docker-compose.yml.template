@@ -12,13 +12,6 @@ services:
       - .env
     ports:
       - 10450:10450
-    command:
-      - gunicorn
-      - -k
-      - uvicorn.workers.UvicornWorker
-      - --bind
-      - 0.0.0.0:10450
-      - wsgi:app
     depends_on:
       - telegram-bot-api
 
@@ -51,7 +44,6 @@ services:
       - 4000:4000
     depends_on:
       - fastfetchbot
-
 
 
 volumes:
