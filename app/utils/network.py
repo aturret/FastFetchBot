@@ -1,4 +1,7 @@
+import os
 import uuid
+
+import aiofiles
 import httpx
 import traceback
 
@@ -6,7 +9,7 @@ from lxml import etree
 
 from app.models.classes import NamedBytesIO
 from app.utils.config import CHROME_USER_AGENT, HEADERS
-from app.config import HTTP_REQUEST_TIMEOUT
+from app.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
 from app.utils.logger import logger
 
 
@@ -50,7 +53,7 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
 
 
 async def download_a_iobytes_file(
-        url, file_name=None, file_format=None, headers=None, referer=None
+        url: str, file_name: str = None, file_format: str = None, headers: dict = None, referer: str = None
 ) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
@@ -75,3 +78,15 @@ async def download_a_iobytes_file(
         file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
     io_object = NamedBytesIO(file_data, name=file_name)
     return io_object
+
+
+async def download_file_to_local(url: str, file_path: str= None, dir_path: str = DOWNLOAD_DIR, file_name: str = None,
+                                 headers: dict = None, referer: str = None) -> str:
+    io_object = await download_a_iobytes_file(url, file_name, headers, referer)
+    if file_name is None:
+        file_name = uuid.uuid4().hex
+    if file_path is None and dir_path is not None:
+        file_path = os.path.join(dir_path, file_name)
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(io_object.read())
+    return file_path
