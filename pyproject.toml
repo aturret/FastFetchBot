@@ -32,6 +32,7 @@ python-magic-bin = { version = "^0.4.14", optional = true }
 pydub = "^0.25.1"
 xhtml2pdf = "^0.2.11"
 weasyprint = "^59.0"
+aioboto3 = "^11.3.0"
 
 
 [tool.poetry.group.dev.dependencies]

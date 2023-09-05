@@ -129,6 +129,11 @@ XIAOHONGSHU_COOKIES = {
     "web_id": XIAOHONGSHU_WEBID,
     "web_session": XIAOHONGSHU_WEBSESSION,
 }
+AWS_ACCESS_KEY_ID = env.get("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = env.get("AWS_SECRET_ACCESS_KEY", "")
+AWS_S3_BUCKET_NAME = env.get("AMAZON_S3_BUCKET_NAME", "")
+AWS_REGION_NAME = env.get("AWS_REGION_NAME", "")
+AWS_DOMAIN_HOST = env.get("AWS_DOMAIN_HOST", None)
 
 # Open AI API environment variables
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)

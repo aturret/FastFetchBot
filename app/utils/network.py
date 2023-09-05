@@ -1,3 +1,4 @@
+import datetime
 import os
 import uuid
 
@@ -10,6 +11,7 @@ from lxml import etree
 from app.models.classes import NamedBytesIO
 from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
+from app.utils.image import check_image_type
 from app.utils.logger import logger
 
 
@@ -80,11 +82,13 @@ async def download_a_iobytes_file(
     return io_object
 
 
-async def download_file_to_local(url: str, file_path: str= None, dir_path: str = DOWNLOAD_DIR, file_name: str = None,
+async def download_file_to_local(url: str, file_path: str = None, dir_path: str = DOWNLOAD_DIR, file_name: str = "",
                                  headers: dict = None, referer: str = None) -> str:
     io_object = await download_a_iobytes_file(url, file_name, headers, referer)
-    if file_name is None:
-        file_name = uuid.uuid4().hex
+    ext = await check_image_type(io_object)
+    io_object.seek(0)
+    file_name = file_name + uuid.uuid4().hex + "." + ext
+    logger.info(f"Downloading {file_name}")
     if file_path is None and dir_path is not None:
         file_path = os.path.join(dir_path, file_name)
     async with aiofiles.open(file_path, "wb") as f:
