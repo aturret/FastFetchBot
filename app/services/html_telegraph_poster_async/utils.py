@@ -26,7 +26,8 @@ class DocumentPreprocessor:
     def get_processed_html(self):
         return lxml.html.tostring(self.parsed_document, encoding="unicode")
 
-    async def _upload_image(self, url):
+    @staticmethod
+    async def _upload_image(url):
         new_image_url = None
         try:
             new_image_url = await upload_image(url)
