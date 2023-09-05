@@ -45,7 +45,7 @@ from jinja2 import Environment, FileSystemLoader
 from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type
 from app.utils.network import download_a_iobytes_file
-from app.utils.image import Image, image_compressing
+from app.utils.image import Image, image_compressing, check_image_type
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
 from app.utils.logger import logger
 from app.config import (
@@ -451,13 +451,14 @@ async def send_item_message(
         caption_text = message_formatting(data)
         if len(data["media_files"]) > 0:
             # if the message type is short and there are some media files, send media group
+            reply_to_message_id = None
             media_message_group, file_group = await media_files_packaging(
                 media_files=data["media_files"], data=data
             )
             if (
                 len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
-                reply_to_message_id = None
+
                 for i, media_group in enumerate(media_message_group):
                     caption_text = (
                         caption_text
@@ -513,16 +514,7 @@ async def send_item_message(
             ):  # send files, the files messages should be replied to the message sent before
                 logger.debug(f"file group: {file_group}")
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
-                await asyncio.sleep(
-                    3
-                )  # wait for several seconds to avoid missing the target message
-                await application.bot.send_message(
-                    chat_id=discussion_chat_id,
-                    parse_mode=ParseMode.HTML,
-                    text="The following files are larger than the limitation of Telegram, "
-                    "so they are sent as files:",
-                    reply_to_message_id=reply_to_message_id,
-                )
+                await asyncio.sleep(3)  # wait for several seconds to avoid missing the target message
                 await application.bot.send_media_group(
                     chat_id=discussion_chat_id,
                     media=file_group,
@@ -656,11 +648,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             # check media files' type and process them by their type
             if media_item["media_type"] == "image":
                 image_url = media_item["url"]
-                loop = asyncio.get_running_loop()
-                mime_type = await loop.run_in_executor(
-                    None, lambda: magic.from_buffer(io_object.read(), mime=True)
-                )
-                ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
+                ext = await check_image_type(io_object)
                 # jpg to jpeg, ignore case
                 if ext.lower() == "jpg":
                     ext = "JPEG"
