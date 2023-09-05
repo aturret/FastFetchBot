@@ -223,7 +223,10 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                 special_function_keyboard.append(
                     InlineKeyboardButton(
                         "Send to Channel",
-                        callback_data={"type": "channel", "metadata": url_metadata},
+                        callback_data={"type": "channel",
+                                       "metadata": url_metadata,
+                                       "extra_args": {"store_document": True}
+                                       },
                     ),
                 )
             # video content url buttons
