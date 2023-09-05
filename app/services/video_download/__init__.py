@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
 from app.services.audio_transcribe import AudioTranscribe
-from app.config import DOWNLOAD_DIR, YOUTUBE_DL_URL, DOWNLOAD_VIDEO_TIMEOUT
+from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.parse import unix_timestamp_to_utc, second_to_time
 from app.utils.logger import logger
 from app.config import JINJA2_ENV
@@ -99,7 +99,7 @@ class VideoDownloader(MetadataItem):
                 "audio_only": self.audio_only,
                 "hd": self.hd,
             }
-            request_url = YOUTUBE_DL_URL + "/download"
+            request_url = FILE_EXPORTER_URL + "/videoDownload"
             logger.info(f"requesting video info from youtube-dl server: {body}")
             if self.download:
                 logger.info(f"video downloading... it may take a while")

@@ -101,9 +101,9 @@ TELEGRAM_IMAGE_SIZE_LIMIT = (
 )
 
 # Youtube-dl environment variables
-YOUTUBE_DL_HOST = env.get("YOUTUBE_DL_HOST", "fast-yt-downloader")
-YOUTUBE_DL_PORT = env.get("YOUTUBE_DL_PORT", "4000")
-YOUTUBE_DL_URL = f"http://{YOUTUBE_DL_HOST}:{YOUTUBE_DL_PORT}"
+FILE_EXPORTER_HOST = env.get("FILE_EXPORTER_HOST", "fast-yt-downloader")
+FILE_EXPORTER_PORT = env.get("FILE_EXPORTER_PORT", "4000")
+FILE_EXPORTER_URL = f"http://{FILE_EXPORTER_HOST}:{FILE_EXPORTER_PORT}"
 DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
 
 # Services environment variables
