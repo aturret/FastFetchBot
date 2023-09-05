@@ -50,7 +50,9 @@ RUN apt-get update \
         libffi-dev \
         build-essential \
         fonts-wqy-microhei \
-        fonts-wqy-zenhei
+        fonts-wqy-zenhei \
+        fonts-noto-cjk \
+        fonts-noto-cjk-extra
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
 
@@ -84,7 +86,9 @@ RUN apt-get update \
         libopenjp2-7-dev \
         libffi-dev \
         fonts-wqy-microhei \
-        fonts-wqy-zenhei
+        fonts-wqy-zenhei \
+        fonts-noto-cjk \
+        fonts-noto-cjk-extra
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app

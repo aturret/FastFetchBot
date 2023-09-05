@@ -6,7 +6,7 @@
 @page {
     size: A4;
     margin: 1.5cm 1.5cm 3cm;
-    font-family: 'simsun', "WenQuanYi Micro Hei", sans-serif;
+    font-family: 'Noto Serif CJK SC', 'Noto Serif CJK', 'Source Han Serif SC', 'Source Han Serif CN', 'Source Han Serif', "WenQuanYi Micro Hei",'simsun', sans-serif;
     /*-pdf-word-wrap: CJK;*/
 }
 
