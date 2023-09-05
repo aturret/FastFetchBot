@@ -30,8 +30,7 @@ def get_inoreader_item(data: dict):
     )
 
 
-# @router.post("/", dependencies=[Security(verify_api_key)])
-@router.post("/")
+@router.post("/", dependencies=[Security(verify_api_key)])
 async def inoreader_repost_webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
     background_tasks.add_task(get_inoreader_item, data)
