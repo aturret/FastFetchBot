@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from app import database, auth
-from app.routers import telegram_bot
+from app.routers import telegram_bot, inoreader
 from app.services import telegram_bot as telegram_bot_service
 from app.config import TELEGRAM_BOT_TOKEN
 from app.utils.logger import logger
@@ -44,6 +44,7 @@ def create_app():
         fastapi_app.include_router(telegram_bot.router)
     else:
         logger.warning("Telegram bot token not set, telegram bot disabled")
+    fastapi_app.include_router(inoreader.router)
     return fastapi_app
 
 
