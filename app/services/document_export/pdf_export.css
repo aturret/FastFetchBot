@@ -18,7 +18,8 @@ body, h1, h2, h3, h4, h5, h6, p, ul, ol {
 }
 
 body {
-    font-family: simsun; /* or any other font you'd like to use */
+    font-family: 'Noto Serif CJK SC', 'Noto Serif CJK', 'Source Han Serif SC', 'Source Han Serif CN', 'Source Han Serif',
+    "WenQuanYi Micro Hei", 'simsun', serif;/* or any other font you'd like to use */
     font-size: 22px;
     line-height: 1.5;
     color: #333;
