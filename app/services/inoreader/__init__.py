@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 
-from app.models.metadata_item import MetadataItem, MediaFile
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
+from app.utils.parse import get_html_text_length
 
 
 class Inoreader(MetadataItem):
@@ -15,9 +16,12 @@ class Inoreader(MetadataItem):
         self.raw_content = data.get('content')
         self.content = self.raw_content
         self.media_files = []
+        self.message_type = MessageType.LONG
 
     async def get_item(self) -> dict:
         self._resolve_media_files()
+        if get_html_text_length(self.content) < 400:
+            self.message_type = MessageType.SHORT
         metadata_dict = self.to_dict()
         metadata_dict['message'] = self.message
         return metadata_dict
