@@ -8,13 +8,23 @@ Supported most mainstream social media platforms. You can get a permanent copy o
 
 ### Docker (Recommended)
 
-Download the docker-compose.yml file, create a `.env` file at the same directory and set the environment variables.
+Download the docker-compose.yml file and set the environment variables as the following section.
+
+#### Env
+
+Create a `.env` file at the same directory and set the [environment variables](#envrionment-variables).
+
+#### Local Telegram API Sever
+
+If you want to send documents that larger than 50MB, you need to run a local telegram api server. The `docker-compose.yml` file has already give you an example. You just need to fill the `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the yml file. If you don't need it, just comment it out.
 
 ```bash
 docker-compose up -d
 ```
 
 ### Python
+
+Local Telegram API sever and video download function is not supported in this way.
 
 First, install the package manager [Poetry](https://python-poetry.org/).
 
@@ -34,7 +44,7 @@ Finally, run the server.
 poetry run gunicorn -k uvicorn.workers.UvicornWorker app.main:app --preload
 ```
 
-## Envrionment Variables
+## Environment Variables
 
 ### Required Variables
 
