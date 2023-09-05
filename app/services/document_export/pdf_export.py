@@ -45,7 +45,9 @@ class PdfExport:
             }
             request_url = FILE_EXPORTER_URL + "/pdfExport"
             logger.info(f"requesting pdf export from pdf server: {body}")
-            resp = await client.post(request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT)
+            resp = await client.post(
+                request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
+            )
         output_filename = resp.json().get("output_filename")
         logger.info(f"pdf export success: {output_filename}")
         return output_filename

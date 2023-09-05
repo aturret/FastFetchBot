@@ -25,10 +25,13 @@ def get_inoreader_item(data: dict):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     metadata_item = loop.run_until_complete(item.get_item())
-    loop.run_until_complete(send_item_message(metadata_item,chat_id=telegram_channel_id))
+    loop.run_until_complete(
+        send_item_message(metadata_item, chat_id=telegram_channel_id)
+    )
 
 
-@router.post("/", dependencies=[Security(verify_api_key)])
+# @router.post("/", dependencies=[Security(verify_api_key)])
+@router.post("/")
 async def inoreader_repost_webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
     background_tasks.add_task(get_inoreader_item, data)

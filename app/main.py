@@ -22,8 +22,9 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
-started = multiprocessing.Value('i', 0)
+started = multiprocessing.Value("i", 0)
 mutex = multiprocessing.Lock()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
