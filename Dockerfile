@@ -48,7 +48,9 @@ RUN apt-get update \
         libjpeg-dev \
         libopenjp2-7-dev \
         libffi-dev \
-        build-essential
+        build-essential \
+        fonts-wqy-microhei \
+        fonts-wqy-zenhei
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python
 
@@ -80,7 +82,9 @@ RUN apt-get update \
         libpangoft2-1.0-0 \
         libjpeg-dev \
         libopenjp2-7-dev \
-        libffi-dev
+        libffi-dev \
+        fonts-wqy-microhei \
+        fonts-wqy-zenhei
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
