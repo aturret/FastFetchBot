@@ -26,7 +26,10 @@ class PdfExport:
         output_filename = os.path.join(DOWNLOAD_DIR, f"{self.title}-{uuid.uuid4()}.pdf")
         loop = asyncio.get_event_loop()
         css_string = await loop.run_in_executor(None, open, PDF_STYLESHEET, "r")
-        css_string = css_string.read()
+        css_string = await loop.run_in_executor(None, css_string.read)
+        logger.debug(f"""
+        html_string: {html_string}
+        """)
         await self.convert_html_to_pdf(
             html_string=html_string,
             css_string=css_string,
@@ -59,28 +62,3 @@ class PdfExport:
                 html_item.write_pdf, output_filename, stylesheets=[css_item]
             ),
         )
-
-    # old code which uses xhtml2pdf, but it is not working well for Chinese characters word wrapping.
-
-    # async def export(self) -> str:
-    #     html_string = self.wrap_html_string(self.html_string)
-    #     output_filename = os.path.join(DOWNLOAD_DIR, f"{self.title}-{uuid.uuid4()}.pdf")
-    #     pisa_status = await self.convert_html_to_pdf(html_string, output_filename)
-    #     logger.info(f"PDF export status: {pisa_status}")
-    #     return output_filename
-    #
-
-    #
-    # @staticmethod
-    # async def convert_html_to_pdf(source_html: str, output_filename: str) -> int:
-    #     loop = asyncio.get_event_loop()
-    #     result_file = await loop.run_in_executor(None, open, output_filename, "w+b")
-    #     kwargs = {
-    #         'src': source_html,
-    #         'dest': result_file,
-    #         'encoding': "utf-8"
-    #     }
-    #     partial_func = functools.partial(pisa.CreatePDF, **kwargs)
-    #     pisa_status = await loop.run_in_executor(None, partial_func)
-    #     await loop.run_in_executor(None, result_file.close)
-    #     return pisa_status.err
