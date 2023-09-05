@@ -13,7 +13,7 @@ from app.services import (
     zhihu,
     video_download,
     wechat,
-    document_export,
+    document_export, inoreader,
 )
 from app.database import save_instances
 from app.utils.logger import logger
@@ -45,6 +45,7 @@ class InfoExtractService(object):
             "zhihu": zhihu.Zhihu,
             "youtube": video_download.VideoDownloader,
             "bilibili": video_download.VideoDownloader,
+            "inoreader": inoreader.Inoreader,
         }
         self.kwargs = kwargs
         self.store_database = store_database
@@ -59,7 +60,7 @@ class InfoExtractService(object):
         if self.content_type == "video":
             self.kwargs["category"] = self.category
         try:
-            scraper_item = self.service_classes[self.category](self.url, **self.kwargs)
+            scraper_item = self.service_classes[self.category](url=self.url, data=self.data, **self.kwargs)
             metadata_item = await scraper_item.get_item()
         except Exception as e:
             logger.error(f"Error while getting item: {e}")

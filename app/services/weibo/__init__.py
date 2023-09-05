@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Any
 from urllib.parse import urlparse
 
 import httpx
@@ -29,6 +29,7 @@ class Weibo(MetadataItem):
     def __init__(
         self,
         url: str,
+        data: Any,
         method: Optional[str] = "api",
         scraper: Optional[str] = "requests",
         user_agent: Optional[dict] = CHROME_USER_AGENT,

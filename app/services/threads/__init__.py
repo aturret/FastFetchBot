@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, Any
 from urllib.parse import urlparse, unquote
 
 import jmespath
@@ -13,7 +13,7 @@ SHORT_LIMIT = 600
 
 
 class Threads(MetadataItem):
-    def __init__(self, url: str, **kwargs):
+    def __init__(self, url: str,data: Any, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""

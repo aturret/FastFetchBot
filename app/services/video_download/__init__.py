@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 import os
 from urllib.parse import urlparse
@@ -16,6 +18,7 @@ class VideoDownloader(MetadataItem):
     def __init__(
         self,
         url: str,
+        data: Any,
         category: str,
         download: bool = True,
         audio_only: bool = False,

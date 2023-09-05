@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any
 
 from lxml import etree
 from bs4 import BeautifulSoup, NavigableString
@@ -10,7 +10,7 @@ from app.utils.network import get_selector
 
 
 class Wechat(MetadataItem):
-    def __init__(self, url):
+    def __init__(self, url: str, data: Any, **kwargs):
         self.url = url
         self.title = ""
         self.author = ""
@@ -64,7 +64,7 @@ class Wechat(MetadataItem):
         soup = BeautifulSoup(wechat_data["content"], "lxml")
         for img_item in soup.find_all("img"):
             if img_item.get("class") and all(
-                elem in img_item.get("class") for elem in ["rich_pages", "wxw-img"]
+                    elem in img_item.get("class") for elem in ["rich_pages", "wxw-img"]
             ):
                 img_url = img_item["data-src"]
                 img_item["src"] = img_url
@@ -80,9 +80,9 @@ class Wechat(MetadataItem):
                     content.extract()
                 for content in contents:
                     if (
-                        content.name == "br"
-                        and content.next_sibling
-                        and content.next_sibling.name == "br"
+                            content.name == "br"
+                            and content.next_sibling
+                            and content.next_sibling.name == "br"
                     ):
                         content.decompose()
                         content.next_sibling.decompose()

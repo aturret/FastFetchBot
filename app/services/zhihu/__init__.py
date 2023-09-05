@@ -1,7 +1,7 @@
 import json
 import re
 import traceback
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from urllib.parse import urlparse
 
 import httpx
@@ -33,7 +33,7 @@ content_template = environment.get_template("zhihu_content.jinja2")
 
 
 class Zhihu(MetadataItem):
-    def __init__(self, url: str, **kwargs):
+    def __init__(self, url: str, data: Any, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""
@@ -181,7 +181,7 @@ class Zhihu(MetadataItem):
                 self.title = answer_data["title"]
                 self.author = answer_data["author"]
                 self.author_url = (
-                    ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
+                        ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
                 )
                 self.raw_content = answer_data["content"]
                 self.date = unix_timestamp_to_utc(answer_data["created"])
@@ -212,7 +212,7 @@ class Zhihu(MetadataItem):
                 if self.author_url == "https://www.zhihu.com/people/":
                     self.author_url = ""
         if (
-            self.title == ""
+                self.title == ""
         ):  # TODO: this is not a good way to check if the scraping is successful. To be improved.
             raise Exception("Cannot get the answer")
 
@@ -223,8 +223,8 @@ class Zhihu(MetadataItem):
         """
         if self.method == "api":
             self.api_url = (
-                "https://www.zhihu.com/api/v4/pins/"
-                + self.urlparser.path.split("/")[-1]
+                    "https://www.zhihu.com/api/v4/pins/"
+                    + self.urlparser.path.split("/")[-1]
             )
             print(self.api_url)
             json_data = await get_response_json(self.api_url, headers=self.headers)
@@ -289,9 +289,9 @@ class Zhihu(MetadataItem):
                     self.origin_pin_url = status_data["origin_pin_url"]
                     self.origin_pin_author = status_data["origin_pin_author"]
                     self.origin_pin_author_url = (
-                        ZHIHU_HOST
-                        + "/people/"
-                        + status_data["origin_pin_author_url_token"]
+                            ZHIHU_HOST
+                            + "/people/"
+                            + status_data["origin_pin_author_url_token"]
                     )
                     self.origin_pin_raw_content = status_data["origin_pin_content"]
                     self.origin_pin_date = unix_timestamp_to_utc(
@@ -310,7 +310,7 @@ class Zhihu(MetadataItem):
                 self.title = status_data["author"] + "的想法"
                 self.author = status_data["author"]
                 self.author_url = (
-                    ZHIHU_HOST + "/people/" + status_data["author_url_token"]
+                        ZHIHU_HOST + "/people/" + status_data["author_url_token"]
                 )
                 self.raw_content = status_data["content"]
                 self.date = unix_timestamp_to_utc(status_data["created"])
@@ -335,22 +335,22 @@ class Zhihu(MetadataItem):
                     'string(//div[@class="ContentItem-time"]//span)'
                 )
                 if (
-                    selector.xpath(
-                        'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
-                    ).find("PinItem-content-originpin")
-                    != -1
+                        selector.xpath(
+                            'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
+                        ).find("PinItem-content-originpin")
+                        != -1
                 ):  # 是否存在转发
                     if (
-                        str(
-                            etree.tostring(
-                                selector.xpath(
-                                    '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
-                                )[0],
+                            str(
+                                etree.tostring(
+                                    selector.xpath(
+                                        '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
+                                    )[0],
+                                    encoding="utf-8",
+                                ),
                                 encoding="utf-8",
-                            ),
-                            encoding="utf-8",
-                        )
-                        != '<div class="RichText ztext PinItem-remainContentRichText"/>'
+                            )
+                            != '<div class="RichText ztext PinItem-remainContentRichText"/>'
                     ):  # 如果转发内容有图
                         pic_html = html.fromstring(
                             str(
@@ -391,9 +391,9 @@ class Zhihu(MetadataItem):
         self.zhihu_type = "article"
         if self.method == "api":
             self.api_url = (
-                ZHIHU_COLUMNS_API_HOST
-                + "/articles/"
-                + self.urlparser.path.split("/")[-1]
+                    ZHIHU_COLUMNS_API_HOST
+                    + "/articles/"
+                    + self.urlparser.path.split("/")[-1]
             )
             json_data = await get_response_json(self.api_url, headers=self.headers)
             self.title = json_data["title"]
@@ -415,7 +415,7 @@ class Zhihu(MetadataItem):
                 self.raw_content = article_data["content"]
                 self.author = article_data["author"]
                 self.author_url = (
-                    ZHIHU_HOST + "/people/" + article_data["author_url_token"]
+                        ZHIHU_HOST + "/people/" + article_data["author_url_token"]
                 )
                 self.upvote = article_data["voteup_count"]
                 self.comment_count = article_data["comment_count"]

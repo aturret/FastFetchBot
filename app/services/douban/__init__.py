@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from enum import Enum
 from urllib.parse import urlparse
 
@@ -37,7 +37,7 @@ class Douban(MetadataItem):
     raw_content: Optional[str]
     date: Optional[str]
 
-    def __init__(self, url: str, **kwargs):
+    def __init__(self, url: str, data: Any, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""

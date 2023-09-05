@@ -1,5 +1,6 @@
 # TODO: https://rapidapi.com/arraybobo/api/instagram-scraper-2022
 import re
+from typing import Any
 from urllib.parse import urlparse
 
 from html import escape
@@ -12,7 +13,7 @@ from app.config import X_RAPIDAPI_KEY
 
 
 class Instagram(MetadataItem):
-    def __init__(self, url):
+    def __init__(self, url: str, data: Any, **kwargs):
         self.url = url
         self.category = "instagram"
         # auxiliary variables
@@ -30,8 +31,8 @@ class Instagram(MetadataItem):
 
     def _check_instagram_url(self):
         if (
-            self.url.find("instagram.com/p/") != -1
-            or self.url.find("instagram.com/reel/") != -1
+                self.url.find("instagram.com/p/") != -1
+                or self.url.find("instagram.com/reel/") != -1
         ):
             self.ins_type = "post"
         if self.url.find("instagram.com/stories/") != -1:
@@ -96,19 +97,23 @@ class Instagram(MetadataItem):
         ins_info['author_url'] = 'https://www.instagram.com/' + ins_data['owner']['username'] + '/'
         ins_info['media_files'] = []
         if ins_data['__typename'] == 'GraphVideo':
-            ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'video', 'url': ins_data['video_url'], 'caption': ''})) if ins_data[
+            ins_info['media_files'].append(
+                MediaFile.from_dict({'media_type': 'video', 'url': ins_data['video_url'], 'caption': ''})) if ins_data[
                 'video_url'] else []
             ins_info['content'] += '<video controls src="' + ins_data['video_url'] + '"></video>'
         elif ins_data['__typename'] == 'GraphImage':
-            ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'image', 'url': ins_data['display_url'], 'caption': ''}))
+            ins_info['media_files'].append(
+                MediaFile.from_dict({'media_type': 'image', 'url': ins_data['display_url'], 'caption': ''}))
             ins_info['content'] += '<img src="' + ins_data['display_url'] + '">' if ins_data['display_url'] else ''
         elif ins_data['__typename'] == 'GraphSidecar':
             for item in ins_data['edge_sidecar_to_children']['edges']:
                 if item['node']['__typename'] == 'GraphVideo':
-                    ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'video', 'url': item['node']['video_url'], 'caption': ''}))
+                    ins_info['media_files'].append(
+                        MediaFile.from_dict({'media_type': 'video', 'url': item['node']['video_url'], 'caption': ''}))
                     ins_info['content'] += '<video controls src="' + item['node']['video_url'] + '"></video>'
                 elif item['node']['__typename'] == 'GraphImage':
-                    ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'image', 'url': item['node']['display_url'], 'caption': ''}))
+                    ins_info['media_files'].append(
+                        MediaFile.from_dict({'media_type': 'image', 'url': item['node']['display_url'], 'caption': ''}))
                     ins_info['content'] += '<img src="' + item['node']['display_url'] + '">'
         ins_info['status'] = True
         return ins_info
@@ -118,22 +123,29 @@ class Instagram(MetadataItem):
         ins_info = {}
         ins_info['content'] = ins_data['items'][0]['caption']['text'] if ins_data['items'][0]['caption'] else ''
         ins_info['text'] = ins_info['content']
-        ins_info['author'] = ins_data['items'][0]['user']['username'] + '(' + ins_data['items'][0]['user']['full_name'] + ')'
+        ins_info['author'] = ins_data['items'][0]['user']['username'] + '(' + ins_data['items'][0]['user'][
+            'full_name'] + ')'
         ins_info['author_url'] = 'https://www.instagram.com/' + ins_data['items'][0]['user']['username'] + '/'
         ins_info['media_files'] = []
         if ins_data['items'][0]['media_type'] == 2:
-            ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'video', 'url': ins_data['items'][0]['video_versions'][0]['url'], 'caption': ''}))
-            ins_info['content'] += '<video controls src="' + ins_data['items'][0]['video_versions'][0]['url'] + '"></video>'
+            ins_info['media_files'].append(MediaFile.from_dict(
+                {'media_type': 'video', 'url': ins_data['items'][0]['video_versions'][0]['url'], 'caption': ''}))
+            ins_info['content'] += '<video controls src="' + ins_data['items'][0]['video_versions'][0][
+                'url'] + '"></video>'
         elif ins_data['items'][0]['media_type'] == 1:
-            ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'image', 'url': ins_data['items'][0]['image_versions2']['candidates'][0]['url'], 'caption': ''}))
+            ins_info['media_files'].append(MediaFile.from_dict(
+                {'media_type': 'image', 'url': ins_data['items'][0]['image_versions2']['candidates'][0]['url'],
+                 'caption': ''}))
             ins_info['content'] += '<img src="' + ins_data['items'][0]['image_versions2']['candidates'][0]['url'] + '">'
         elif ins_data['items'][0]['media_type'] == 8:
             for item in ins_data['items'][0]['carousel_media']:
                 if item['media_type'] == 2:
-                    ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'video', 'url': item['video_versions'][0]['url'], 'caption': ''}))
+                    ins_info['media_files'].append(MediaFile.from_dict(
+                        {'media_type': 'video', 'url': item['video_versions'][0]['url'], 'caption': ''}))
                     ins_info['content'] += '<video controls src="' + item['video_versions'][0]['url'] + '"></video>'
                 elif item['media_type'] == 1:
-                    ins_info['media_files'].append(MediaFile.from_dict({'media_type': 'image', 'url': item['image_versions2']['candidates'][0]['url'], 'caption': ''}))
+                    ins_info['media_files'].append(MediaFile.from_dict(
+                        {'media_type': 'image', 'url': item['image_versions2']['candidates'][0]['url'], 'caption': ''}))
                     ins_info['content'] += '<img src="' + item['image_versions2']['candidates'][0]['url'] + '">'
         ins_info['status'] = True
         return ins_info

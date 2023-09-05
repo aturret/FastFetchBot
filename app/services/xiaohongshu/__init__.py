@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Any
 
 from playwright.async_api import async_playwright
 
@@ -8,7 +8,7 @@ from app.config import XIAOHONGSHU_COOKIES
 
 
 class Xiaohongshu(MetadataItem):
-    def __init__(self, url):
+    def __init__(self, url:str,data:Any,**kwargs):
         self.url = url
 
     async def get_item(self) -> dict:
