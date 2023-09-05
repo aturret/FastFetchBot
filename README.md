@@ -86,8 +86,6 @@ You can set the api key of OpenAI to use the transcription function.
 - [x] Threads
 - [ ] Quora
 - [ ] Reddit
-
-
 - [x] Weibo
 - [x] WeChat Public Account Articles
 - [x] Zhihu
