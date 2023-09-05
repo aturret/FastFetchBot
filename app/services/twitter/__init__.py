@@ -22,12 +22,12 @@ from app.utils.logger import logger
 
 class Twitter(MetadataItem):
     def __init__(
-            self,
-            url: str,
-            data: Any,
-            scraper: Optional[str] = "Twitter135",
-            instruction: Optional[str] = "threads",
-            **kwargs,
+        self,
+        url: str,
+        data: Any,
+        scraper: Optional[str] = "Twitter135",
+        instruction: Optional[str] = "threads",
+        **kwargs,
     ):
         # metadata fields
         self.url = url
@@ -85,11 +85,11 @@ class Twitter(MetadataItem):
             if response.status_code == 200:
                 tweet_data = response.json()
                 if (
-                        type(tweet_data) == dict
-                        and ("errors" in tweet_data or "detail" in tweet_data)
+                    type(tweet_data) == dict
+                    and ("errors" in tweet_data or "detail" in tweet_data)
                 ) or (
-                        type(tweet_data) == str
-                        and ("400" in tweet_data or "429" in tweet_data)
+                    type(tweet_data) == str
+                    and ("400" in tweet_data or "429" in tweet_data)
                 ):
                     raise Exception("Invalid response from Twitter API")
                 else:
@@ -100,7 +100,6 @@ class Twitter(MetadataItem):
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(
             save=DEBUG_MODE,
-            debug=True,
         )
         await scraper.async_init(cookies=TWITTER_COOKIES)
         tweet_data = await scraper.tweets_details([int(self.tid)])
@@ -125,8 +124,8 @@ class Twitter(MetadataItem):
         tweets = []
         for i in entries:
             if (
-                    i["content"]["entryType"] == "TimelineTimelineItem"
-                    and i["content"]["itemContent"]["itemType"] == "TimelineTweet"
+                i["content"]["entryType"] == "TimelineTimelineItem"
+                and i["content"]["itemContent"]["itemType"] == "TimelineTweet"
             ):
                 tweets.append(i["content"]["itemContent"]["tweet_results"]["result"])
         for tweet in tweets:
@@ -166,9 +165,7 @@ class Twitter(MetadataItem):
             "text_group": "",
             "content_group": "<hr>" if not retweeted else "<p>Quoted:</p>",
         }
-        user_component = (
-            f"<a href='https://twitter.com/{tweet['username']}/status/{tweet['tid']}'>@{tweet['name']}</a>"
-        )
+        user_component = f"<a href='https://twitter.com/{tweet['username']}/status/{tweet['tid']}'>@{tweet['name']}</a>"
         tweet_info["content_group"] += f"<p>{user_component}: {text}</p>"
         tweet_info["text_group"] += f"{user_component}: {text}\n"
         if tweet["media"]:
@@ -227,7 +224,7 @@ class Twitter(MetadataItem):
         self.headers = {
             "X-RapidAPI-Key": X_RAPIDAPI_KEY,
             "X-RapidAPI-Host": SCRAPER_INFO[self.scraper]["top_domain"]
-                               + X_RAPIDAPI_HOST,
+            + X_RAPIDAPI_HOST,
             "content-type": "application/octet-stream",
         }
         self.params = {
