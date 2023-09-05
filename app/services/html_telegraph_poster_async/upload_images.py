@@ -1,10 +1,10 @@
 import mimetypes
 import re
+from io import BytesIO
 
 import httpx
 import requests
 
-from io import BytesIO
 base_url = 'http://telegra.ph'
 save_url = 'https://edit.telegra.ph/save'
 upload_file_url = 'https://telegra.ph/upload'

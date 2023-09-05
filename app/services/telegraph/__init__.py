@@ -7,6 +7,7 @@ from app.services.html_telegraph_poster_async import (
 )
 from app.services.html_telegraph_poster_async.utils import DocumentPreprocessor
 from app.models.telegraph_item import TelegraphItem, from_str
+from app.utils.logger import logger
 
 
 class Telegraph(TelegraphItem):
@@ -41,8 +42,10 @@ class Telegraph(TelegraphItem):
     async def get_telegraph(self, upload_images: bool = True) -> str:
         if upload_images:
             temp_html = DocumentPreprocessor(self.content)
+            logger.info("Telegraph: Uploading images to telegraph...")
             await temp_html.upload_all_images()
             self.content = temp_html.get_processed_html()
+        logger.info("Telegraph: Uploading to telegraph...")
         await self.telegraph.create_api_token(
             short_name=self.author[0:14], author_name=self.author
         )
@@ -52,5 +55,6 @@ class Telegraph(TelegraphItem):
             author_url=self.author_url,
             text=self.content,
         )
+        logger.info(f"Telegraph: Uploaded to telegraph. Link: {telegraph_post['url']}")
         telegraph_url = telegraph_post["url"]
         return telegraph_url

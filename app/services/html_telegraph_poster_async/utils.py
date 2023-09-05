@@ -7,6 +7,14 @@ from .converter import _fragments_from_string
 import lxml.html
 import concurrent.futures
 
+from app.services.amazon.s3 import download_and_upload as upload_image_to_s3
+from app.config import (
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
+    AWS_S3_BUCKET_NAME,
+)
+from ...utils.logger import logger
+
 LOG = logging.getLogger(__name__)
 
 
@@ -16,44 +24,52 @@ class DocumentPreprocessor:
         self.parsed_document = self._parse_document()
 
     def get_processed_html(self):
-        return lxml.html.tostring(self.parsed_document, encoding='unicode')
+        return lxml.html.tostring(self.parsed_document, encoding="unicode")
 
-    async def upload_image(self, url):
+    async def _upload_image(self, url):
         new_image_url = None
         try:
             new_image_url = await upload_image(url)
         except Exception:
-            LOG.exception(f'Could not upload image {url}')
+            logger.error(f"Could not upload image {url}")
 
         return new_image_url
 
-    async def upload_all_images(self, base_url=None, max_workers=3):
+    async def upload_all_images(self, base_url=None):
         self._make_links_absolute(base_url)
-        images = self.parsed_document.xpath('.//img[@src][not(contains(@src, "//telegra.ph/file/")) and'
-                                            ' not(contains(@src, "//graph.org/file/"))]')
+        images = self.parsed_document.xpath(
+            './/img[@src][not(contains(@src, "//telegra.ph/file/")) and'
+            ' not(contains(@src, "//graph.org/file/"))]'
+        )
 
-        async def _upload_and_replace_url(image_element):
-            old_image_url = image_element.attrib.get('src')
-            new_image_url = await self.upload_image(old_image_url)
-            if new_image_url:
-                image_element.attrib.update({'src': new_image_url})
+        for image in images:
+            logger.debug(f"Uploading image {image.attrib.get('src')}")
+            await DocumentPreprocessor._upload_and_replace_url(image)
 
-            for image in images:
-                await _upload_and_replace_url(image)
+    @staticmethod
+    async def _upload_and_replace_url(image_element):
+        old_image_url = image_element.attrib.get("src")
+        if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME:
+            new_image_url = await DocumentPreprocessor._upload_image_to_s3(old_image_url)
+        else:
+            new_image_url = await DocumentPreprocessor._upload_image(old_image_url)
+        if new_image_url:
+            image_element.attrib.update({"src": new_image_url})
 
     def _parse_document(self):
         if isinstance(self.input_document, str):
             fragments = _fragments_from_string(self.input_document)
-            document = fragments[0].xpath('/*')[0] if len(fragments) else None
+            document = fragments[0].xpath("/*")[0] if len(fragments) else None
         elif isinstance(self.input_document, lxml.html.HtmlMixin):
-            document = self.input_document.xpath('/*')[0]
+            document = self.input_document.xpath("/*")[0]
         else:
-            raise TypeError('DocumentPreprocessor accepts only html string or lxml document object')
+            raise TypeError(
+                "DocumentPreprocessor accepts only html string or lxml document object"
+            )
 
         return document
 
     def _make_links_absolute(self, base_url=None):
-
         body = self.parsed_document.body
         output_base = None
         document_base_url = self.parsed_document.base
@@ -68,7 +84,7 @@ class DocumentPreprocessor:
 
         if output_base is None:
             # no base_url was passed, document_base_url is missing
-            LOG.warning('Relative image/link urls were removed from the document')
+            LOG.warning("Relative image/link urls were removed from the document")
 
         def link_replace(href):
             try:
@@ -81,3 +97,12 @@ class DocumentPreprocessor:
                 return None
 
         body.rewrite_links(link_repl_func=link_replace, base_href=output_base)
+
+    @staticmethod
+    async def _upload_image_to_s3(old_image_url):
+        new_image_url = None
+        try:
+            new_image_url = await upload_image_to_s3(old_image_url)
+        except Exception as e:
+            logger.error(f"Could not upload image {old_image_url}\nError: {e}")
+        return new_image_url
