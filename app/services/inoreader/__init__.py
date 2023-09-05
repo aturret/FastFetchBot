@@ -8,17 +8,19 @@ class Inoreader(MetadataItem):
     def __init__(self, url: str, data: dict):
         self.url = url
         self.title = data.get('title')
-        self.message = data.get('message')
+        self.message = data.get('message', "")
         self.author = data.get('author')
-        self.author_url = data.get('author_url')
-        self.category = data.get('tag')
+        self.author_url = data.get('author_url', "")
+        self.category = data.get('tag', "")
         self.raw_content = data.get('content')
         self.content = self.raw_content
         self.media_files = []
 
     async def get_item(self) -> dict:
         self._resolve_media_files()
-        return self.to_dict()
+        metadata_dict = self.to_dict()
+        metadata_dict['message'] = self.message
+        return metadata_dict
 
     def _resolve_media_files(self):
         soup = BeautifulSoup(self.raw_content, 'html.parser')
