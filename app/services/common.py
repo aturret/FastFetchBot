@@ -59,7 +59,8 @@ class InfoExtractService(object):
 
     async def get_item(self, metadata_item: dict = None) -> dict:
         if self.content_type == "video":
-            self.kwargs["category"] = self.category
+            if not self.kwargs.get("category"):
+                self.kwargs["category"] = self.category
         if not metadata_item:
             try:
                 scraper_item = self.service_classes[self.category](
