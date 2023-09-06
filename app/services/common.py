@@ -13,7 +13,8 @@ from app.services import (
     zhihu,
     video_download,
     wechat,
-    document_export, inoreader,
+    document_export,
+    inoreader,
 )
 from app.database import save_instances
 from app.utils.logger import logger
@@ -56,15 +57,18 @@ class InfoExtractService(object):
     def category(self) -> str:
         return self.source
 
-    async def get_item(self) -> dict:
+    async def get_item(self, metadata_item: dict = None) -> dict:
         if self.content_type == "video":
             self.kwargs["category"] = self.category
-        try:
-            scraper_item = self.service_classes[self.category](url=self.url, data=self.data, **self.kwargs)
-            metadata_item = await scraper_item.get_item()
-        except Exception as e:
-            logger.error(f"Error while getting item: {e}")
-            raise e
+        if not metadata_item:
+            try:
+                scraper_item = self.service_classes[self.category](
+                    url=self.url, data=self.data, **self.kwargs
+                )
+                metadata_item = await scraper_item.get_item()
+            except Exception as e:
+                logger.error(f"Error while getting item: {e}")
+                raise e
         logger.info(f"Got metadata item")
         logger.debug(metadata_item)
         if metadata_item.get("message_type") == MessageType.LONG:
