@@ -47,7 +47,12 @@ async def get_inoreader_item_async(data: dict, trigger: bool = False):
         content_type=content_type,
         source=source,
     )
-    item = InfoExtractService(url_metadata=url_metadata, data=data, store_document=True, category=data["category"])
+    item = InfoExtractService(
+        url_metadata=url_metadata,
+        data=data,
+        store_document=True,
+        category=data["category"],
+    )
 
     metadata_item = await item.get_item()
     await send_item_message(metadata_item, chat_id=telegram_channel_id)

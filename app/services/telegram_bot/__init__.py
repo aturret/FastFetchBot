@@ -491,9 +491,14 @@ async def send_item_message(
                     disable_notification=True,
                 )
             if discussion_chat_id != chat_id:
+                await asyncio.sleep(
+                    3
+                )  # wait for several seconds to avoid missing the target message
                 # if the chat is a channel, get the latest pinned message from the channel and reply to it
                 group_chat = await application.bot.get_chat(chat_id=discussion_chat_id)
+                logger.debug(f"the group chat: {group_chat}")
                 pinned_message = group_chat.pinned_message
+                logger.debug(f"the pinned message: {pinned_message}")
                 if len(media_message_group) > 0:
                     if (
                         pinned_message.forward_from_message_id
@@ -513,9 +518,6 @@ async def send_item_message(
             ):  # send files, the files messages should be replied to the message sent before
                 logger.debug(f"file group: {file_group}")
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
-                await asyncio.sleep(
-                    3
-                )  # wait for several seconds to avoid missing the target message
                 await application.bot.send_media_group(
                     chat_id=discussion_chat_id,
                     media=file_group,
