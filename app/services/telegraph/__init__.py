@@ -41,7 +41,7 @@ class Telegraph(TelegraphItem):
 
     async def get_telegraph(self, upload_images: bool = True) -> str:
         if upload_images:
-            temp_html = DocumentPreprocessor(self.content)
+            temp_html = DocumentPreprocessor(self.content, url=self.url)
             logger.info("Telegraph: Uploading images to telegraph...")
             await temp_html.upload_all_images()
             self.content = temp_html.get_processed_html()

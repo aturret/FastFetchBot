@@ -19,7 +19,8 @@ LOG = logging.getLogger(__name__)
 
 
 class DocumentPreprocessor:
-    def __init__(self, input_document):
+    def __init__(self, input_document, url: str = None):
+        self.url = url
         self.input_document = input_document
         self.parsed_document = self._parse_document()
 
@@ -45,13 +46,15 @@ class DocumentPreprocessor:
 
         for image in images:
             logger.debug(f"Uploading image {image.attrib.get('src')}")
-            await DocumentPreprocessor._upload_and_replace_url(image)
+            await DocumentPreprocessor._upload_and_replace_url(image, url=self.url)
 
     @staticmethod
-    async def _upload_and_replace_url(image_element):
+    async def _upload_and_replace_url(image_element, url: str = None):
         old_image_url = image_element.attrib.get("src")
         if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME:
-            new_image_url = await DocumentPreprocessor._upload_image_to_s3(old_image_url)
+            new_image_url = await DocumentPreprocessor._upload_image_to_s3(
+                old_image_url, url=url
+            )
         else:
             new_image_url = await DocumentPreprocessor._upload_image(old_image_url)
         if new_image_url:
@@ -100,10 +103,10 @@ class DocumentPreprocessor:
         body.rewrite_links(link_repl_func=link_replace, base_href=output_base)
 
     @staticmethod
-    async def _upload_image_to_s3(old_image_url):
+    async def _upload_image_to_s3(old_image_url, url: str = None):
         new_image_url = None
         try:
-            new_image_url = await upload_image_to_s3(old_image_url)
+            new_image_url = await upload_image_to_s3(old_image_url, referer=url)
         except Exception as e:
             logger.error(f"Could not upload image {old_image_url}\nError: {e}")
         return new_image_url

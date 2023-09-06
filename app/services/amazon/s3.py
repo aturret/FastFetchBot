@@ -14,11 +14,15 @@ from app.config import AWS_S3_BUCKET_NAME, AWS_REGION_NAME, AWS_DOMAIN_HOST
 
 
 session = aioboto3.Session()
-image_url_host = AWS_DOMAIN_HOST if AWS_DOMAIN_HOST else f"{AWS_S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com"
+image_url_host = (
+    AWS_DOMAIN_HOST
+    if AWS_DOMAIN_HOST
+    else f"{AWS_S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com"
+)
 
 
-async def download_and_upload(url: str):
-    local_path = await download_file_to_local(url=url)
+async def download_and_upload(url: str, referer: str = None) -> str:
+    local_path = await download_file_to_local(url=url, referer=referer)
     local_path = Path(local_path)
     file_name = local_path.name
     if not local_path:
@@ -33,11 +37,11 @@ async def download_and_upload(url: str):
 
 
 async def upload(
-        staging_path: Path,
-        bucket: str = AWS_S3_BUCKET_NAME,
-        suite: str = "test",
-        release: str = "test",
-        file_name: str = None,
+    staging_path: Path,
+    bucket: str = AWS_S3_BUCKET_NAME,
+    suite: str = "test",
+    release: str = "test",
+    file_name: str = None,
 ) -> str:
     if not file_name:
         file_name = uuid.uuid4().hex
