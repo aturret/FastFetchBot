@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 import os
@@ -18,8 +18,8 @@ class VideoDownloader(MetadataItem):
     def __init__(
         self,
         url: str,
-        data: Any,
         category: str,
+        data: Optional[Any] = None,
         download: bool = True,
         audio_only: bool = False,
         hd: bool = False,

@@ -37,7 +37,7 @@ class Douban(MetadataItem):
     raw_content: Optional[str]
     date: Optional[str]
 
-    def __init__(self, url: str, data: Any, **kwargs):
+    def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""

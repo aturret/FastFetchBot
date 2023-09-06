@@ -33,7 +33,7 @@ content_template = environment.get_template("zhihu_content.jinja2")
 
 
 class Zhihu(MetadataItem):
-    def __init__(self, url: str, data: Any, **kwargs):
+    def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         # metadata fields
         self.url = url
         self.title = ""

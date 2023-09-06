@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from lxml import etree
 from bs4 import BeautifulSoup, NavigableString
@@ -10,7 +10,7 @@ from app.utils.network import get_selector
 
 
 class Wechat(MetadataItem):
-    def __init__(self, url: str, data: Any, **kwargs):
+    def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         self.url = url
         self.title = ""
         self.author = ""

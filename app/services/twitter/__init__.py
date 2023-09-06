@@ -24,7 +24,7 @@ class Twitter(MetadataItem):
     def __init__(
         self,
         url: str,
-        data: Any,
+        data: Optional[Any] = None,
         scraper: Optional[str] = "Twitter135",
         instruction: Optional[str] = "threads",
         **kwargs,

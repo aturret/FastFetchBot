@@ -1,6 +1,6 @@
 # TODO: https://rapidapi.com/arraybobo/api/instagram-scraper-2022
 import re
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 from html import escape
@@ -13,7 +13,7 @@ from app.config import X_RAPIDAPI_KEY
 
 
 class Instagram(MetadataItem):
-    def __init__(self, url: str, data: Any, **kwargs):
+    def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         self.url = url
         self.category = "instagram"
         # auxiliary variables

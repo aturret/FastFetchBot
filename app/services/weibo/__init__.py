@@ -29,7 +29,7 @@ class Weibo(MetadataItem):
     def __init__(
         self,
         url: str,
-        data: Any,
+        data: Optional[Any] = None,
         method: Optional[str] = "api",
         scraper: Optional[str] = "requests",
         user_agent: Optional[dict] = CHROME_USER_AGENT,
