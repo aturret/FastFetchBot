@@ -630,7 +630,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 "http",
                 "https",
             ]:  # if the url is a http url, download the file
-                referer = data["url"] if data["category"] in REFERER_REQUIRED else None
+                referer = data["url"]
                 file_format = "mp4" if media_item["media_type"] == "video" else None
                 io_object = await download_a_iobytes_file(
                     media_item["url"], file_format=file_format, referer=referer
