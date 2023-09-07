@@ -258,7 +258,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                             callback_data={
                                 "type": "video",
                                 "metadata": url_metadata,
-                                "extra_args": {"audio_only": True, "transcribe": True},
+                                "extra_args": {"audio_only": True, "transcribe": True, "store_document": True},
                             },
                         ),
                         InlineKeyboardButton(
