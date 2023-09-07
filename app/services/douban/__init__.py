@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from lxml import etree
 
-from app.utils.parse import get_html_text_length
+from app.utils.parse import get_html_text_length, wrap_text_into_html
 from app.utils.network import get_selector
 from app.utils.config import CHROME_USER_AGENT, HEADERS
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
@@ -109,7 +109,9 @@ class Douban(MetadataItem):
         await function_dict[self.douban_type]()
         data = self.__dict__
         self.text = short_text_template.render(data=data)
-        self.content = content_template.render(data=data)
+        self.content = wrap_text_into_html(
+            content_template.render(data=data), is_html=True
+        )
         self._douban_short_text_process()
         if get_html_text_length(self.content) > SHORT_LIMIT:
             self.message_type = MessageType.LONG

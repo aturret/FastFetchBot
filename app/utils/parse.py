@@ -11,6 +11,7 @@ from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTER
 
 mimetypes.init()
 
+
 def get_html_text_length(html: str) -> int:
     if html is None:
         return 0
@@ -82,3 +83,11 @@ def get_ext_from_url(url: str) -> str:
         return ext
     else:
         return None
+
+
+def wrap_text_into_html(text: str, is_html: bool = False) -> str:
+    split_pivot = "<br>" if is_html else "\n"
+    text_list = text.split(split_pivot)
+    text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
+    text = "".join(text_list)
+    return text

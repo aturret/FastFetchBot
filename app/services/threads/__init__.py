@@ -6,7 +6,7 @@ import jmespath
 from playwright.async_api import async_playwright
 
 from app.utils.logger import logger
-from app.utils.parse import get_html_text_length, unix_timestamp_to_utc
+from app.utils.parse import get_html_text_length, unix_timestamp_to_utc, wrap_text_into_html
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 
 SHORT_LIMIT = 600
@@ -139,7 +139,7 @@ class Threads(MetadataItem):
         }
         # make html components, and solve the pictures and videos
         user_component = f"<a href='https://threads.net/@{thread['username']}'>@{thread['username']}</a>:"
-        thread_info["content_group"] += user_component + thread["text"].replace("\n", "<br><br>")
+        thread_info["content_group"] += wrap_text_into_html(user_component + thread["text"])
         thread_info["text_group"] += user_component + thread["text"] + "\n"
         if not thread["media_count"]:  # if the thread doesn't have multiple media files
             if thread["video"]:  # if the threads has only one video/gif

@@ -7,7 +7,7 @@ import httpx
 import jmespath
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.parse import get_html_text_length
+from app.utils.parse import get_html_text_length, wrap_text_into_html
 from .twitter_client_api.scraper import Scraper
 from .config import (
     ALL_SCRAPER,
@@ -166,7 +166,7 @@ class Twitter(MetadataItem):
             "content_group": "<hr>" if not retweeted else "<p>Quoted:</p>",
         }
         user_component = f"<a href='https://twitter.com/{tweet['username']}/status/{tweet['tid']}'>@{tweet['name']}</a>"
-        tweet_info["content_group"] += f"<p>{user_component}: {text}</p>"
+        tweet_info["content_group"] += wrap_text_into_html(f"{user_component}: {text}")
         tweet_info["text_group"] += f"{user_component}: {text}\n"
         if tweet["media"]:
             for media in tweet["media"]:

@@ -10,7 +10,7 @@ from lxml import html
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import CHROME_USER_AGENT
 from app.utils.network import get_response_json
-from app.utils.parse import get_html_text_length
+from app.utils.parse import get_html_text_length, wrap_text_into_html
 from .config import (
     AJAX_HOST,
     AJAX_LONGTEXT_HOST,
@@ -161,6 +161,7 @@ class Weibo(MetadataItem):
             elif i.media_type == "image":
                 self.raw_content += f"<img src='{i.url}'></img>"
         self.content = content_template.render(data=self.__dict__)
+        self.content = wrap_text_into_html(self.content, is_html=True)
         # resolve retweet
         if weibo_info.get("retweeted_status"):
             retweeted_weibo_item = Weibo(

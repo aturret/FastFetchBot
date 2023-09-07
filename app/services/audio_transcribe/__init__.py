@@ -2,6 +2,7 @@ import httpx
 
 from app.config import OPENAI_API_KEY, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.logger import logger
+from app.utils.parse import wrap_text_into_html
 
 TRANSCRIBE_MODEL = "whisper-1"
 SEGMENT_LENGTH = 5 * 60
@@ -25,4 +26,6 @@ class AudioTranscribe:
             response = await client.post(
                 url=request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
             )
-            return response.json().get("transcript")
+            transcript = response.json().get("transcript")
+            transcript = wrap_text_into_html(transcript)
+            return transcript
