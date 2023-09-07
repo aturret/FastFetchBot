@@ -52,7 +52,8 @@ class VideoDownloader(MetadataItem):
         return self.to_dict()
 
     async def get_video(self) -> None:
-        content_info = await self._get_video_info()
+        content_info = await self.get_video_info()
+        self.file_path = content_info["file_path"]
         video_info_funcs = {
             "youtube": self._youtube_info_parse,
             "bilibili": self._bilibili_info_parse,
@@ -60,7 +61,9 @@ class VideoDownloader(MetadataItem):
         meta_info = video_info_funcs[self.extractor](content_info)
         self._video_info_formatting(meta_info)
         if self.transcribe:
-            audio_transcribe = AudioTranscribe(self.file_path)
+            audio_content_info = await self.get_video_info(audio_only=True)
+            audio_file_path = audio_content_info["file_path"]
+            audio_transcribe = AudioTranscribe(audio_file_path)
             transcribe_text = await audio_transcribe.transcribe()
             self.message_type = MessageType.LONG
             self.text += "\n" + transcribe_text
@@ -86,26 +89,43 @@ class VideoDownloader(MetadataItem):
         logger.info(f"parsed video url: {url} for {self.extractor}")
         return url
 
-    async def _get_video_info(self):
+    async def get_video_info(
+        self,
+        url: str = None,
+        download: bool = True,
+        extractor: str = None,
+        audio_only: bool = False,
+        hd: bool = False,
+    ) -> dict:
         """
         make a request to youtube-dl server to get video info
         :return: video info dict
         """
+        if url is None:
+            url = self.url
+        if download is None:
+            download = self.download
+        if extractor is None:
+            extractor = self.extractor
+        if audio_only is None:
+            audio_only = self.audio_only
+        if hd is None:
+            hd = self.hd
         async with httpx.AsyncClient() as client:
             body = {
-                "url": self.url,
-                "download": self.download,
-                "extractor": self.extractor,
-                "audio_only": self.audio_only,
-                "hd": self.hd,
+                "url": url,
+                "download": download,
+                "extractor": extractor,
+                "audio_only": audio_only,
+                "hd": hd,
             }
             request_url = FILE_EXPORTER_URL + "/videoDownload"
             logger.info(f"requesting video info from youtube-dl server: {body}")
-            if self.download:
+            if download is True:
                 logger.info(f"video downloading... it may take a while")
-                if self.hd:
+                if hd is True:
                     logger.info(f"downloading HD video, it may take longer")
-                elif self.audio_only:
+                elif audio_only is True:
                     logger.info(f"downloading audio only")
             logger.debug(f"downloading video to {DOWNLOAD_DIR}")
             logger.debug(f"downloading video timeout: {DOWNLOAD_VIDEO_TIMEOUT}")
@@ -114,7 +134,7 @@ class VideoDownloader(MetadataItem):
             )
         content_info = resp.json().get("content_info")
         file_path = resp.json().get("file_path")
-        self.file_path = file_path
+        content_info["file_path"] = file_path
         return content_info
 
     def _video_info_formatting(self, meta_info: dict):
@@ -140,7 +160,6 @@ class VideoDownloader(MetadataItem):
         self.content = self.text.replace("\n", "<br>")
         if self.download:
             self.media_files = [MediaFile("video", self.file_path, "")]
-        pass
 
     @staticmethod
     def _youtube_info_parse(video_info: dict) -> dict:
