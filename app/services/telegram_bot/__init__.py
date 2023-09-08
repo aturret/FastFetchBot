@@ -206,7 +206,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             text=f"Processing the {i + 1}th url...",
         )
         url_metadata = await check_url_type(url)
-        if not url_metadata.source:
+        if url_metadata.source == "unknown":
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, no supported url found."
             )
@@ -323,7 +323,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
         url_metadata = await check_url_type(url)
-        if not url_metadata.source:
+        if url_metadata.source == "unknown":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
         if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():

@@ -56,7 +56,7 @@ def second_to_time(second: int) -> str:
 async def check_url_type(url: str) -> UrlMetadata:
     url_object = urlparse(url)
     url_main = str(url_object.hostname) + str(url_object.path)
-    source, content_type = None, None
+    source, content_type = "unknown", "unknown"
     # check if the url is a social media platform website
     for website, patterns in SOCIAL_MEDIA_WEBSITE_PATTERNS.items():
         for pattern in patterns:
