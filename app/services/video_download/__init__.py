@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
 from app.services.audio_transcribe import AudioTranscribe
 from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
-from app.utils.parse import unix_timestamp_to_utc, second_to_time
+from app.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
 from app.utils.logger import logger
 from app.config import JINJA2_ENV
 
@@ -65,9 +65,10 @@ class VideoDownloader(MetadataItem):
             audio_file_path = audio_content_info["file_path"]
             audio_transcribe = AudioTranscribe(audio_file_path)
             transcribe_text = await audio_transcribe.transcribe()
-            self.message_type = MessageType.LONG
-            self.text += "\n" + transcribe_text
-            self.content += "<hr>" + transcribe_text.replace("\n", "<br>")
+            if self.download is False:
+                self.message_type = MessageType.LONG
+            self.text += "\nAI全文摘录：" + transcribe_text
+            self.content += "<hr>" + wrap_text_into_html(transcribe_text)
 
     async def _parse_url(self, url: str) -> str:
         logger.info(f"parsing original video url: {url} for {self.extractor}")

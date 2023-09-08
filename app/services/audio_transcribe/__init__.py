@@ -27,5 +27,4 @@ class AudioTranscribe:
                 url=request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
             )
             transcript = response.json().get("transcript")
-            transcript = wrap_text_into_html(transcript)
             return transcript
