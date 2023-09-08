@@ -64,7 +64,7 @@ async def check_url_type(url: str) -> UrlMetadata:
                 source = website
                 content_type = "social_media"
     # check if the url is a video website
-    if not source:
+    if source == "unknown":
         for website, patterns in VIDEO_WEBSITE_PATTERNS.items():
             for pattern in patterns:
                 if re.search(pattern, url_main):
