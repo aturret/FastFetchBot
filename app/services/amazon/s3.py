@@ -1,8 +1,9 @@
 import asyncio
 import uuid
 import datetime
+from urllib.parse import urlparse
 
-import aiofiles
+import aiofiles.os
 from pathlib import Path
 
 import aioboto3
@@ -22,7 +23,9 @@ image_url_host = (
 
 
 async def download_and_upload(url: str, referer: str = None) -> str:
-    local_path = await download_file_to_local(url=url, referer=referer)
+    urlparser = urlparse(url)
+    file_name = (urlparser.netloc + urlparser.path).replace("/", "-")
+    local_path = await download_file_to_local(url=url, referer=referer, file_name=file_name)
     local_path = Path(local_path)
     file_name = local_path.name
     if not local_path:
@@ -33,6 +36,7 @@ async def download_and_upload(url: str, referer: str = None) -> str:
         staging_path=local_path,
         file_name=file_name,
     )
+    await aiofiles.os.remove(local_path)
     return s3_path
 
 

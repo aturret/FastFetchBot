@@ -15,11 +15,15 @@ from app.utils.image import check_image_type
 from app.utils.logger import logger
 
 
-async def get_response(url: str, headers: dict = None, params: dict = None) -> httpx.Response:
+async def get_response(
+    url: str, headers: dict = None, params: dict = None
+) -> httpx.Response:
     if headers is None:
         headers = HEADERS
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT)
+        resp = await client.get(
+            url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT
+        )
         return resp
 
 
@@ -42,9 +46,11 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
     :return: the selector of the target webpage parsed by etree.HTML
     """
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT)
+        resp = await client.get(
+            url, headers=headers, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT
+        )
         if (
-                resp.history
+            resp.history
         ):  # if there is a redirect, the request will have a response chain
             print("Request was redirected")
             for h in resp.history:
@@ -55,7 +61,11 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
 
 
 async def download_a_iobytes_file(
-        url: str, file_name: str = None, file_format: str = None, headers: dict = None, referer: str = None
+    url: str,
+    file_name: str = None,
+    file_format: str = None,
+    headers: dict = None,
+    referer: str = None,
 ) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
@@ -66,25 +76,37 @@ async def download_a_iobytes_file(
     :param referer: the referer of the request. Some CDN will check the referer.
     :return:
     """
-    if headers is None:
-        headers = HEADERS
-    if referer is not None:
-        headers["referer"] = referer
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
-        )
-    file_data = response.content
-    if file_name is None:
-        file_format = file_format if file_format else url.split(".")[-1]
-        file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
-    io_object = NamedBytesIO(file_data, name=file_name)
-    return io_object
+    try:
+        if headers is None:
+            headers = HEADERS
+        if referer is not None:
+            headers["referer"] = referer
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
+            )
+        file_data = response.content
+        if file_name is None:
+            file_format = file_format if file_format else url.split(".")[-1]
+            file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
+        io_object = NamedBytesIO(file_data, name=file_name)
+        return io_object
+    except Exception as e:
+        logger.error(f"Failed to download {url}, {e}")
+        raise e
 
 
-async def download_file_to_local(url: str, file_path: str = None, dir_path: str = DOWNLOAD_DIR, file_name: str = "",
-                                 headers: dict = None, referer: str = None) -> str:
-    io_object = await download_a_iobytes_file(url, file_name, headers, referer)
+async def download_file_to_local(
+    url: str,
+    file_path: str = None,
+    dir_path: str = DOWNLOAD_DIR,
+    file_name: str = "",
+    headers: dict = None,
+    referer: str = None,
+) -> str:
+    io_object = await download_a_iobytes_file(
+        url=url, file_name=file_name, headers=headers, referer=referer
+    )
     ext = await check_image_type(io_object)
     io_object.seek(0)
     file_name = file_name + uuid.uuid4().hex + "." + ext
