@@ -5,6 +5,8 @@ import functools
 import os
 import uuid
 
+import aiofiles
+import aiofiles.os
 import httpx
 
 # from xhtml2pdf import pisa
@@ -13,7 +15,7 @@ from bs4 import BeautifulSoup
 
 # from weasyprint.text.fonts import FontConfiguration
 
-from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
+from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT, TEMP_DIR
 from app.utils.logger import logger
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -22,27 +24,39 @@ PDF_STYLESHEET = os.path.join(current_directory, "pdf_export.css")
 
 
 class PdfExport:
-    def __init__(self, title: str, html_string: str):
+    def __init__(self, title: str, html_string: str = None):
         self.title = title
         self.html_string = html_string
 
-    async def export(self) -> str:
+    async def export(self, method: str = "file") -> str:
+        body = {
+            "method": method
+        }
         html_string = self.wrap_html_string(self.html_string)
+        if method == "string":
+            body["html_string"] = html_string,
+            logger.debug(
+                f"""
+                    html_string: {html_string}
+                    """
+            )
+        elif method == "file":
+            filename = f"{self.title}-{uuid.uuid4()}.html"
+            filename = os.path.join(TEMP_DIR, filename)
+            async with aiofiles.open(
+                filename, "w", encoding="utf-8"
+            ) as f:
+                await f.write(html_string)
+                html_file = filename
+                logger.debug(html_file)
+            body["html_file"] = html_file
         output_filename = f"{self.title}-{uuid.uuid4()}.pdf"
+        body["output_filename"] = output_filename
         loop = asyncio.get_event_loop()
-        css_string = await loop.run_in_executor(None, open, PDF_STYLESHEET, "r")
-        css_string = await loop.run_in_executor(None, css_string.read)
-        logger.debug(
-            f"""
-        html_string: {html_string}
-        """
-        )
+        # css_string = await loop.run_in_executor(None, open, PDF_STYLESHEET, "r")
+        # css_string = await loop.run_in_executor(None, css_string.read)
+
         async with httpx.AsyncClient() as client:
-            body = {
-                "html_string": html_string,
-                "css_string": css_string,
-                "output_filename": output_filename,
-            }
             request_url = FILE_EXPORTER_URL + "/pdfExport"
             logger.info(f"requesting pdf export from pdf server: {body}")
             resp = await client.post(
@@ -50,6 +64,7 @@ class PdfExport:
             )
         output_filename = resp.json().get("output_filename")
         logger.info(f"pdf export success: {output_filename}")
+        await aiofiles.os.remove(html_file)
         return output_filename
 
     @staticmethod
