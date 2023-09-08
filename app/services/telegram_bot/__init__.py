@@ -6,6 +6,8 @@ import json
 import logging
 import os
 import mimetypes
+import re
+
 import magic
 import traceback
 from io import BytesIO
@@ -43,7 +45,7 @@ from telegram.ext import (
 from jinja2 import Environment, FileSystemLoader
 
 from app.services.common import InfoExtractService
-from app.utils.parse import check_url_type
+from app.utils.parse import check_url_type, get_html_text_length
 from app.utils.network import download_a_iobytes_file
 from app.utils.image import Image, image_compressing, check_image_type
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
@@ -70,7 +72,7 @@ from app.services.telegram_bot.config import (
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
-    REFERER_REQUIRED,
+    REFERER_REQUIRED, TELEGRAM_TEXT_LIMIT,
 )
 from app.models.classes import NamedBytesIO
 from app.models.url_metadata import UrlMetadata
@@ -258,7 +260,11 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                             callback_data={
                                 "type": "video",
                                 "metadata": url_metadata,
-                                "extra_args": {"audio_only": True, "transcribe": True, "store_document": True},
+                                "extra_args": {
+                                    "audio_only": True,
+                                    "transcribe": True,
+                                    "store_document": True,
+                                },
                             },
                         ),
                         InlineKeyboardButton(
@@ -457,7 +463,7 @@ async def send_item_message(
         if len(data["media_files"]) > 0:
             # if the message type is short and there are some media files, send media group
             reply_to_message_id = None
-            media_message_group, file_group = await media_files_packaging(
+            media_message_group, file_message_group = await media_files_packaging(
                 media_files=data["media_files"], data=data
             )
             if (
@@ -514,19 +520,20 @@ async def send_item_message(
                 else:
                     reply_to_message_id = group_chat.pinned_message.id + 1
             if (
-                len(file_group) > 0
+                len(file_message_group) > 0
             ):  # send files, the files messages should be replied to the message sent before
-                logger.debug(f"file group: {file_group}")
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
-                await application.bot.send_media_group(
-                    chat_id=discussion_chat_id,
-                    media=file_group,
-                    reply_to_message_id=reply_to_message_id,
-                    parse_mode=ParseMode.HTML,
-                    disable_notification=True,
-                )
+                for file_group in file_message_group:
+                    logger.debug(f"file group: {file_group}")
+                    await application.bot.send_media_group(
+                        chat_id=discussion_chat_id,
+                        media=file_group,
+                        reply_to_message_id=reply_to_message_id,
+                        parse_mode=ParseMode.HTML,
+                        disable_notification=True,
+                    )
         else:
-            sent_message = await application.bot.send_message(
+            await application.bot.send_message(
                 chat_id=chat_id,
                 text=caption_text,
                 parse_mode=ParseMode.HTML,
@@ -585,6 +592,10 @@ def message_formatting(data: dict) -> str:
     :param data:
     :return: text (str) the formatted text for telegram bot api sending message.
     """
+    if data["message_type"] == "short" and len(data["text"]) > TELEGRAM_TEXT_LIMIT:
+        data["text"] = data["text"][:TELEGRAM_TEXT_LIMIT]
+        data["text"] = re.compile(r'<[^>]*?(?<!>)$').sub('', data["text"])
+        data["text"] += "..."
     message_template = template
     text = message_template.render(data=data)
     logger.debug(f"message text: \n{text}")
@@ -607,10 +618,8 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         immediately after it is resolved.
         This processing method should be optimized in the future.
     """
-    media_counter = 0
-    media_message_group = []
-    media_group = []
-    file_group = []
+    media_counter, file_counter = 0, 0
+    media_message_group, media_group, file_message_group, file_group = [], [], [], []
     for (
         media_item
     ) in media_files:  # To traverse all media items in the media files list
@@ -620,6 +629,11 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             media_message_group.append(media_group)
             media_group = []
             media_counter = 0
+        if file_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT:
+            # the limitation of media item for a single telegram media group message is 10
+            file_message_group.append(file_group)
+            file_group = []
+            file_counter = 0
         if not (
             media_item["media_type"] in ["image", "gif", "video"]
             and data["message_type"] == "long"
@@ -701,6 +715,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                         file_group.append(
                             InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
                         )
+                        file_counter += 1
             elif media_item["media_type"] == "gif":
                 io_object = await download_a_iobytes_file(
                     url=media_item["url"],
@@ -717,16 +732,14 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 file_group.append(
                     InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
                 )
+                file_counter += 1
             media_counter += 1
             logger.info(
                 f"get the {media_counter}th media item,type: {media_item['media_type']}, url: {media_item['url']}"
             )
     # check if the media group is empty, if it is, return None
-    if len(media_message_group) == 0:
-        if len(media_group) == 0:
-            return media_message_group, file_group
-        else:  # if the media group is not empty, append the only media group
-            media_message_group.append(media_group)
-    elif len(media_group) > 0:  # append the last media group
+    if len(media_group) > 0:  # append the last media group
         media_message_group.append(media_group)
-    return media_message_group, file_group
+    if len(file_group) > 0:
+        file_message_group.append(file_group)
+    return media_message_group, file_message_group
