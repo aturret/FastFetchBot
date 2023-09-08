@@ -13,8 +13,23 @@ INOREADER_LOGIN_URL = "https://www.inoreader.com/accounts/ClientLogin"
 
 
 class Inoreader(MetadataItem):
-    def __init__(self, url: str, data: dict):
-        self.url = url
+    def __init__(self, url: str = None, data: dict = None, **kwargs):
+        if url:
+            self.url = url
+        if data:
+            self.title = data.get("title", "")
+            self.message = data.get("message", "")
+            self.author = data.get("author", "")
+            self.author_url = data.get("author_url", "")
+            self.category = data.get("category", "")
+            self.raw_content = data.get("content", "")
+            self.content = self.raw_content
+        if kwargs.get("category"):
+            self.category = kwargs["category"]
+        self.media_files = []
+        self.message_type = MessageType.LONG
+
+    def _from_data(self, data: dict):
         self.title = data.get("title", "")
         self.message = data.get("message", "")
         self.author = data.get("author", "")
@@ -22,10 +37,11 @@ class Inoreader(MetadataItem):
         self.category = data.get("category", "")
         self.raw_content = data.get("content", "")
         self.content = self.raw_content
-        self.media_files = []
-        self.message_type = MessageType.LONG
 
     async def get_item(self, api: bool = False) -> dict:
+        if api:
+            data = await self.request_api_info()
+
         self._resolve_media_files()
         if get_html_text_length(self.content) < 400:
             self.message_type = MessageType.SHORT
@@ -66,6 +82,7 @@ class Inoreader(MetadataItem):
                     "AppId": INOREADER_APP_ID,
                     "AppKey": INOREADER_APP_KEY,
                     "comments": 1,
+                    "n": 1,
                 },
                 headers=headers,
             )

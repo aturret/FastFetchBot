@@ -72,6 +72,10 @@ class InfoExtractService(object):
                 raise e
         logger.info(f"Got metadata item")
         logger.debug(metadata_item)
+        metadata_item = await self.process_item(metadata_item)
+        return metadata_item
+
+    async def process_item(self, metadata_item: dict) -> dict:
         if metadata_item.get("message_type") == MessageType.LONG:
             self.store_telegraph = True
             logger.info("message type is long, store in telegraph")
