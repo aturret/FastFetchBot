@@ -1,13 +1,15 @@
 {# templates/social_media_message.html #}
 
 {% if data.message_type == "short" %}
-{{ data.text }}#{{ data.category }}
+{{ data.text }}{% if data.category in ['youtube', 'bilibili'] %}
+
+{% endif %}#{{ data.category }}
 {% if data.telegraph_url %}
 <a href="{{ data.telegraph_url }}">原文备份</a>
 {% endif %}
 {% else %}
     {# title #}
-    {% if data.category in ['YouTube', 'Bilibili'] %}
+    {% if data.category in ['youtube', 'bilibili'] %}
         <a href="{{ data.url }}">
             <b>{{ data.title }}</b>
         </a>
