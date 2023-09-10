@@ -72,7 +72,8 @@ from app.services.telegram_bot.config import (
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
-    REFERER_REQUIRED, TELEGRAM_TEXT_LIMIT,
+    REFERER_REQUIRED,
+    TELEGRAM_TEXT_LIMIT,
 )
 from app.models.classes import NamedBytesIO
 from app.models.url_metadata import UrlMetadata
@@ -594,7 +595,7 @@ def message_formatting(data: dict) -> str:
     """
     if data["message_type"] == "short" and len(data["text"]) > TELEGRAM_TEXT_LIMIT:
         data["text"] = data["text"][:TELEGRAM_TEXT_LIMIT]
-        data["text"] = re.compile(r'<[^>]*?(?<!>)$').sub('', data["text"])
+        data["text"] = re.compile(r"<[^>]*?(?<!>)$").sub("", data["text"])
         data["text"] += "..."
     message_template = template
     text = message_template.render(data=data)
