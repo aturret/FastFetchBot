@@ -1,38 +1,36 @@
 from typing import Optional, Union, List
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from odmantic import AIOEngine, Model
+from beanie import init_beanie, Document, Indexed
 
 from app.config import MONGODB_URL
-
-client = AsyncIOMotorClient(MONGODB_URL)
-engine = AIOEngine(client=client, database="telegram_bot")
+from app.models.database_model import document_list
 
 
 async def startup() -> None:
-    pass
+    client = AsyncIOMotorClient(MONGODB_URL)
+    await init_beanie(database=client["telegram_bot"], document_models=document_list)
 
 
 async def shutdown() -> None:
     pass
 
 
-async def get_engine() -> AIOEngine:
-    return engine
-
-
-async def save_instances(instances: Union[Model, List[Model]], *args) -> None:
+async def save_instances(instances: Union[Document, List[Document]], *args) -> None:
     if instances is None:
         raise TypeError("instances must be a Model or a list of Model")
 
-    if isinstance(instances, Model):
-        await engine.save(instances)
+    if isinstance(instances, Document):
+        instance_type = type(instances)
+        await instance_type.insert_one(instances)
     elif isinstance(instances, list):
-        await engine.save_all(instances)
+        instance_type = type(instances[0])
+        await instance_type.insert_many(instances)
     else:
         raise TypeError("instances must be a Model or a list of Model")
 
     for arg in args:
-        if not isinstance(arg, Model):
+        if not isinstance(arg, Document):
             raise TypeError("args must be a Model")
-        await engine.save(arg)
+        instance_type = type(arg)
+        await instance_type.insert_one(arg)

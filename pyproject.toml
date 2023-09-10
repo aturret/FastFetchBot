@@ -20,7 +20,6 @@ jmespath = "^1.0.1"
 playwright = "^1.35.0"
 jinja2 = "^3.1.2"
 requests-toolbelt = "^1.0.0"
-odmantic = "^0.9.2"
 babel = "^2.12.1"
 openai = "^0.27.8"
 uvicorn = "^0.22.0"
@@ -33,6 +32,7 @@ pydub = "^0.25.1"
 xhtml2pdf = "^0.2.11"
 weasyprint = "^59.0"
 aioboto3 = "^11.3.0"
+beanie = "^1.21.0"
 
 
 [tool.poetry.group.dev.dependencies]

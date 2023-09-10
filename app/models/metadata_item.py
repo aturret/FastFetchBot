@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Any, List, TypeVar, Callable, Type, cast, Union
 
+from pydantic import BaseModel
+
 """
 MetadataItem is a dataclass that represents a single item for our services. It would be saved in the database.
 The MetadataItem is used to send to the telegram bot. Users can use the metadata to define their own message template.

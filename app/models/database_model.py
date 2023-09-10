@@ -1,13 +1,15 @@
 from typing import Optional, Any
 from datetime import datetime
 
-from odmantic import Model, Field
+from pydantic import BaseModel, Field
+from beanie import Document, Indexed, Insert, after_event
 
 from app.models.metadata_item import MediaFile, MessageType
+from app.models.telegram_chat import document_list as telegram_chat_document_list
 from app.utils.parse import get_html_text_length
 
 
-class Metadata(Model):
+class Metadata(Document):
     title: str = Field(default="untitled")
     message_type: MessageType = MessageType.SHORT
     author: Optional[str] = None
@@ -23,14 +25,16 @@ class Metadata(Model):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     scrape_status: bool = False
 
-    def __post_init__(self, **data: Any):
-        if data.get("text"):
-            self.text_length = get_html_text_length(data["text"])
-        if data.get("content"):
-            self.content_length = get_html_text_length(data["content"])
+    @after_event(Insert)
+    def get_text_length(self):
+        self.text_length = get_html_text_length(self.text)
+        self.content_length = get_html_text_length(self.content)
 
     #
     @staticmethod
     def from_dict(obj: Any) -> "Metadata":
         assert isinstance(obj, dict)
         return Metadata(**obj)
+
+
+document_list = [Metadata] + telegram_chat_document_list

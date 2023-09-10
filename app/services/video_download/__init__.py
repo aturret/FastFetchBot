@@ -133,10 +133,10 @@ class VideoDownloader(MetadataItem):
             resp = await client.post(
                 request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
             )
-        content_info = resp.json().get("content_info")
-        file_path = resp.json().get("file_path")
-        content_info["file_path"] = file_path
-        return content_info
+            content_info = resp.json().get("content_info")
+            file_path = resp.json().get("file_path")
+            content_info["file_path"] = file_path
+            return content_info
 
     def _video_info_formatting(self, meta_info: dict):
         self.title = meta_info["title"]
