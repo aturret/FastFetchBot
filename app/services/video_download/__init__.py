@@ -93,10 +93,10 @@ class VideoDownloader(MetadataItem):
     async def get_video_info(
         self,
         url: str = None,
-        download: bool = True,
+        download: bool = None,
         extractor: str = None,
-        audio_only: bool = False,
-        hd: bool = False,
+        audio_only: bool = None,
+        hd: bool = None,
     ) -> dict:
         """
         make a request to youtube-dl server to get video info
