@@ -7,6 +7,7 @@ import logging
 import os
 import mimetypes
 import re
+from pathlib import Path
 
 import magic
 import traceback
@@ -14,6 +15,8 @@ from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
+
+from app.models.metadata_item import MessageType
 
 mimetypes.init()
 
@@ -257,6 +260,16 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                 special_function_keyboard.extend(
                     [
                         InlineKeyboardButton(
+                            "Audio Only",
+                            callback_data={
+                                "type": "video",
+                                "metadata": url_metadata,
+                                "extra_args": {
+                                    "audio_only": True,
+                                },
+                            },
+                        ),
+                        InlineKeyboardButton(
                             "Transcribe Text",
                             callback_data={
                                 "type": "video",
@@ -485,6 +498,7 @@ async def send_item_message(
                         media=media_group,
                         parse_mode=ParseMode.HTML,
                         caption=caption_text,
+                        write_timeout=TELEBOT_WRITE_TIMEOUT,
                     )
             else:
                 sent_message = await application.bot.send_message(
@@ -493,7 +507,7 @@ async def send_item_message(
                     parse_mode=ParseMode.HTML,
                     reply_to_message_id=message.message_id if message else None,
                     disable_web_page_preview=True
-                    if data["message_type"] == "short"
+                    if data["message_type"] == MessageType.SHORT
                     else False,
                     disable_notification=True,
                 )
