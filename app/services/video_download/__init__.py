@@ -160,7 +160,10 @@ class VideoDownloader(MetadataItem):
         )
         self.content = self.text.replace("\n", "<br>")
         if self.download:
-            self.media_files = [MediaFile("video", self.file_path, "")]
+            media_type = "video"
+            if self.audio_only:
+                media_type = "audio"
+            self.media_files = [MediaFile(media_type, self.file_path, "")]
 
     @staticmethod
     def _youtube_info_parse(video_info: dict) -> dict:

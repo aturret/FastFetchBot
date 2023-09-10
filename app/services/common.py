@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from app.models.database_model import Metadata
+# from app.models.database_model import Metadata
 from app.models.url_metadata import UrlMetadata
 from app.models.metadata_item import MetadataItem, MessageType
 from app.services import (
@@ -16,7 +16,8 @@ from app.services import (
     document_export,
     inoreader,
 )
-from app.database import save_instances
+
+# from app.database import save_instances
 from app.utils.logger import logger
 from app.config import DATABASE_ON
 
@@ -105,6 +106,6 @@ class InfoExtractService(object):
                 )
             except Exception as e:
                 logger.error(f"Error while exporting document: {e}")
-        if self.store_database:
-            await save_instances(Metadata.from_dict(metadata_item))
+        # if self.store_database:
+        #     await save_instances(Metadata.from_dict(metadata_item))
         return metadata_item
