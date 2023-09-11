@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from app import auth, database
 from app.routers import telegram_bot, inoreader
 from app.services import telegram_bot as telegram_bot_service
-from app.config import TELEGRAM_BOT_TOKEN
+from app.config import TELEGRAM_BOT_TOKEN, DATABASE_ON
 from app.utils.logger import logger
 
 SENTRY_DSN = ""
@@ -33,10 +33,12 @@ async def lifespan(app: FastAPI):
         started.value = 1
         await telegram_bot_service.set_webhook()
     mutex.release()
-    await database.startup()
+    if DATABASE_ON:
+        await database.startup()
     await telegram_bot_service.startup()
     yield
-    await database.shutdown()
+    if DATABASE_ON:
+        await database.shutdown()
     await telegram_bot_service.shutdown()
 
 
