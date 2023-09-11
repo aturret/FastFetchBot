@@ -5,6 +5,7 @@ from beanie import init_beanie, Document, Indexed
 
 from app.config import MONGODB_URL
 from app.models.database_model import document_list
+from app.utils.logger import logger
 
 
 async def startup() -> None:
@@ -22,7 +23,7 @@ async def save_instances(instances: Union[Document, List[Document]], *args) -> N
 
     if isinstance(instances, Document):
         instance_type = type(instances)
-        await instance_type.insert_one(instances)
+        await instance_type.insert(instances)
     elif isinstance(instances, list):
         instance_type = type(instances[0])
         await instance_type.insert_many(instances)

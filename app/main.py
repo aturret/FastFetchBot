@@ -4,7 +4,7 @@ import multiprocessing
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app import auth
+from app import auth, database
 from app.routers import telegram_bot, inoreader
 from app.services import telegram_bot as telegram_bot_service
 from app.config import TELEGRAM_BOT_TOKEN
@@ -33,9 +33,10 @@ async def lifespan(app: FastAPI):
         started.value = 1
         await telegram_bot_service.set_webhook()
     mutex.release()
-
+    await database.startup()
     await telegram_bot_service.startup()
     yield
+    await database.shutdown()
     await telegram_bot_service.shutdown()
 
 

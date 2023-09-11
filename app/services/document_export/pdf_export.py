@@ -4,23 +4,28 @@ import functools
 # import gc
 import os
 import uuid
+from pathlib import Path
 
 import aiofiles
 import aiofiles.os
 import httpx
-
-# from xhtml2pdf import pisa
-# from weasyprint import HTML, CSS
 from bs4 import BeautifulSoup
 
-# from weasyprint.text.fonts import FontConfiguration
-
-from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT, TEMP_DIR
+from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT, TEMP_DIR, AWS_STORAGE_ON
+from app.services.amazon.s3 import upload as upload_to_s3
 from app.utils.logger import logger
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 PDF_STYLESHEET = os.path.join(current_directory, "pdf_export.css")
+
+
+async def upload_file_to_s3(output_filename):
+    return await upload_to_s3(
+        staging_path=output_filename,
+        suite="documents",
+        file_name=output_filename.name,
+    )
 
 
 class PdfExport:
@@ -52,9 +57,6 @@ class PdfExport:
             body["html_file"] = html_file
         output_filename = f"{self.title}-{uuid.uuid4()}.pdf"
         body["output_filename"] = output_filename
-        loop = asyncio.get_event_loop()
-        # css_string = await loop.run_in_executor(None, open, PDF_STYLESHEET, "r")
-        # css_string = await loop.run_in_executor(None, css_string.read)
 
         async with httpx.AsyncClient() as client:
             request_url = FILE_EXPORTER_URL + "/pdfExport"
@@ -65,6 +67,10 @@ class PdfExport:
         output_filename = resp.json().get("output_filename")
         logger.info(f"pdf export success: {output_filename}")
         await aiofiles.os.remove(html_file)
+        if AWS_STORAGE_ON:
+            local_filename = output_filename
+            output_filename = await upload_file_to_s3(Path(output_filename))
+            await aiofiles.os.remove(local_filename)
         return output_filename
 
     @staticmethod

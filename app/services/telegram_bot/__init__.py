@@ -7,20 +7,17 @@ import logging
 import os
 import mimetypes
 import re
+import aiofiles
 from pathlib import Path
-
-import magic
 import traceback
 from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
 
-from app.models.metadata_item import MessageType
-
 mimetypes.init()
 
-import aiofiles
+import magic
 from telegram import (
     Update,
     MessageEntity,
@@ -47,6 +44,9 @@ from telegram.ext import (
 )
 from jinja2 import Environment, FileSystemLoader
 
+from app.database import save_instances
+from app.models.metadata_item import MessageType
+from app.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
 from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type, get_html_text_length
 from app.utils.network import download_a_iobytes_file
@@ -68,7 +68,10 @@ from app.config import (
     TELEBOT_WRITE_TIMEOUT,
     TELEGRAM_IMAGE_DIMENSION_LIMIT,
     TELEGRAM_IMAGE_SIZE_LIMIT,
+    FILE_EXPORTER_ON,
     JINJA2_ENV,
+    OPENAI_API_KEY,
+    DATABASE_ON,
 )
 from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
@@ -84,16 +87,6 @@ from app.models.url_metadata import UrlMetadata
 """
 application and handlers initialization
 """
-logger.debug(
-    f"""
-TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN[:2] + "*" * (len(TELEGRAM_BOT_TOKEN) - 4) + TELEGRAM_BOT_TOKEN[-2:]}
-TELEGRAM_CHANNEL_ID: {TELEGRAM_CHANNEL_ID}
-TELEBOT_API_SERVER: {TELEBOT_API_SERVER}
-TELEBOT_API_SERVER_FILE: {TELEBOT_API_SERVER_FILE}
-LOCAL_FILE_MODE: {TELEBOT_LOCAL_FILE_MODE}
-TELEBOT_DEBUG_CHANNEL: {TELEBOT_DEBUG_CHANNEL}
-"""
-)
 
 
 async def set_webhook() -> bool:
@@ -192,7 +185,6 @@ async def process_telegram_update(
     :return:
     """
     update = Update.de_json(data=data, bot=application.bot)
-    logger.debug(f"update: {update}")
     application.bot.insert_callback_data(update)
     await application.update_queue.put(update)
 
@@ -257,53 +249,59 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         ),
                     ]
                 )
-                special_function_keyboard.extend(
-                    [
-                        InlineKeyboardButton(
-                            "Audio Only",
-                            callback_data={
-                                "type": "video",
-                                "metadata": url_metadata,
-                                "extra_args": {
-                                    "audio_only": True,
+                if FILE_EXPORTER_ON:
+                    special_function_keyboard.extend(
+                        [
+                            InlineKeyboardButton(
+                                "Audio Only",
+                                callback_data={
+                                    "type": "video",
+                                    "metadata": url_metadata,
+                                    "extra_args": {
+                                        "audio_only": True,
+                                    },
                                 },
-                            },
-                        ),
-                        InlineKeyboardButton(
-                            "Transcribe Text",
-                            callback_data={
-                                "type": "video",
-                                "metadata": url_metadata,
-                                "extra_args": {
-                                    "audio_only": True,
-                                    "transcribe": True,
-                                    "store_document": True,
+                            ),
+                            InlineKeyboardButton(
+                                "Download HD",
+                                callback_data={
+                                    "type": "video",
+                                    "metadata": url_metadata,
+                                    "extra_args": {"hd": True},
                                 },
-                            },
-                        ),
-                        InlineKeyboardButton(
-                            "Download HD",
-                            callback_data={
-                                "type": "video",
-                                "metadata": url_metadata,
-                                "extra_args": {"hd": True},
-                            },
-                        ),
-                    ]
-                )
-            elif url_metadata.content_type == "social_media":
-                special_function_keyboard.append(
-                    InlineKeyboardButton(
-                        "Force Send in Chat",
-                        callback_data={"type": "force", "metadata": url_metadata},
+                            ),
+                        ]
                     )
-                )
+                    if OPENAI_API_KEY:
+                        special_function_keyboard.append(
+                            InlineKeyboardButton(
+                                "Transcribe Text",
+                                callback_data={
+                                    "type": "video",
+                                    "metadata": url_metadata,
+                                    "extra_args": {
+                                        "audio_only": True,
+                                        "transcribe": True,
+                                        "store_document": True,
+                                    },
+                                },
+                            ),
+                        )
+            elif url_metadata.content_type == "social_media":
                 basic_function_keyboard.extend(
                     [
                         InlineKeyboardButton(
                             "Send to Me",
                             callback_data={"type": "private", "metadata": url_metadata},
                         ),
+                        InlineKeyboardButton(
+                            "Force Send in Chat",
+                            callback_data={"type": "force", "metadata": url_metadata},
+                        ),
+                    ]
+                )
+                if FILE_EXPORTER_ON:
+                    special_function_keyboard.append(
                         InlineKeyboardButton(
                             "Send with PDF",
                             callback_data={
@@ -312,8 +310,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                                 "extra_args": {"store_document": True},
                             },
                         ),
-                    ]
-                )
+                    )
             basic_function_keyboard.append(
                 InlineKeyboardButton(
                     "Cancel",
@@ -348,7 +345,18 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
 
 
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
-    print("webhook_update", update.message)
+    message = update.message
+    logger.debug(message)
+    if DATABASE_ON:
+        telegram_chat = TelegramChat.construct(**message.chat.to_dict())
+        telegram_user = TelegramUser.construct(**message.from_user.to_dict())
+        telegram_message = TelegramMessage(
+            datetime=message.date,
+            chat=telegram_chat,
+            user=telegram_user,
+            text=message.text,
+        )
+        await save_instances(telegram_message)
 
 
 async def buttons_process(update: Update, context: CallbackContext) -> None:

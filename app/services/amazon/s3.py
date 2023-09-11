@@ -1,7 +1,7 @@
 import asyncio
 import uuid
-import datetime
-from urllib.parse import urlparse
+from datetime import datetime
+from urllib.parse import urlparse,quote
 
 import aiofiles.os
 from pathlib import Path
@@ -22,7 +22,7 @@ image_url_host = (
 )
 
 
-async def download_and_upload(url: str, referer: str = None) -> str:
+async def download_and_upload(url: str, referer: str = None,suite:str="test") -> str:
     urlparser = urlparse(url)
     file_name = (urlparser.netloc + urlparser.path).replace("/", "-")
     local_path = await download_file_to_local(url=url, referer=referer, file_name=file_name)
@@ -31,8 +31,7 @@ async def download_and_upload(url: str, referer: str = None) -> str:
     if not local_path:
         return ""
     s3_path = await upload(
-        suite="test",
-        release="test",
+        suite=suite,
         staging_path=local_path,
         file_name=file_name,
     )
@@ -44,7 +43,7 @@ async def upload(
     staging_path: Path,
     bucket: str = AWS_S3_BUCKET_NAME,
     suite: str = "test",
-    release: str = "test",
+    release: str = datetime.now().strftime("%Y-%m-%d"),
     file_name: str = None,
 ) -> str:
     if not file_name:
@@ -64,4 +63,6 @@ async def upload(
             logger.error(f"Failed to upload {file_name} to {suite}/{release}, {e}")
             return ""
         image_url = f"https://{image_url_host}/{blob_s3_key}"
-        return image_url
+        urlparser = urlparse(image_url)
+        quoted_url = urlparser.scheme + "://" + urlparser.netloc + quote(urlparser.path)
+        return quoted_url

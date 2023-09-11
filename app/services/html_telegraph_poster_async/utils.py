@@ -11,7 +11,7 @@ from app.services.amazon.s3 import download_and_upload as upload_image_to_s3
 from app.config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
-    AWS_S3_BUCKET_NAME,
+    AWS_S3_BUCKET_NAME, AWS_STORAGE_ON,
 )
 from ...utils.logger import logger
 
@@ -51,7 +51,7 @@ class DocumentPreprocessor:
     @staticmethod
     async def _upload_and_replace_url(image_element, url: str = None):
         old_image_url = image_element.attrib.get("src")
-        if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME:
+        if AWS_STORAGE_ON:
             new_image_url = await DocumentPreprocessor._upload_image_to_s3(
                 old_image_url, url=url
             )
@@ -106,7 +106,7 @@ class DocumentPreprocessor:
     async def _upload_image_to_s3(old_image_url, url: str = None):
         new_image_url = None
         try:
-            new_image_url = await upload_image_to_s3(old_image_url, referer=url)
+            new_image_url = await upload_image_to_s3(old_image_url, referer=url, suite="images")
         except Exception as e:
             logger.error(f"Could not upload image {old_image_url}\nError: {e}")
         return new_image_url

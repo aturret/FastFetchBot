@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, List, TypeVar, Callable, Type, cast, Union
+from typing import Any, List, TypeVar, Callable, Type, cast, Union, Optional
 
 from pydantic import BaseModel
 
@@ -38,7 +38,8 @@ class MessageType(str, Enum):
 class MediaFile:
     media_type: str
     url: str
-    caption: Union[str, None] = None
+    original_url: Optional[str] = None
+    caption: Optional[str] = None
 
     @staticmethod
     def from_dict(obj: Any) -> "MediaFile":
