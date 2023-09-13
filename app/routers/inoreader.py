@@ -12,7 +12,7 @@ from app.services.inoreader import Inoreader
 from fastapi import Security
 from app.auth import verify_api_key
 from app.utils.logger import logger
-from app.utils.parse import check_url_type
+from app.utils.parse import check_url_type, get_bool
 
 router = APIRouter(prefix="/inoreader")
 default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else None
@@ -45,9 +45,11 @@ async def get_inoreader_item_async(
         params: Optional[Dict] = None,
         # filters: Optional[Dict] = None,
 ):
+    use_inoreader_content = True
     telegram_channel_id = default_telegram_channel_id
     if trigger and params and not data:
         logger.debug(f"params:{params}")
+        use_inoreader_content = get_bool(params.get("useInoreaderContent"), True)
         stream_type = params.get("streamType", "broadcast")
         telegram_channel_id = params.get("channelId", default_telegram_channel_id)
         tag = params.get("tag", None)
@@ -61,22 +63,29 @@ async def get_inoreader_item_async(
         )
 
     url_type_item = await check_url_type(data["aurl"])
-    url_type_dict = url_type_item.to_dict()
-    is_video = url_type_dict["content_type"] == "video"
-    content_type = url_type_dict["content_type"] if is_video else "social_media"
-    source = url_type_dict["source"] if is_video else "inoreader"
-
-    url_metadata = UrlMetadata(
-        url=data["aurl"],
-        content_type=content_type,
-        source=source,
-    )
-    item = InfoExtractService(
-        url_metadata=url_metadata,
-        data=data,
-        store_document=True,
-        category=data["category"],
-    )
+    logger.debug(f"ino original: {use_inoreader_content}")
+    if use_inoreader_content is True:
+        url_type_dict = url_type_item.to_dict()
+        is_video = url_type_dict["content_type"] == "video"
+        content_type = url_type_dict["content_type"] if is_video else "social_media"
+        source = url_type_dict["source"] if is_video else "inoreader"
+        url_metadata = UrlMetadata(
+            url=data["aurl"],
+            content_type=content_type,
+            source=source,
+        )
+        item = InfoExtractService(
+            url_metadata=url_metadata,
+            data=data,
+            store_document=True,
+            category=data["category"],
+        )
+    else:
+        item = InfoExtractService(
+            url_metadata=url_type_item,
+            data=data,
+            store_document=True,
+        )
     metadata_item = await item.get_item()
     await send_item_message(metadata_item, chat_id=telegram_channel_id)
 
