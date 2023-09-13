@@ -6,9 +6,16 @@ from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import HEADERS
 from app.utils.logger import logger
 from app.utils.parse import get_html_text_length
-from app.config import INOREADER_APP_ID, INOREADER_APP_KEY, INOREADER_EMAIL, INOREADER_PASSWORD
+from app.config import (
+    INOREADER_APP_ID,
+    INOREADER_APP_KEY,
+    INOREADER_EMAIL,
+    INOREADER_PASSWORD,
+)
 
-INOREADER_BROADCAST_URL = "https://www.inoreader.com/reader/api/0/stream/contents/user/-/state/com.google/broadcast"
+INOREADER_CONTENT_URL = "https://www.inoreader.com/reader/api/0/stream/contents/user/-/"
+TAG_PATH = "label/"
+OTHER_PATH = "state/com.google/"
 INOREADER_LOGIN_URL = "https://www.inoreader.com/accounts/ClientLogin"
 
 
@@ -63,7 +70,13 @@ class Inoreader(MetadataItem):
         self.text = '<a href="' + self.url + '">' + self.author + "</a>: " + self.text
 
     @staticmethod
-    async def request_api_info() -> dict:
+    async def request_api_info(
+        stream_type: str = "broadcast", tag: str = None, params: dict = {}
+    ) -> dict:
+        if stream_type == "tag":
+            path_url = TAG_PATH + tag
+        else:
+            path_url = OTHER_PATH + stream_type
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 INOREADER_LOGIN_URL,
@@ -73,17 +86,24 @@ class Inoreader(MetadataItem):
                 },
             )
             authorization = resp.text.split("\n")[2].split("=")[1]
+
         async with httpx.AsyncClient() as client:
             headers = HEADERS
-            headers['Authorization'] = f'GoogleLogin auth={authorization}'
-            resp = await client.get(
-                INOREADER_BROADCAST_URL,
-                params={
+            headers["Authorization"] = f"GoogleLogin auth={authorization}"
+            params = params
+            params.update(
+                {
                     "AppId": INOREADER_APP_ID,
                     "AppKey": INOREADER_APP_KEY,
                     "comments": 1,
                     "n": 1,
-                },
+                }
+            )
+            request_url = INOREADER_CONTENT_URL + path_url
+            logger.debug(request_url)
+            resp = await client.get(
+                url=request_url,
+                params=params,
                 headers=headers,
             )
             logger.debug(resp.text)
@@ -98,5 +118,5 @@ class Inoreader(MetadataItem):
                         "message": items[0].comments[0].commentBody
                     }}"""
             data = jmespath.search(expression, data)
-            data['category'] = data['category'].split('/')[-1]
+            data["category"] = data["category"].split("/")[-1]
         return data
