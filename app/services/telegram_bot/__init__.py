@@ -355,7 +355,7 @@ async def all_messages_process(update: Update, context: CallbackContext) -> None
             datetime=message.date,
             chat=telegram_chat,
             user=telegram_user,
-            text=message.text,
+            text=message.text or "",
         )
         await save_instances(telegram_message)
 
