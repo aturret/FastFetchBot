@@ -185,6 +185,7 @@ async def process_telegram_update(
     :return:
     """
     update = Update.de_json(data=data, bot=application.bot)
+    # logger.debug(f"update: {update}")
     application.bot.insert_callback_data(update)
     await application.update_queue.put(update)
 
@@ -347,7 +348,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
     message = update.message
     logger.debug(message)
-    if DATABASE_ON:
+    if message and DATABASE_ON:
         telegram_chat = TelegramChat.construct(**message.chat.to_dict())
         telegram_user = TelegramUser.construct(**message.from_user.to_dict())
         telegram_message = TelegramMessage(
@@ -468,6 +469,7 @@ async def send_item_message(
     :param message: (Message) any message to reply
     :return:
     """
+    logger.debug(f"send_item_message: {data}, {chat_id}, {message}")
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
     if (
