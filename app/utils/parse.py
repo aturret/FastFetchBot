@@ -2,6 +2,7 @@ import datetime
 import os
 import re
 import mimetypes
+from typing import Optional
 from urllib.parse import urlparse, unquote
 
 from bs4 import BeautifulSoup
@@ -91,3 +92,19 @@ def wrap_text_into_html(text: str, is_html: bool = False) -> str:
     text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
     text = "".join(text_list)
     return text
+
+
+def get_bool(value: Optional[str], default:bool=True) -> bool:
+    true_values = ("True", "true", "1", "yes", "on")
+    false_values = ("False", "false", "0", "no", "off")
+
+    if value is None:
+        return default
+    value = value.lower()
+
+    if value in true_values:
+        return True
+    elif value in false_values:
+        return False
+    else:
+        return default

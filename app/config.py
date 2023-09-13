@@ -1,27 +1,22 @@
 import os
 import tempfile
 import socket
+from typing import Optional
+
 from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
+
+from app.utils.parse import get_bool
 
 env = os.environ
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 
-def get_env_bool(var_name, default=False):
+def get_env_bool(var_name: Optional[str], default: bool = False):
     """Retrieve environment variable as a boolean."""
-    true_values = {"True", "true", "1", "yes", "on"}
-    false_values = {"False", "false", "0", "no", "off"}
-
     value = env.get(var_name, "").lower()
-
-    if value in true_values:
-        return True
-    elif value in false_values:
-        return False
-    else:
-        return default
+    return get_bool(value, default)
 
 
 # FastAPI environment variables
@@ -44,7 +39,6 @@ DATABASE_ON = get_env_bool("DATABASE_ON", False)
 MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
 MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
 MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
-
 
 # Telegram bot environment variables
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
@@ -94,7 +88,7 @@ TELEBOT_READ_TIMEOUT = int(env.get("TELEGRAM_READ_TIMEOUT", 60)) or 60
 TELEBOT_WRITE_TIMEOUT = int(env.get("TELEGRAM_WRITE_TIMEOUT", 60)) or 60
 TELEGRAM_IMAGE_DIMENSION_LIMIT = int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 1600)) or 1600
 TELEGRAM_IMAGE_SIZE_LIMIT = (
-    int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
+        int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
 )
 
 # Youtube-dl environment variables
