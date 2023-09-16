@@ -48,7 +48,6 @@ class Inoreader(MetadataItem):
     async def get_item(self, api: bool = False) -> dict:
         if api:
             data = await self.request_api_info()
-
         self._resolve_media_files()
         if get_html_text_length(self.content) < 400:
             self.message_type = MessageType.SHORT
@@ -64,7 +63,7 @@ class Inoreader(MetadataItem):
         for video in soup.find_all("video"):
             self.media_files.append(MediaFile(url=video["src"], media_type="video"))
             video.extract()
-        for tags in soup.find_all("p", "span"):
+        for tags in soup.find_all(["p", "span"]):
             tags.unwrap()
         self.text = str(soup)
         self.text = '<a href="' + self.url + '">' + self.author + "</a>: " + self.text
