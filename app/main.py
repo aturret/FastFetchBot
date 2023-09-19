@@ -1,8 +1,9 @@
 import sentry_sdk
 import multiprocessing
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import auth, database
 from app.routers import telegram_bot, inoreader
@@ -42,8 +43,21 @@ async def lifespan(app: FastAPI):
     await telegram_bot_service.shutdown()
 
 
+class LogMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app):
+        super().__init__(app)
+
+    async def dispatch(
+        self, request: Request, call_next
+    ):
+        logger.info(f"{request.method} {request.url}")
+        response = await call_next(request)
+        return response
+
+
 def create_app():
     fastapi_app = FastAPI(lifespan=lifespan)
+    fastapi_app.add_middleware(LogMiddleware)
     if TELEGRAM_BOT_TOKEN is not None:
         fastapi_app.include_router(telegram_bot.router)
     else:
