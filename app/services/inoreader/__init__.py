@@ -1,6 +1,9 @@
+from urllib.parse import quote
+
 import httpx
 from bs4 import BeautifulSoup
 import jmespath
+from httpx import Response
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.config import HEADERS
@@ -13,9 +16,9 @@ from app.config import (
     INOREADER_PASSWORD,
 )
 
-INOREADER_CONTENT_URL = "https://www.inoreader.com/reader/api/0/stream/contents/user/-/"
-TAG_PATH = "label/"
-OTHER_PATH = "state/com.google/"
+INOREADER_CONTENT_URL = "https://www.inoreader.com/reader/api/0/stream/contents/"
+TAG_PATH = "user/-/label/"
+OTHER_PATH = "user/-/state/com.google/"
 INOREADER_LOGIN_URL = "https://www.inoreader.com/accounts/ClientLogin"
 
 
@@ -47,7 +50,7 @@ class Inoreader(MetadataItem):
 
     async def get_item(self, api: bool = False) -> dict:
         if api:
-            data = await self.request_api_info()
+            data = await self.get_api_item_data()
         self._resolve_media_files()
         if get_html_text_length(self.content) < 400:
             self.message_type = MessageType.SHORT
@@ -69,13 +72,70 @@ class Inoreader(MetadataItem):
         self.text = '<a href="' + self.url + '">' + self.author + "</a>: " + self.text
 
     @staticmethod
-    async def request_api_info(
-        stream_type: str = "broadcast", tag: str = None, params: dict = {}
-    ) -> dict:
-        if stream_type == "tag":
-            path_url = TAG_PATH + tag
+    def get_stream_id(
+        stream_type: str = "broadcast", tag: str = None, feed: str = None
+    ) -> str:
+        if stream_type == "feed":
+            stream_id = feed
+        elif stream_type == "tag":
+            stream_id = TAG_PATH + tag
         else:
-            path_url = OTHER_PATH + stream_type
+            stream_id = OTHER_PATH + stream_type
+        stream_id = quote(stream_id)
+        return stream_id
+
+    @staticmethod
+    async def mark_all_as_read(stream_id: str) -> None:
+        request_url = "https://www.inoreader.com/reader/api/0/mark-all-as-read"
+        params = {
+            "s": stream_id,
+            "ts": 0,
+        }
+        resp = await Inoreader.get_api_info(url=request_url, params=params)
+        logger.debug(resp.text)
+
+    @staticmethod
+    async def get_api_item_data(
+        stream_type: str = "broadcast",
+        tag: str = None,
+        feed: str = None,
+        params: dict = None,
+    ) -> dict:
+        stream_id = Inoreader.get_stream_id(stream_type=stream_type, tag=tag, feed=feed)
+        request_url = INOREADER_CONTENT_URL + stream_id
+        default_params = {
+            "comments": 1,
+            "n": 10,
+            "r": "o",
+            "xt": "user/-/state/com.google/read",
+        }
+        if params:
+            default_params.update(params)
+        params = default_params
+        resp = await Inoreader.get_api_info(url=request_url, params=params)
+        logger.debug(resp.text)
+        data = resp.json()
+        expression = """
+                    items[].{
+                    "aurl": canonical[0].href,
+                    "title": title,
+                    "author": origin.title,
+                    "author_url": origin.htmlUrl,
+                    "content": summary.content,
+                    "category": categories[-1],
+                    "message": comments[0].commentBody
+                    }
+                """
+        data = jmespath.search(expression, data)
+        for item in data:
+            item["category"] = item["category"].split("/")[-1]
+        return data
+
+    @staticmethod
+    async def get_api_info(
+        url: str,
+        params=None,
+    ) -> Response:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 INOREADER_LOGIN_URL,
@@ -89,33 +149,16 @@ class Inoreader(MetadataItem):
         async with httpx.AsyncClient() as client:
             headers = HEADERS
             headers["Authorization"] = f"GoogleLogin auth={authorization}"
-            params = params
+            params = params or {}
             params.update(
                 {
                     "AppId": INOREADER_APP_ID,
                     "AppKey": INOREADER_APP_KEY,
-                    "comments": 1,
-                    "n": 1,
                 }
             )
-            request_url = INOREADER_CONTENT_URL + path_url
-            logger.debug(request_url)
             resp = await client.get(
-                url=request_url,
+                url=url,
                 params=params,
                 headers=headers,
             )
-            logger.debug(resp.text)
-            data = resp.json()
-            expression = f"""{{
-                        "aurl": items[0].canonical[0].href,
-                        "title": items[0].title,
-                        "author": items[0].origin.title,
-                        "author_url": items[0].origin.htmlUrl,
-                        "content": items[0].summary.content,
-                        "category": items[0].categories[-1],
-                        "message": items[0].comments[0].commentBody
-                    }}"""
-            data = jmespath.search(expression, data)
-            data["category"] = data["category"].split("/")[-1]
-        return data
+            return resp
