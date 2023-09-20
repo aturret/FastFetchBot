@@ -1,3 +1,4 @@
+# TODO: this script is now unused, will be removed in the future
 import asyncio
 
 from fastapi import APIRouter, BackgroundTasks
