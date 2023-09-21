@@ -88,7 +88,15 @@ RUN apt-get update \
         fonts-wqy-microhei \
         fonts-wqy-zenhei \
         fonts-noto-cjk \
-        fonts-noto-cjk-extra
+        fonts-noto-cjk-extra \
+        libnss3 \
+        libnspr4 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libcups2 \
+        libatspi2.0-0 \
+        libxcomposite1 \
+        libxdamage1
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
