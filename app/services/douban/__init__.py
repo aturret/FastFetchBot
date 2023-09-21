@@ -85,7 +85,7 @@ class Douban(MetadataItem):
                 path = path.replace("/book/", "/")
         if path.startswith("/note/"):
             self.douban_type = DoubanType.NOTE
-        elif path.startswith("/status/"):
+        elif path.startswith("/status/") or re.match(r"/people/\d+/status/\d+", path):
             self.douban_type = DoubanType.STATUS
         elif path.startswith("/group/topic/"):
             self.douban_type = DoubanType.GROUP
