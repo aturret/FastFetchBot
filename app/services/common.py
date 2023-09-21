@@ -14,7 +14,7 @@ from app.services import (
     video_download,
     wechat,
     document_export,
-    inoreader,
+    inoreader, xiaohongshu,
 )
 
 from app.database import save_instances
@@ -45,6 +45,7 @@ class InfoExtractService(object):
             "instagram": instagram.Instagram,
             "douban": douban.Douban,
             "zhihu": zhihu.Zhihu,
+            "xiaohongshu": xiaohongshu.Xiaohongshu,
             "youtube": video_download.VideoDownloader,
             "bilibili": video_download.VideoDownloader,
             "inoreader": inoreader.Inoreader,

@@ -1,37 +1,112 @@
+import json
 from typing import Dict, Any
+from urllib.parse import urlparse
 
-from playwright.async_api import async_playwright
+import httpx
+import jmespath
+from bs4 import BeautifulSoup
 
-from app.models.metadata_item import MetadataItem
-from app.utils.config import CHROME_USER_AGENT
-from app.config import XIAOHONGSHU_COOKIES
+from app.models.metadata_item import MetadataItem, MediaFile, MessageType
+from app.utils.config import CHROME_USER_AGENT, HEADERS
+from app.config import XIAOHONGSHU_COOKIES, JINJA2_ENV, HTTP_REQUEST_TIMEOUT
+from .xhs.core import XiaoHongShuCrawler
+from .xhs.client import XHSClient
+from .xhs import proxy_account_pool
+
+from ...utils.logger import logger
+from ...utils.parse import unix_timestamp_to_utc, get_html_text_length
+
+environment = JINJA2_ENV
+short_text_template = environment.get_template("xiaohongshu_short_text.jinja2")
+content_template = environment.get_template("xiaohongshu_content.jinja2")
 
 
 class Xiaohongshu(MetadataItem):
-    def __init__(self, url:str,data:Any,**kwargs):
+    def __init__(self, url: str, data: Any, **kwargs):
         self.url = url
+        self.id = None
+        self.media_files = []
+        self.category = "xiaohongshu"
+        self.message_type = MessageType.SHORT
+        # auxiliary fields
+        self.ip_location = None
+        self.share_count = None
+        self.comment_count = None
+        self.collected_count = None
+        self.like_count = None
+        self.updated = None
+        self.created = None
+        self.raw_content = None
 
     async def get_item(self) -> dict:
         await self.get_xiaohongshu()
         return self.to_dict()
 
     async def get_xiaohongshu(self) -> None:
-        pass
+        if self.url.find("xiaohongshu.com") == -1:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    self.url, headers=HEADERS, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT
+                )
+                if resp.history:  # if there is a redirect, the request will have a response chain
+                    for h in resp.history:
+                        print(h.status_code, h.url)
+                    self.url = str(resp.url)
+        urlparser = urlparse(self.url)
+        self.id = urlparser.path.split("/")[-1]
+        crawler = XiaoHongShuCrawler()
+        account_pool = proxy_account_pool.create_account_pool()
+        crawler.init_config("xhs", "cookie", account_pool)
+        note_detail = await crawler.start(id=self.id)
+        # logger.debug(f"json_data: {json.dumps(note_detail, ensure_ascii=False, indent=4)}")
+        parsed_data = self.process_note_json(note_detail)
+        await self.process_xiaohongshu_note(parsed_data)
 
-    async def _scrape_page(self) -> Dict:
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch()
-            context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent=CHROME_USER_AGENT
-            )
-            await context.add_cookies([{
-                'name': "web_session",
-                'value': XIAOHONGSHU_COOKIES['web_session'],
-                'domain': ".xiaohongshu.com",
-                'path': "/"
-            }])
-            page = await context.new_page()
+    async def process_xiaohongshu_note(self, json_data: dict):
+        self.title = json_data.get("title")
+        self.author = json_data.get("author")
+        self.author_url = "https://www.xiaohongshu.com/user/profile/" + json_data.get("user_id")
+        self.raw_content = json_data.get("raw_content")
+        logger.debug(f"{json_data.get('created')}")
+        self.created = unix_timestamp_to_utc(json_data.get("created") / 1000) if json_data.get("created") else None
+        self.updated = unix_timestamp_to_utc(json_data.get("updated") / 1000) if json_data.get("updated") else None
+        self.like_count = json_data.get("like_count")
+        self.collected_count = json_data.get("collected_count")
+        self.comment_count = json_data.get("comment_count")
+        self.share_count = json_data.get("share_count")
+        self.ip_location = json_data.get("ip_location")
+        if json_data.get("image_list"):
+            for image_url in json_data.get("image_list"):
+                self.media_files.append(MediaFile(url=image_url, media_type="image"))
+        if json_data.get("video"):
+            self.media_files.append(MediaFile(url=json_data.get("video"), media_type="video"))
+        data = self.__dict__
+        self.text = short_text_template.render(data=data)
+        if get_html_text_length(self.text) > 500:
+            self.message_type = MessageType.LONG
+        lines = self.raw_content.split("\n")
+        new_content = BeautifulSoup('\n'.join(f'<p>{line.strip()}</p>' for line in lines if line.strip()),
+                                    'html.parser')
+        data["content"] = str(new_content)
+        self.content = content_template.render(data=data)
 
-    async def _login_by_cookies(self) -> None:
-        pass
+    @staticmethod
+    def process_note_json(json_data: dict):
+        expression = """
+        {
+        title: title,
+        raw_content: desc,
+        author: user.nickname,
+        user_id: user.user_id,
+        image_list: image_list[*].url,
+        video: video.media.stream.h264[0].master_url,
+        like_count: interact_info.liked_count,
+        collected_count: interact_info.collected_count,
+        comment_count: interact_info.comment_count,
+        share_count: interact_info.share_count,
+        ip_location: ip_location,
+        created: time,
+        updated: last_update_time
+        }
+        """
+        return jmespath.search(expression, json_data)

@@ -32,9 +32,9 @@ def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
         for item in soup.find_all(unwrap):
             item.unwrap()
     for (
-        new_line
+            new_line
     ) in (
-        new_line_list
+            new_line_list
     ):  # add a new line after each <p> and <li> tag and then remove the tag(unwrapping)
         for item in soup.find_all(new_line):
             item.append(BeautifulSoup("<br>", "html.parser"))
@@ -42,7 +42,9 @@ def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
     return soup
 
 
-def unix_timestamp_to_utc(timestamp: int) -> str:
+def unix_timestamp_to_utc(timestamp: int) -> str | None:
+    if not timestamp:
+        return None
     utc_time = datetime.datetime.utcfromtimestamp(timestamp)
     beijing_time = utc_time + datetime.timedelta(hours=8)
     return beijing_time.strftime("%Y-%m-%d %H:%M")
@@ -94,7 +96,7 @@ def wrap_text_into_html(text: str, is_html: bool = False) -> str:
     return text
 
 
-def get_bool(value: Optional[str], default:bool=True) -> bool:
+def get_bool(value: Optional[str], default: bool = True) -> bool:
     true_values = ("True", "true", "1", "yes", "on")
     false_values = ("False", "false", "0", "no", "off")
 

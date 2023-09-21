@@ -27,6 +27,8 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     "threads": [
         r"(www\.)?threads\.net\/(@[a-zA-Z0-9]+\/post\/[A-Za-z0-9]+|t\/[A-Za-z0-9]+)\/"
     ],
+    "xiaohongshu": [r"(www\.)?xiaohongshu\.com\/(discovery\/item|explore)\/[0-9a-zA-Z]+",
+                    r"(www\.)?xhslink\.com\/[0-9a-zA-Z]+"],
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [r"(((m|www)\.)youtube\.com\/watch)", r"youtu\.be\/[A-Za-z0-9_-]+"],

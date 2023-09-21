@@ -121,6 +121,11 @@ XIAOHONGSHU_COOKIES = {
     "web_id": XIAOHONGSHU_WEBID,
     "web_session": XIAOHONGSHU_WEBSESSION,
 }
+XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
+XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
+XHS_ENABLE_IP_PROXY = get_env_bool("XHS_ENABLE_IP_PROXY", False)
+XHS_SAVE_LOGIN_STATE = get_env_bool("XHS_SAVE_LOGIN_STATE", True)
+
 AWS_STORAGE_ON = get_env_bool("AWS_STORAGE_ON", False)
 AWS_ACCESS_KEY_ID = env.get("AWS_ACCESS_KEY_ID", None)
 AWS_SECRET_ACCESS_KEY = env.get("AWS_SECRET_ACCESS_KEY", None)

@@ -33,6 +33,7 @@ xhtml2pdf = "^0.2.11"
 weasyprint = "^59.0"
 aioboto3 = "^11.3.0"
 beanie = "^1.21.0"
+tenacity = "^8.2.3"
 
 
 [tool.poetry.group.dev.dependencies]
