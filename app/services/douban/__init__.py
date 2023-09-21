@@ -107,12 +107,13 @@ class Douban(MetadataItem):
             DoubanType.UNKNOWN: None,
         }
         await function_dict[self.douban_type]()
+        short_text = self._douban_short_text_process()
         data = self.__dict__
+        data["short_text"] = short_text
         self.text = short_text_template.render(data=data)
         self.content = wrap_text_into_html(
             content_template.render(data=data), is_html=True
         )
-        self._douban_short_text_process()
         if get_html_text_length(self.content) > SHORT_LIMIT:
             self.message_type = MessageType.LONG
         else:
@@ -196,7 +197,7 @@ class Douban(MetadataItem):
             encoding="utf-8",
         )
 
-    def _douban_short_text_process(self):
+    def _douban_short_text_process(self) -> str:
         soup = BeautifulSoup(self.raw_content, "html.parser")
         for img in soup.find_all("img"):
             media_item = {"media_type": "image", "url": img["src"], "caption": ""}
@@ -206,6 +207,10 @@ class Douban(MetadataItem):
             item.unwrap()
         for item in soup.find_all(["link", "script"]):
             item.decompose()
-        self.text += str(soup)
-        self.text = re.sub(r"\n{2,}", "\n", self.text)
-        self.text = re.sub(r"<br\s*/?>", "\n", self.text)
+        for item in soup.find_all("a"):
+            if item["title"] == "查看原图":
+                item.decompose()
+        short_text = str(soup)
+        short_text = re.sub(r"\n{2,}", "\n", short_text)
+        short_text = re.sub(r"<br\s*/?>", "\n", short_text)
+        return short_text
