@@ -88,9 +88,9 @@ RUN apt-get update \
         fonts-wqy-microhei \
         fonts-wqy-zenhei \
         fonts-noto-cjk \
-        fonts-noto-cjk-extra \
-    && poetry run playwright install
+        fonts-noto-cjk-extra
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY ./ /app
 WORKDIR /app
+RUN playwright install
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--preload"]
