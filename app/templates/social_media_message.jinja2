@@ -2,8 +2,8 @@
 
 {% if data.message_type == "short" %}
 {{ data.text }}{% if data.category in ['youtube', 'bilibili'] %}
-
-{% endif %}#{{ data.category }}
+{% endif %}
+#{{ data.category }}
 {% if data.telegraph_url %}
 <a href="{{ data.telegraph_url }}">原文备份</a>
 {% endif %}
