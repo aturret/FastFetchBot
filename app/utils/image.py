@@ -35,5 +35,8 @@ async def check_image_type(io_object: BytesIO):
     mime_type = await loop.run_in_executor(
         None, lambda: magic.from_buffer(io_object.read(), mime=True)
     )
-    ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
+    if mime_type == "image/webp":
+        ext = "webp"
+    else:
+        ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
     return ext
