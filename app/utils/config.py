@@ -25,7 +25,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     ],
     "wechat": [r"mp\.weixin\.qq\.com\/s", r"mp\.weixin\.qq\.com\/mp\/appmsg\/show"],
     "threads": [
-        r"(www\.)?threads\.net\/(@[a-zA-Z0-9]+\/post\/"
+        r"(www\.)?threads\.net\/(@[a-zA-Z0-9]+\/post"
     ],
     "xiaohongshu": [r"(www\.)?xiaohongshu\.com\/(discovery\/item|explore)\/[0-9a-zA-Z]+",
                     r"(www\.)?xhslink\.com\/[0-9a-zA-Z]+"],
