@@ -14,7 +14,7 @@ from .xhs.client import XHSClient
 from .xhs import proxy_account_pool
 
 from ...utils.logger import logger
-from ...utils.parse import unix_timestamp_to_utc, get_html_text_length
+from ...utils.parse import unix_timestamp_to_utc, get_html_text_length, wrap_text_into_html
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("xiaohongshu_short_text.jinja2")
@@ -84,10 +84,7 @@ class Xiaohongshu(MetadataItem):
         self.text = short_text_template.render(data=data)
         if get_html_text_length(self.text) > 500:
             self.message_type = MessageType.LONG
-        lines = self.raw_content.split("\n")
-        new_content = BeautifulSoup('\n'.join(f'<p>{line.strip()}</p>' for line in lines if line.strip()),
-                                    'html.parser')
-        data["raw_content"] = str(new_content)
+        data["raw_content"] = wrap_text_into_html(self.raw_content)
         for media_file in self.media_files:
             if media_file.media_type == "image":
                 data["raw_content"] += f'<p><img src="{media_file.url}" alt=""/></p>'
