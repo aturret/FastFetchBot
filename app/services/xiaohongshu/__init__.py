@@ -87,7 +87,12 @@ class Xiaohongshu(MetadataItem):
         lines = self.raw_content.split("\n")
         new_content = BeautifulSoup('\n'.join(f'<p>{line.strip()}</p>' for line in lines if line.strip()),
                                     'html.parser')
-        data["content"] = str(new_content)
+        data["raw_content"] = str(new_content)
+        for media_file in self.media_files:
+            if media_file.media_type == "image":
+                data["raw_content"] += f'<p><img src="{media_file.url}" alt=""/></p>'
+            elif media_file.media_type == "video":
+                data["raw_content"] += f'<p><video src="{media_file.url}" controls="controls"></video></p>'
         self.content = content_template.render(data=data)
 
     @staticmethod
