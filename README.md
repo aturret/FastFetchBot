@@ -106,3 +106,16 @@ You can set the api key of OpenAI to use the transcription function.
 
 - [x] Youtube
 - [x] Bilibili
+
+## Acknowledgements
+
+The HTML to Telegra.ph converter function is based on [html-telegraph-poster](https://github.com/mercuree/html-telegraph-poster).
+
+The Xiaohongshu scraper is based on [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler).
+
+The Weibo scraper is based on [weiboSpider](https://github.com/dataabc/weiboSpider).
+
+The Twitter scraper is based on [twitter-api-client](https://github.com/trevorhobenshield/twitter-api-client).
+
+All of the code is licensed under the MIT license. I would like to thank all of the above projects for their contributions.
+
