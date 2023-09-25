@@ -1,23 +1,14 @@
 import os
 import tempfile
-import socket
-from typing import Optional
 
 from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
-from app.utils.parse import get_bool
+from app.utils.parse import get_env_bool
 
 env = os.environ
 current_directory = os.path.dirname(os.path.abspath(__file__))
-
-
-def get_env_bool(var_name: Optional[str], default: bool = False):
-    """Retrieve environment variable as a boolean."""
-    value = env.get(var_name, "").lower()
-    return get_bool(value, default)
-
 
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
@@ -28,14 +19,14 @@ API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
 TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
 WORK_DIR = env.get("WORK_DIR", os.getcwd())
 DOWNLOAD_DIR = env.get("DOWNLOAD_DIR", os.path.join(WORK_DIR, "download"))
-DEBUG_MODE = get_env_bool("DEBUG_MODE", False)
+DEBUG_MODE = get_env_bool(env, "DEBUG_MODE", False)
 
 # Logging environment variables
 LOG_FILE_PATH = env.get("LOG_FILE_PATH", TEMP_DIR)
 LOG_LEVEL = env.get("LOG_LEVEL", "DEBUG")
 
 # MongoDB environment variables
-DATABASE_ON = get_env_bool("DATABASE_ON", False)
+DATABASE_ON = get_env_bool(env, "DATABASE_ON", False)
 MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
 MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
 MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
@@ -88,11 +79,11 @@ TELEBOT_READ_TIMEOUT = int(env.get("TELEGRAM_READ_TIMEOUT", 60)) or 60
 TELEBOT_WRITE_TIMEOUT = int(env.get("TELEGRAM_WRITE_TIMEOUT", 60)) or 60
 TELEGRAM_IMAGE_DIMENSION_LIMIT = int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 1600)) or 1600
 TELEGRAM_IMAGE_SIZE_LIMIT = (
-        int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
+    int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
 )
 
 # Youtube-dl environment variables
-FILE_EXPORTER_ON = get_env_bool("FILE_EXPORTER_ON", True)
+FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
 FILE_EXPORTER_HOST = env.get("FILE_EXPORTER_HOST", "fast-yt-downloader")
 FILE_EXPORTER_PORT = env.get("FILE_EXPORTER_PORT", "4000")
 FILE_EXPORTER_URL = f"http://{FILE_EXPORTER_HOST}:{FILE_EXPORTER_PORT}"
@@ -103,7 +94,11 @@ templates_directory = os.path.join(current_directory, "templates")
 JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
+
+# X-RapidAPI (for instagram)
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
+
+# Twitter
 TWITTER_EMAIL = env.get("TWITTER_EMAIL", None)
 TWITTER_PASSWORD = env.get("TWITTER_PASSWORD", None)
 TWITTER_USERNAME = env.get("TWITTER_USERNAME", None)
@@ -113,6 +108,8 @@ TWITTER_COOKIES = {
     "ct0": TWITTER_CT0,
     "auth_token": TWITTER_AUTH_TOKEN,
 }
+
+# Xiaohongshu
 XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)
 XIAOHONGSHU_WEBID = env.get("XIAOHONGSHU_WEBID", None)
 XIAOHONGSHU_WEBSESSION = env.get("XIAOHONGSHU_WEBSESSION", None)
@@ -123,10 +120,17 @@ XIAOHONGSHU_COOKIES = {
 }
 XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
 XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
-XHS_ENABLE_IP_PROXY = get_env_bool("XHS_ENABLE_IP_PROXY", False)
-XHS_SAVE_LOGIN_STATE = get_env_bool("XHS_SAVE_LOGIN_STATE", True)
+XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
+XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
 
-AWS_STORAGE_ON = get_env_bool("AWS_STORAGE_ON", False)
+# Reddit
+REDDIT_CLIENT_ID = env.get("REDDIT_CLIENT_ID", None)
+REDDIT_CLIENT_SECRET = env.get("REDDIT_CLIENT_SECRET", None)
+REDDIT_PASSWORD = env.get("REDDIT_PASSWORD", None)
+REDDIT_USERNAME = env.get("REDDIT_USERNAME", None)
+
+# AWS storage
+AWS_STORAGE_ON = get_env_bool(env, "AWS_STORAGE_ON", False)
 AWS_ACCESS_KEY_ID = env.get("AWS_ACCESS_KEY_ID", None)
 AWS_SECRET_ACCESS_KEY = env.get("AWS_SECRET_ACCESS_KEY", None)
 AWS_S3_BUCKET_NAME = env.get("AWS_S3_BUCKET_NAME", "")

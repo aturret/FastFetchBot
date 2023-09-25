@@ -23,7 +23,7 @@ requests-toolbelt = "^1.0.0"
 babel = "^2.12.1"
 openai = "^0.27.8"
 uvicorn = "^0.22.0"
-aiofiles = "^23.2.1"
+aiofiles = "^0.8.0"
 twitter-api-client = "^0.10.11"
 pillow = "^10.0.0"
 python-magic = "^0.4.27"
@@ -34,6 +34,8 @@ weasyprint = "^59.0"
 aioboto3 = "^11.3.0"
 beanie = "^1.21.0"
 tenacity = "^8.2.3"
+markdown = "^3.4.4"
+asyncpraw = "^7.7.1"
 
 
 [tool.poetry.group.dev.dependencies]

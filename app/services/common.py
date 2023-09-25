@@ -14,7 +14,7 @@ from app.services import (
     video_download,
     wechat,
     document_export,
-    inoreader, xiaohongshu,
+    inoreader, xiaohongshu, reddit,
 )
 
 from app.database import save_instances
@@ -40,6 +40,7 @@ class InfoExtractService(object):
         self.service_classes = {
             "twitter": twitter.Twitter,
             "threads": threads.Threads,
+            "reddit": reddit.Reddit,
             "weibo": weibo.Weibo,
             "wechat": wechat.Wechat,
             "instagram": instagram.Instagram,

@@ -24,11 +24,12 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
         r"((www|m)\.)?douban\.com\/(game|music|movie|book)\/review\/[0-9]+",
     ],
     "wechat": [r"mp\.weixin\.qq\.com\/s", r"mp\.weixin\.qq\.com\/mp\/appmsg\/show"],
-    "threads": [
-        r"(www\.)?threads\.net\/@[a-zA-Z0-9]+\/post"
+    "threads": [r"(www\.)?threads\.net\/@[a-zA-Z0-9]+\/post"],
+    "xiaohongshu": [
+        r"(www\.)?xiaohongshu\.com\/(discovery\/item|explore)\/[0-9a-zA-Z_-]+",
+        r"(www\.)?xhslink\.com\/[0-9a-zA-Z_-]+",
     ],
-    "xiaohongshu": [r"(www\.)?xiaohongshu\.com\/(discovery\/item|explore)\/[0-9a-zA-Z]+",
-                    r"(www\.)?xhslink\.com\/[0-9a-zA-Z]+"],
+    "reddit": [r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/comments\/[a-zA-Z0-9_-]+"],
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [r"(((m|www)\.)youtube\.com\/watch)", r"youtu\.be\/[A-Za-z0-9_-]+"],
