@@ -367,7 +367,7 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
     if data["type"] == "cancel":
         await query.answer("Canceled")
     else:
-        if data["type"] == "private":
+        if data["type"] == "private" or data["type"] == "force":
             await query.answer("Sending to you...")
         if data["type"] == "channel":
             if data.get("channel_id") or len(TELEGRAM_CHANNEL_ID) == 1:
@@ -409,6 +409,8 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         await replying_message.edit_text(
             text=f"Item processed. Sending to the target...",
         )
+        if data["type"] == "force":
+            metadata_item["message_type"] = MessageType.SHORT
         await send_item_message(metadata_item, chat_id=chat_id)
         if data["type"] == "channel":
             await query.message.reply_text(
