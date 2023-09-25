@@ -7,8 +7,8 @@ import jmespath
 from bs4 import BeautifulSoup
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import CHROME_USER_AGENT, HEADERS
-from app.config import XIAOHONGSHU_COOKIES, JINJA2_ENV, HTTP_REQUEST_TIMEOUT
+from app.utils.config import HEADERS
+from app.config import JINJA2_ENV, HTTP_REQUEST_TIMEOUT
 from .xhs.core import XiaoHongShuCrawler
 from .xhs.client import XHSClient
 from .xhs import proxy_account_pool
