@@ -22,11 +22,11 @@ If you want to send documents that larger than 50MB, you need to run a local tel
 docker-compose up -d
 ```
 
-### Python
+### Python (Not Recommended)
 
-Local Telegram API sever and video download function is not supported in this way.
+Local Telegram API sever and video download function is not supported in this way. If you do really need these functions, you can run the telegram api server and [the file export server](https://github.com/aturret/FastFileExporter) manually.
 
-First, install the package manager [Poetry](https://python-poetry.org/).
+We use [Poetry](https://python-poetry.org/) as the package manager for this project. You can install it by the following command.
 
 ```bash
 pip install poetry
@@ -45,6 +45,9 @@ poetry run gunicorn -k uvicorn.workers.UvicornWorker app.main:app --preload
 ```
 
 ## Environment Variables
+
+Note: Many of the services requires cookies to fetch content. You can get your cookies by browser extension [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) and set the cookies as environment variables.
+
 
 ### Required Variables
 
@@ -68,11 +71,25 @@ poetry run gunicorn -k uvicorn.workers.UvicornWorker app.main:app --preload
 
 #### Twitter
 
-Must set if you want to fetch twitter content.
+Must set cookies variables if you want to fetch twitter content.
 
 - `TWITTER_CT0`: The ct0 cookie of twitter. Default: `None`
 - `TWITTER_AUTH_TOKEN`: The auth token of twitter. Default: `None`
 
+#### Reddit
+
+We use `read_only` mode of `praw` to fetch reddit content. We still need to set the `client_id` , `client_secret` , `username` and `password` of your reddit api account.
+
+- `REDDIT_CLIENT_ID`: The client id of reddit. Default: `None`
+- `REDDIT_CLIENT_SECRET`: The client secret of reddit. Default: `None`
+- `REDDIT_USERNAME`: The username of reddit. Default: `None`
+- `REDDIT_PASSWORD`: The password of reddit. Default: `None`
+
+#### Xiaohongshu
+
+- `XIAOHONGSHU_A1`: The a1 cookie of xiaohongshu. Default: `None`
+- `XIAOHONGSHU_WEBID`: The webid cookie of xiaohongshu. Default: `None`
+- `XIAOHONGSHU_WEBSESSION`: The websession cookie of xiaohongshu. Default: `None`
 #### OpenAI
 
 You can set the api key of OpenAI to use the transcription function.
@@ -94,13 +111,13 @@ You can set the api key of OpenAI to use the transcription function.
 - [x] Twitter
 - [x] Instagram
 - [x] Threads
+- [x] Reddit
 - [ ] Quora
-- [ ] Reddit
 - [x] Weibo
 - [x] WeChat Public Account Articles
 - [x] Zhihu
 - [x] Douban
-- [ ] Xiaohongshu
+- [x] Xiaohongshu
 
 ### Video Content
 
@@ -117,5 +134,4 @@ The Weibo scraper is based on [weiboSpider](https://github.com/dataabc/weiboSpid
 
 The Twitter scraper is based on [twitter-api-client](https://github.com/trevorhobenshield/twitter-api-client).
 
-All of the code is licensed under the MIT license. I would like to thank all of the above projects for their contributions.
-
+All the code is licensed under the MIT license. I either used their code as-is or made modifications to implement certain functions. I want to express my gratitude to the projects mentioned above for their contributions.
