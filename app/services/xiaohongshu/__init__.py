@@ -14,7 +14,11 @@ from .xhs.client import XHSClient
 from .xhs import proxy_account_pool
 
 from ...utils.logger import logger
-from ...utils.parse import unix_timestamp_to_utc, get_html_text_length, wrap_text_into_html
+from ...utils.parse import (
+    unix_timestamp_to_utc,
+    get_html_text_length,
+    wrap_text_into_html,
+)
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("xiaohongshu_short_text.jinja2")
@@ -46,9 +50,14 @@ class Xiaohongshu(MetadataItem):
         if self.url.find("xiaohongshu.com") == -1:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
-                    self.url, headers=HEADERS, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT
+                    self.url,
+                    headers=HEADERS,
+                    follow_redirects=True,
+                    timeout=HTTP_REQUEST_TIMEOUT,
                 )
-                if resp.history:  # if there is a redirect, the request will have a response chain
+                if (
+                    resp.history
+                ):  # if there is a redirect, the request will have a response chain
                     for h in resp.history:
                         print(h.status_code, h.url)
                     self.url = str(resp.url)
@@ -65,11 +74,21 @@ class Xiaohongshu(MetadataItem):
     async def process_xiaohongshu_note(self, json_data: dict):
         self.title = json_data.get("title")
         self.author = json_data.get("author")
-        self.author_url = "https://www.xiaohongshu.com/user/profile/" + json_data.get("user_id")
+        self.author_url = "https://www.xiaohongshu.com/user/profile/" + json_data.get(
+            "user_id"
+        )
         self.raw_content = json_data.get("raw_content")
         logger.debug(f"{json_data.get('created')}")
-        self.created = unix_timestamp_to_utc(json_data.get("created") / 1000) if json_data.get("created") else None
-        self.updated = unix_timestamp_to_utc(json_data.get("updated") / 1000) if json_data.get("updated") else None
+        self.created = (
+            unix_timestamp_to_utc(json_data.get("created") / 1000)
+            if json_data.get("created")
+            else None
+        )
+        self.updated = (
+            unix_timestamp_to_utc(json_data.get("updated") / 1000)
+            if json_data.get("updated")
+            else None
+        )
         self.like_count = json_data.get("like_count")
         self.collected_count = json_data.get("collected_count")
         self.comment_count = json_data.get("comment_count")
@@ -79,8 +98,11 @@ class Xiaohongshu(MetadataItem):
             for image_url in json_data.get("image_list"):
                 self.media_files.append(MediaFile(url=image_url, media_type="image"))
         if json_data.get("video"):
-            self.media_files.append(MediaFile(url=json_data.get("video"), media_type="video"))
+            self.media_files.append(
+                MediaFile(url=json_data.get("video"), media_type="video")
+            )
         data = self.__dict__
+        data["raw_content"] = data["raw_content"].replace("\t", "")
         self.text = short_text_template.render(data=data)
         if get_html_text_length(self.text) > 500:
             self.message_type = MessageType.LONG
@@ -89,7 +111,11 @@ class Xiaohongshu(MetadataItem):
             if media_file.media_type == "image":
                 data["raw_content"] += f'<p><img src="{media_file.url}" alt=""/></p>'
             elif media_file.media_type == "video":
-                data["raw_content"] += f'<p><video src="{media_file.url}" controls="controls"></video></p>'
+                data[
+                    "raw_content"
+                ] += (
+                    f'<p><video src="{media_file.url}" controls="controls"></video></p>'
+                )
         self.content = content_template.render(data=data)
 
     @staticmethod
