@@ -134,6 +134,7 @@ class Twitter(MetadataItem):
             parsed_tweet_data = self.parse_tweet_data_Twitter135(tweet)
             self.process_single_tweet_Twitter135(parsed_tweet_data)
         self.text += self.text_group
+        self.text = self.text[:-1]
         self.content += self.content_group
         self.message_type = (
             "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
