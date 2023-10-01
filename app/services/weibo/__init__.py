@@ -106,7 +106,9 @@ class Weibo(MetadataItem):
         return ajax_json
 
     async def _get_long_weibo_info_api(self) -> dict:
-        ajax_json = await get_response_json(self.ajax_longtext_url, headers=self.headers)
+        ajax_json = await get_response_json(
+            self.ajax_longtext_url, headers=self.headers
+        )
         logger.debug(f"weibo ajax_json info by api: {ajax_json}")
         return ajax_json
 
@@ -155,6 +157,8 @@ class Weibo(MetadataItem):
         # render the text and content
         self.text = short_text_template.render(data=self.__dict__)
         self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
+        if self.text.endswith("\n"):
+            self.text = self.text[:-1]
         for i in self.media_files:
             if i.media_type == "video":
                 self.raw_content += f"<video src='{i.url}' controls='controls'></video>"
