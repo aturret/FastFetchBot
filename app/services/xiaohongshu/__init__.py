@@ -103,6 +103,8 @@ class Xiaohongshu(MetadataItem):
             )
         data = self.__dict__
         data["raw_content"] = data["raw_content"].replace("\t", "")
+        if data["raw_content"].endswith("\n"):
+            data["raw_content"] = data["raw_content"][:-1]
         self.text = short_text_template.render(data=data)
         if get_html_text_length(self.text) > 500:
             self.message_type = MessageType.LONG
