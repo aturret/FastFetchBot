@@ -18,7 +18,7 @@ from .config import (
     WEIBO_HOST,
     WEIBO_TEXT_LIMIT,
 )
-from app.config import JINJA2_ENV
+from app.config import JINJA2_ENV, WEIBO_COOKIES
 from ...utils.logger import logger
 
 short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")
@@ -33,15 +33,14 @@ class Weibo(MetadataItem):
         method: Optional[str] = "api",
         scraper: Optional[str] = "requests",
         user_agent: Optional[dict] = CHROME_USER_AGENT,
-        cookies: Optional[str] = None,
+        cookies: Optional[str] = WEIBO_COOKIES,
     ):
         # basic info
         self.url = url
         self.method = method
         self.scraper = scraper
         self.text = ""
-        self.headers = {"User-Agent": user_agent}
-        self.headers["Cookies"] = cookies if cookies else ""
+        self.headers = {"User-Agent": user_agent, "Cookie": cookies if cookies else ""}
         self.url_parser = urlparse(url)
         self.id = self.url_parser.path.split("/")[-1]
         self.ajax_url = AJAX_HOST + self.id
@@ -74,6 +73,8 @@ class Weibo(MetadataItem):
             weibo_info = await self._get_weibo_info_webpage()
         elif method == "api":
             weibo_info = await self._get_weibo_info_api()
+        else:
+            raise ValueError("method must be webpage or api")
         weibo_info = self._parse_weibo_info(weibo_info)
         return weibo_info
 
@@ -84,14 +85,14 @@ class Weibo(MetadataItem):
             if response.status_code == 302:  # redirect
                 new_url = response.headers["Location"]
                 response = await client.get(new_url, headers=self.headers)
-        html = response.text
-        html = html[html.find('"status":') :]
-        html = html[: html.rfind('"hotScheme"')]
-        html = html[: html.rfind(",")]
-        html = html[: html.rfind("][0] || {};")]
-        html = "{" + html
+        html_string = response.text
+        html_string = html_string[html_string.find('"status":') :]
+        html_string = html_string[: html_string.rfind('"hotScheme"')]
+        html_string = html_string[: html_string.rfind(",")]
+        html_string = html_string[: html_string.rfind("][0] || {};")]
+        html_string = "{" + html_string
         try:
-            js = json.loads(html, strict=False)
+            js = json.loads(html_string, strict=False)
             print(js)
             weibo_info = js.get("status")
         except:
@@ -129,17 +130,22 @@ class Weibo(MetadataItem):
         # resolve text
         # check if the weibo is longtext weibo (which means >140 characters so has an excerpt) or not
         text = weibo_info.get("text")
-        if weibo_info["is_long_text"] or text.endswith("...展开"):
+        if weibo_info["is_long_text"] or text.endswith("...展开") or not text:
             # if a weibo has more than 9 pictures, the isLongText will be True even if it is not a longtext weibo
             # however, we cannot get the full text of such kind of weibo from longtext api (it will return None)
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
             try:
                 longtext_info = await self._get_weibo_info(method="webpage")
                 text = longtext_info.get("text")
+                if not text:
+                    raise Exception(
+                        "Failed to get longtext of weibo by webpage scraping."
+                    )
             except Exception as e:
                 logger.error(f"Failed to get longtext of weibo by webpage scraping.{e}")
                 try:
                     longtext_info = await self._get_long_weibo_info_api()
+                    longtext_info = longtext_info.get("data", {})
                     text = longtext_info.get("longTextContent")
                 except Exception as e:
                     logger.error(f"Failed to get longtext of weibo by api.{e}")

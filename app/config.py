@@ -109,6 +109,9 @@ TWITTER_COOKIES = {
     "auth_token": TWITTER_AUTH_TOKEN,
 }
 
+# Weibo
+WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
+
 # Xiaohongshu
 XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)
 XIAOHONGSHU_WEBID = env.get("XIAOHONGSHU_WEBID", None)

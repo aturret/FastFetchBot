@@ -85,6 +85,10 @@ We use `read_only` mode of `praw` to fetch reddit content. We still need to set 
 - `REDDIT_USERNAME`: The username of reddit. Default: `None`
 - `REDDIT_PASSWORD`: The password of reddit. Default: `None`
 
+#### Weibo
+
+- `WEIBO_COOKIES`: The cookie of weibo. For some unknown reasons, some weibo posts may be not accessible if you don't are not logged in. Just copy the cookie from your browser and set it. Default: `None`
+
 #### Xiaohongshu
 
 - `XIAOHONGSHU_A1`: The a1 cookie of xiaohongshu. Default: `None`
