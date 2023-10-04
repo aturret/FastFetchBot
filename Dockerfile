@@ -61,6 +61,7 @@ WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
 
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
+RUN pip install --upgrade pip setuptools wheel
 RUN poetry install --no-dev
 
 # install the browser dependencies for playwright
