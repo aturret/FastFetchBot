@@ -32,7 +32,11 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     "reddit": [r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/comments\/[a-zA-Z0-9_-]+"],
 }
 VIDEO_WEBSITE_PATTERNS = {
-    "youtube": [r"(((m|www)\.)youtube\.com\/watch)", r"youtu\.be\/[A-Za-z0-9_-]+"],
+    "youtube": [
+        r"(((m|www)\.)youtube\.com\/watch)",
+        r"youtu\.be\/[A-Za-z0-9_-]+",
+        r"youtube\.com\/shorts\/[A-Za-z0-9_-]+",
+    ],
     "bilibili": [
         r"((www\.)?bilibili\.com\/video\/[A-Za-z0-9]+)",
         r"b23\.tv\/[A-Za-z0-9]+",
