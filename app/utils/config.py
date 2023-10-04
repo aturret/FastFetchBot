@@ -33,7 +33,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [
-        r"(((m|www)\.)youtube\.com\/watch)",
+        r"((m|www)\.)youtube\.com\/watch",
         r"youtu\.be\/[A-Za-z0-9_-]+",
         r"youtube\.com\/shorts\/[A-Za-z0-9_-]+",
     ],
