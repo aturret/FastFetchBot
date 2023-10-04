@@ -130,7 +130,12 @@ class Weibo(MetadataItem):
         # resolve text
         # check if the weibo is longtext weibo (which means >140 characters so has an excerpt) or not
         text = weibo_info.get("text")
-        if weibo_info["is_long_text"] or text.endswith("...展开") or not text:
+        if (
+            weibo_info["is_long_text"]
+            or text.endswith('<span class="expand">展开</span>')
+            or text.endswith("展开")
+            or not text
+        ):
             # if a weibo has more than 9 pictures, the isLongText will be True even if it is not a longtext weibo
             # however, we cannot get the full text of such kind of weibo from longtext api (it will return None)
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
@@ -159,7 +164,7 @@ class Weibo(MetadataItem):
         self.text += cleaned_text.replace("<br />", "<br>").replace("br/", "br")
         self.raw_content = self.text
         # resolve medias
-        self.media_files = self._get_media_files(weibo_info)
+        self.media_files.extend(self._get_media_files(weibo_info))
         # render the text and content
         self.text = short_text_template.render(data=self.__dict__)
         self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
@@ -167,11 +172,13 @@ class Weibo(MetadataItem):
             self.text = self.text[:-1]
         for i in self.media_files:
             if i.media_type == "video":
-                self.raw_content += f"<video src='{i.url}' controls='controls'></video>"
+                self.raw_content += f'<video src="{i.url}" controls="controls"></video>'
             elif i.media_type == "image":
-                self.raw_content += f"<img src='{i.url}'></img>"
+                self.raw_content += f'<img src="{i.url}"></img>'
         self.content = content_template.render(data=self.__dict__)
-        self.content = wrap_text_into_html(self.content, is_html=True)
+        self.content = wrap_text_into_html(
+            wrap_text_into_html(self.content, is_html=True), is_html=False
+        )
         # resolve retweet
         if weibo_info.get("retweeted_status"):
             retweeted_weibo_item = Weibo(
@@ -415,9 +422,9 @@ class Weibo(MetadataItem):
             img.replace_with(alt_text)
         for a in soup.find_all("a"):
             if a.text == "查看图片":
-                fw_pics.append(a.get("href"))
+                fw_pics.append(a.attrs.get("href"))
             if "/n/" in a.get("href") and a.get("usercard"):
-                a["href"] = "https://weibo.com" + a.get("href")
+                a["href"] = "https://weibo.com" + a.attrs.get("href")
         for i in soup.find_all("span"):
             i.unwrap()
         res = (
