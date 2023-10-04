@@ -1,6 +1,6 @@
 
 # `python-base` sets up all our shared environment variables
-FROM python:3-slim as python-base
+FROM python:3.11.6-slim as python-base
 
     # python
 ENV PYTHONUNBUFFERED=1 \
@@ -61,7 +61,6 @@ WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
 
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
-RUN pip install --upgrade pip setuptools wheel
 RUN poetry install --no-dev
 
 # install the browser dependencies for playwright
