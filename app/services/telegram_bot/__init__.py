@@ -735,9 +735,11 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                     or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
                     or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
-                ):
+                ) and data["category"] != "xiaohongshu":
                     io_object = await download_a_iobytes_file(url=image_url)
                     if not io_object.name.endswith(".gif"):
+                        if not io_object.name.endswith(ext.lower()):
+                            io_object.name = io_object.name + "." + ext.lower()
                         # TODO: it is not a good way to judge whether it is a gif...
                         file_group.append(
                             InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
