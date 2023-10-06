@@ -108,6 +108,8 @@ class Douban(MetadataItem):
         }
         await function_dict[self.douban_type]()
         short_text = self._douban_short_text_process()
+        if short_text.endswith("\n"):
+            short_text = short_text[:-1]
         data = self.__dict__
         data["short_text"] = short_text
         self.text = short_text_template.render(data=data)

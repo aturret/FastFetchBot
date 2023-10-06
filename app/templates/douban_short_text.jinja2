@@ -1,7 +1,5 @@
 {% if data.douban_type.value == 'note' %}
-<a href="{{ data.author }}">
-{{ data.author_url }}
-</a>的豆瓣日记：<a href="{{ data.url }}"><b>{{ data.title }}</b></a>
+<a href="{{ data.author }}">{{ data.author_url }}</a>的豆瓣日记：<a href="{{ data.url }}"><b>{{ data.title }}</b></a>
 {% elif data.douban_type.value == 'group' %}
 <a href="{{ data.group_url }}">{{ data.group_name }}</a>：
 <a href="{{ data.url }}"><b>{{ data.title }}</b></a>
@@ -13,5 +11,4 @@
 </a>对<a href="{{ data.item_url }}">
 {{ data.item_title }}</a>的 {{ data.item_type }}：
 <a href="{{ data.url }}"><b>{{ data.title }}</b></a>
-{% endif %}
-{{ data.short_text }}
+{% endif %}{{ data.short_text }}
