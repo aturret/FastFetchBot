@@ -253,44 +253,50 @@ class Weibo(MetadataItem):
         media_files = []
         if weibo_info.get("pics"):
             pic_info = weibo_info["pics"]
-            for pic in pic_info:
-                media_files.append(
-                    MediaFile(url=pic["large"]["url"], media_type="image", caption="")
-                )
+            if pic_info:
+                for pic in pic_info:
+                    media_files.append(
+                        MediaFile(
+                            url=pic["large"]["url"], media_type="image", caption=""
+                        )
+                    )
         elif "pic_infos" in weibo_info and weibo_info.get("pic_num") > 0:
             pic_info = weibo_info["pic_infos"]
-            for pic in pic_info:
-                if pic_info[pic].get("type") == "pic":
-                    media_files.append(
-                        MediaFile(
-                            url=pic_info[pic]["original"]["url"],
-                            media_type="image",
-                            caption="",
+            if pic_info:
+                for pic in pic_info:
+                    if pic_info[pic].get("type") == "pic":
+                        media_files.append(
+                            MediaFile(
+                                url=pic_info[pic]["original"]["url"],
+                                media_type="image",
+                                caption="",
+                            )
+                        ) if pic_info[pic]["original"] else media_files.append(
+                            MediaFile(
+                                url=pic_info[pic]["large"]["url"],
+                                media_type="image",
+                                caption="",
+                            )
                         )
-                    ) if pic_info[pic]["original"] else media_files.append(
-                        MediaFile(
-                            url=pic_info[pic]["large"]["url"],
-                            media_type="image",
-                            caption="",
+                    elif pic_info[pic].get("type") in ["live_photo", "livephoto"]:
+                        media_files.append(
+                            MediaFile(
+                                url=pic_info[pic]["original"]["url"], media_type="image"
+                            )
+                        ) if pic_info[pic]["original"] else media_files.append(
+                            MediaFile(pic_info[pic]["large"]["url"])
                         )
-                    )
-                elif pic_info[pic].get("type") in ["live_photo", "livephoto"]:
-                    media_files.append(
-                        MediaFile(
-                            url=pic_info[pic]["original"]["url"], media_type="image"
-                        )
-                    ) if pic_info[pic]["original"] else media_files.append(
-                        MediaFile(pic_info[pic]["large"]["url"])
-                    )
-                    live_pic_url = pic_info[pic]["video"]["url"]
-                    if not (live_pic_url[-4] == "." and live_pic_url[-3:] != "mp4"):
+                        live_pic_url = pic_info[pic]["video"]["url"]
+                        if not (live_pic_url[-4] == "." and live_pic_url[-3:] != "mp4"):
+                            media_files.append(
+                                MediaFile(
+                                    url=pic_info[pic]["video"], media_type="video"
+                                )
+                            )
+                    elif pic_info[pic].get("type") == "gif":
                         media_files.append(
                             MediaFile(url=pic_info[pic]["video"], media_type="video")
                         )
-                elif pic_info[pic].get("type") == "gif":
-                    media_files.append(
-                        MediaFile(url=pic_info[pic]["video"], media_type="video")
-                    )
         else:
             return media_files
         return media_files
