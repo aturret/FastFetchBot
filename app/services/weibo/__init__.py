@@ -164,7 +164,9 @@ class Weibo(MetadataItem):
         self.text += cleaned_text.replace("<br />", "<br>").replace("br/", "br")
         self.raw_content = self.text
         # resolve medias
-        self.media_files.extend(self._get_media_files(weibo_info))
+        extra_medias = self._get_media_files(weibo_info)
+        if extra_medias:
+            self.media_files += extra_medias
         # render the text and content
         self.text = short_text_template.render(data=self.__dict__)
         self.text = self.text.replace("<br />", "\n").replace("<br>", "\n")
