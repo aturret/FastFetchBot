@@ -51,7 +51,7 @@ from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type, get_html_text_length
 from app.utils.network import download_a_iobytes_file
 from app.utils.image import Image, image_compressing, check_image_type
-from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS
+from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 from app.utils.logger import logger
 from app.config import (
     TELEGRAM_BOT_TOKEN,
@@ -339,6 +339,11 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
         if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
+            metadata_item = await content_process_function(url_metadata=url_metadata)
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id, message=message
+            )
+        if url_metadata.to_dict().get("source") in VIDEO_WEBSITE_PATTERNS.keys():
             metadata_item = await content_process_function(url_metadata=url_metadata)
             await send_item_message(
                 metadata_item, chat_id=message.chat_id, message=message
