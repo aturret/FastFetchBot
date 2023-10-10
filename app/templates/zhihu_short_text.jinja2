@@ -1,12 +1,11 @@
 {# templates/zhihu_short_text.html #}
 
 {% if data.zhihu_type == "status" %}
-    <a href="{{ data.url }}"><b>{{ data.title }}</b></a>：{{ data.content }}
-    {% if data.origin_pin_url %}
-            <a href="{{ data.origin_pin_url }}"><b>{{ data.origin_pin_author }}的想法</b></a>：{{ data.origin_pin_content }}
-    {% endif %}
+<a href="{{ data.url }}"><b>{{ data.title }}</b></a>：{{ data.content }}
+{% if data.origin_pin_url %}
+<a href="{{ data.origin_pin_url }}"><b>{{ data.origin_pin_author }}的想法</b></a>：{{ data.origin_pin_content }}
+{% endif %}
 {% else %}
-    <a href="{{ data.url }}"><b>{{ data.title }}</b> - {{ data.author }}的{{ data.translated_zhihu_type }}
-    </a>
+<a href="{{ data.url }}"><b>{{ data.title }}</b> - {{ data.author }}的{{ data.translated_zhihu_type }}</a>
 {{ data.content }}
 {% endif %}

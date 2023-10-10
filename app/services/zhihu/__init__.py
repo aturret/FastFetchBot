@@ -114,7 +114,7 @@ class Zhihu(MetadataItem):
         self._zhihu_content_process()
         self.message_type = (
             MessageType.LONG
-            if get_html_text_length(self.content) > SHORT_LIMIT
+            if get_html_text_length(self.text) > SHORT_LIMIT
             else MessageType.SHORT
         )
 
@@ -143,6 +143,7 @@ class Zhihu(MetadataItem):
         elif path.startswith("/pin/"):
             self.zhihu_type = "status"
             self.status_id = self.urlparser.path.split("/")[-1]
+            self.method = "api"
         else:
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
@@ -448,26 +449,35 @@ class Zhihu(MetadataItem):
     def _zhihu_short_text_process(self):
         def _html_process(raw_html: str) -> str:
             soup = BeautifulSoup(raw_html, "html.parser")
-            for img in soup.find_all("img"):
-                if img["src"].find("data:image") != -1:
+            for img_tag in soup.find_all("img"):
+                if img_tag["src"].find("data:image") != -1:
                     continue
                 if self.zhihu_type != "status":
                     media_item = MediaFile.from_dict(
-                        {"media_type": "image", "url": img["src"], "caption": ""}
+                        {"media_type": "image", "url": img_tag["src"], "caption": ""}
                     )
-                    self.media_files.append(media_item)
-                    img.decompose()
+                self.media_files.append(media_item)
+                img_tag.decompose()
+                src_value = img_tag["src"]
+                img_tag.attrs.clear()
+                img_tag["src"] = src_value
             for figure in soup.find_all("figure"):
                 figure.append(BeautifulSoup("<br>", "html.parser"))
                 figure.decompose()
+            for a_tag in soup.find_all("a"):
+                href_value = a_tag["href"]
+                a_tag.attrs.clear()
+                a_tag["href"] = href_value
             return str(soup)
 
         data = self.__dict__
         data["translated_zhihu_type"] = self.zhihu_type_translate[self.zhihu_type]
-        content = _html_process(self.raw_content)
-        data["content"] = content
+        raw_content = self.raw_content.replace("</br></br>", "\n")
+        raw_content = _html_process(raw_content)
+        data["content"] = raw_content
         if self.zhihu_type == "status" and self.retweeted:
-            origin_pin_content = _html_process(self.origin_pin_raw_content)
+            origin_pin_content = self.origin_pin_raw_content.replace("</br></br>", "\n")
+            origin_pin_content = _html_process(origin_pin_content)
             data["origin_pin_content"] = origin_pin_content
         self.text = short_text_template.render(data=data)
         soup = BeautifulSoup(self.text, "html.parser")
@@ -483,6 +493,8 @@ class Zhihu(MetadataItem):
             .replace("<br />", "")
             .replace("<hr/>", "\n")
         )
+        if self.text.endswith("\n"):
+            self.text = self.text[:-1]
 
     def _zhihu_content_process(self):
         data = self.__dict__
