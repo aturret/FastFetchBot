@@ -34,33 +34,25 @@ class XHSClient:
         self.cookie_dict = cookie_dict
 
     async def _pre_headers(self, url: str, data=None):
-        for _ in range(10):
-            try:
-                encrypt_params = await self.playwright_page.evaluate(
-                    "([url, data]) => window._webmsxyw(url,data)", [url, data]
-                )
-                local_storage = await self.playwright_page.evaluate(
-                    "() => window.localStorage"
-                )
-                signs = sign(
-                    a1=self.cookie_dict.get("a1", ""),
-                    b1=local_storage.get("b1", ""),
-                    x_s=encrypt_params.get("X-s", ""),
-                    x_t=str(encrypt_params.get("X-t", "")),
-                )
+        encrypt_params = await self.playwright_page.evaluate(
+            "([url, data]) => window._webmsxyw(url,data)", [url, data]
+        )
+        local_storage = await self.playwright_page.evaluate("() => window.localStorage")
+        signs = sign(
+            a1=self.cookie_dict.get("a1", ""),
+            b1=local_storage.get("b1", ""),
+            x_s=encrypt_params.get("X-s", ""),
+            x_t=str(encrypt_params.get("X-t", "")),
+        )
 
-                headers = {
-                    "X-S": signs["x-s"],
-                    "X-T": signs["x-t"],
-                    "x-S-Common": signs["x-s-common"],
-                    "X-B3-Traceid": signs["x-b3-traceid"],
-                }
-                self.headers.update(headers)
-                return self.headers
-            except Exception as e:
-                logger.error(f"Get xhs sign headers failed: {e}")
-                pass
-        raise DataFetchError("重试了这么多次还是无法签名成功，寄寄寄")
+        headers = {
+            "X-S": signs["x-s"],
+            "X-T": signs["x-t"],
+            "x-S-Common": signs["x-s-common"],
+            "X-B3-Traceid": signs["x-b3-traceid"],
+        }
+        self.headers.update(headers)
+        return self.headers
 
     async def request(self, method, url, **kwargs) -> Dict:
         async with httpx.AsyncClient(proxies=self.proxies) as client:

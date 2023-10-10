@@ -66,7 +66,16 @@ class Xiaohongshu(MetadataItem):
         crawler = XiaoHongShuCrawler()
         account_pool = proxy_account_pool.create_account_pool()
         crawler.init_config("xhs", "cookie", account_pool)
-        note_detail = await crawler.start(id=self.id)
+        note_detail = None
+        for _ in range(10):
+            try:
+                note_detail = await crawler.start(id=self.id)
+                break
+            except Exception as e:
+                logger.error(f"error: {e}")
+                logger.error(f"retrying...")
+        if not note_detail:
+            raise Exception("重试了这么多次还是无法签名成功，寄寄寄")
         # logger.debug(f"json_data: {json.dumps(note_detail, ensure_ascii=False, indent=4)}")
         parsed_data = self.process_note_json(note_detail)
         await self.process_xiaohongshu_note(parsed_data)
