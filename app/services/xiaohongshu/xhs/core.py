@@ -58,9 +58,11 @@ class XiaoHongShuCrawler(AbstractCrawler):
                     }
                 ]
             )
+            await asyncio.sleep(1)
             self.context_page = await self.browser_context.new_page()
+            await asyncio.sleep(1)
             await self.context_page.goto(self.index_url)
-
+            await asyncio.sleep(1)
             # Create a client to interact with the xiaohongshu website.
             self.xhs_client = await self.create_xhs_client(httpx_proxy)
             if not await self.xhs_client.ping():
@@ -71,7 +73,9 @@ class XiaoHongShuCrawler(AbstractCrawler):
                     context_page=self.context_page,
                     cookie_str=config.XIAOHONGSHU_COOKIES,
                 )
+                await asyncio.sleep(1)
                 await login_obj.begin()
+                await asyncio.sleep(1)
                 await self.xhs_client.update_cookies(
                     browser_context=self.browser_context
                 )
