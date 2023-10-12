@@ -8,9 +8,11 @@ from playwright.async_api import BrowserContext, BrowserType, Page, async_playwr
 
 from .base_crawler import AbstractCrawler
 from .proxy_account_pool import AccountPool
+
 # import xiaohongshu as xhs_model
 from app.utils.logger import logger
 from app import config
+
 # from var import request_keyword_var
 from .client import XHSClient
 from .exception import DataFetchError
@@ -37,7 +39,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
         self.login_type = login_type
         self.account_pool = account_pool
 
-    async def start(self, id:str) -> dict:
+    async def start(self, id: str) -> dict:
         account_phone, playwright_proxy, httpx_proxy = self.create_proxy_info()
         async with async_playwright() as playwright:
             # Launch a browser context.
