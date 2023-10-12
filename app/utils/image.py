@@ -38,5 +38,9 @@ async def check_image_type(io_object: BytesIO):
     if mime_type == "image/webp":
         ext = "webp"
     else:
-        ext = mimetypes.guess_extension(mime_type, strict=True)[1:]
+        ext = mimetypes.guess_extension(mime_type, strict=True)
+        if ext is None:
+            ext = "webp"
+        else:
+            ext = ext[1:]
     return ext

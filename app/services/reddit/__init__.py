@@ -49,33 +49,48 @@ class Reddit(MetadataItem):
         self.title = reddit_data["title"]
         self.author = reddit_data["author"].name
         self.author_url = f"https://www.reddit.com/user/{self.author}"
-        self.raw_content = reddit_data["selftext_html"]
+        self.raw_content = reddit_data["selftext_html"] or ""
         self.created = unix_timestamp_to_utc(int(reddit_data["created_utc"]))
         self.score = reddit_data["score"]
         self.comments_count = reddit_data["num_comments"]
         self.upvote_ratio = reddit_data["upvote_ratio"]
         self.subreddit = reddit_data["subreddit"].display_name
         self.subreddit_name_prefixed = reddit_data["subreddit_name_prefixed"]
-        self.subreddit_url = f"https://www.reddit.com/{reddit_data['subreddit_name_prefixed']}"
-        for media_item in reddit_data["media_metadata"].values():
-            if media_item["e"] == "Image":
-                media_type = "image"
-                media_url = media_item["s"]["u"]
-            elif media_item["e"] == "AnimatedImage":
-                media_type = "video"
-                media_url = media_item["s"]["gif"]
-            elif media_item["e"] == "Video":
-                media_type = "video"
-                media_url = media_item["s"]["gif"]
-            else:
-                continue
+        self.subreddit_url = (
+            f"https://www.reddit.com/{reddit_data['subreddit_name_prefixed']}"
+        )
+        content_html = self.raw_content
+        if "media_metadata" in reddit_data:
+            for media_item in reddit_data["media_metadata"].values():
+                if media_item["e"] == "Image":
+                    media_type = "image"
+                    media_url = media_item["s"]["u"]
+                elif media_item["e"] == "AnimatedImage":
+                    media_type = "video"
+                    media_url = media_item["s"]["gif"]
+                elif media_item["e"] == "Video":
+                    media_type = "video"
+                    media_url = media_item["s"]["gif"]
+                else:
+                    continue
+                self.media_files.append(
+                    MediaFile(
+                        media_type=media_type,
+                        url=media_url,
+                        caption="",
+                    )
+                )
+        if reddit_data["post_hint"] == "image":
+            preview_url = reddit_data["preview"]["images"][0]["source"]["url"]
             self.media_files.append(
                 MediaFile(
-                    media_type=media_type,
-                    url=media_url,
+                    media_type="image",
+                    url=preview_url,
                     caption="",
                 )
             )
+            preview_image_html_tag = f"<img src='{preview_url}'>"
+            content_html += preview_image_html_tag
         soup = BeautifulSoup(self.raw_content, "html.parser")
         # resolve content
         for p in soup.find_all("p"):

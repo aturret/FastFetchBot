@@ -49,7 +49,7 @@ from app.models.metadata_item import MessageType
 from app.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
 from app.services.common import InfoExtractService
 from app.utils.parse import check_url_type, get_html_text_length
-from app.utils.network import download_a_iobytes_file
+from app.utils.network import download_file_by_metadata_item
 from app.utils.image import Image, image_compressing, check_image_type
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 from app.utils.logger import logger
@@ -676,10 +676,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 "http",
                 "https",
             ]:  # if the url is a http url, download the file
-                referer = data["url"]
                 file_format = "mp4" if media_item["media_type"] == "video" else None
-                io_object = await download_a_iobytes_file(
-                    media_item["url"], file_format=file_format, referer=referer
+                io_object = await download_file_by_metadata_item(
+                    media_item["url"], data=data, file_format=file_format
                 )
                 filename = io_object.name
                 file_size = io_object.size
@@ -740,8 +739,10 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     file_size > TELEGRAM_IMAGE_SIZE_LIMIT
                     or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
                     or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
-                ) and data["category"] != "xiaohongshu":
-                    io_object = await download_a_iobytes_file(url=image_url)
+                ) and data["category"] not in ["xiaohongshu"]:
+                    io_object = await download_file_by_metadata_item(
+                        url=image_url, data=data
+                    )
                     if not io_object.name.endswith(".gif"):
                         if not io_object.name.endswith(ext.lower()):
                             io_object.name = io_object.name + "." + ext.lower()
@@ -751,8 +752,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                         )
                         file_counter += 1
             elif media_item["media_type"] == "gif":
-                io_object = await download_a_iobytes_file(
+                io_object = await download_file_by_metadata_item(
                     url=media_item["url"],
+                    data=data,
                     file_name="gif_image-" + str(media_counter) + ".gif",
                 )
                 io_object.name = io_object.name + ".gif"

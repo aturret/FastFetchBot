@@ -60,27 +60,28 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
         return selector
 
 
-async def download_a_iobytes_file(
+async def download_file_by_metadata_item(
     url: str,
+    data: dict,
     file_name: str = None,
     file_format: str = None,
     headers: dict = None,
-    referer: str = None,
 ) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
     :param file_format:
+    :param data:
     :param url:
     :param file_name:
     :param headers:
-    :param referer: the referer of the request. Some CDN will check the referer.
     :return:
     """
     try:
         if headers is None:
             headers = HEADERS
-        if referer is not None:
-            headers["referer"] = referer
+        headers["referer"] = data["url"]
+        if data["category"] in ["reddit"]:
+            headers["Accept"] = "image/avif,image/webp,*/*"
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
@@ -104,7 +105,7 @@ async def download_file_to_local(
     headers: dict = None,
     referer: str = None,
 ) -> str:
-    io_object = await download_a_iobytes_file(
+    io_object = await download_file_by_metadata_item(
         url=url, file_name=file_name, headers=headers, referer=referer
     )
     ext = await check_image_type(io_object)
