@@ -1,3 +1,5 @@
+Demo: https://t.me/aturretrss_bot
+
 # FastFetchBot
 
 A social media fetch bot based on [FastAPI](https://fastapi.tiangolo.com/).
