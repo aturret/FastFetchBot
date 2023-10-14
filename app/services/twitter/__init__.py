@@ -114,9 +114,6 @@ class Twitter(MetadataItem):
         elif self.scraper in ["Twitter154", "twitter-v24"]:
             self._process_tweet_Twitter154(tweet_data)
 
-    def process_twitter_api_client(self, tweet_data: Dict):
-        pass
-
     def _process_tweet_Twitter135(self, tweet_data: Dict):
         entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][
             "instructions"
