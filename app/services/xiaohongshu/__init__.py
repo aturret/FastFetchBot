@@ -85,6 +85,8 @@ class Xiaohongshu(MetadataItem):
     async def process_xiaohongshu_note(self, json_data: dict):
         self.title = json_data.get("title")
         self.author = json_data.get("author")
+        if not self.title and self.author:
+            self.title = f"{self.author}的小红书笔记"
         self.author_url = "https://www.xiaohongshu.com/user/profile/" + json_data.get(
             "user_id"
         )
