@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 import uuid
@@ -76,25 +77,26 @@ async def download_file_by_metadata_item(
     :param headers:
     :return:
     """
-    try:
-        if headers is None:
-            headers = HEADERS
-        headers["referer"] = data["url"]
-        if data["category"] in ["reddit"]:
-            headers["Accept"] = "image/avif,image/webp,*/*"
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
-            )
-        file_data = response.content
-        if file_name is None:
-            file_format = file_format if file_format else url.split(".")[-1]
-            file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
-        io_object = NamedBytesIO(file_data, name=file_name)
-        return io_object
-    except Exception as e:
-        logger.error(f"Failed to download {url}, {e}")
-        raise e
+    for _ in range(5):
+        try:
+            if headers is None:
+                headers = HEADERS
+            headers["referer"] = data["url"]
+            if data["category"] in ["reddit"]:
+                headers["Accept"] = "image/avif,image/webp,*/*"
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
+                )
+            file_data = response.content
+            if file_name is None:
+                file_format = file_format if file_format else url.split(".")[-1]
+                file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
+            io_object = NamedBytesIO(file_data, name=file_name)
+            return io_object
+        except Exception as e:
+            await asyncio.sleep(2)
+            logger.error(f"Failed to download {url}, {e}")
 
 
 async def download_file_to_local(
