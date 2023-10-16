@@ -456,8 +456,7 @@ class Zhihu(MetadataItem):
                     media_item = MediaFile.from_dict(
                         {"media_type": "image", "url": img_tag["src"], "caption": ""}
                     )
-                self.media_files.append(media_item)
-                img_tag.decompose()
+                    self.media_files.append(media_item)
                 src_value = img_tag["src"]
                 img_tag.attrs.clear()
                 img_tag["src"] = src_value
