@@ -36,12 +36,12 @@
 <p>发表于{{ data.date }} 点赞数：{{ data.upvote }} 评论数：{{ data.comment_count }}</p>
 <p><a href="{{ data.author_url }}">@{{ data.author }}</a>：{{ data.raw_content }}</p>
 {{ data.pic_content }}
-{% if data.origin_pin_author != "" %}
+{% if data.origin_pin_author %}
 <hr>
 <p>发表于{{ data.origin_pin_date }} 点赞数：{{ data.origin_pin_upvote }} 评论数：{{ data.origin_pin_comment_count }}</p>
 <p><a href="{{ data.origin_pin_author_url }}">@{{ data.origin_pin_author }}</a>：{{ data.origin_pin_content }}</p>
 {{ data.origin_pin_pic_content }}
 {% endif %}
 {% endif %}
-<hr>
-<a href="{{ data.url }}">阅读原文</a>
+{#<hr>#}
+{#<a href="{{ data.url }}">阅读原文</a>#}

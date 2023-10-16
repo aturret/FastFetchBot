@@ -13,6 +13,7 @@ from app.utils.parse import (
     get_html_text_length,
     format_telegram_short_text,
     unix_timestamp_to_utc,
+    wrap_text_into_html,
 )
 from app.utils.network import get_selector, get_response_json
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
@@ -283,7 +284,6 @@ class Zhihu(MetadataItem):
 
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
                 json_data = json.loads(json_data)["initialState"]["entities"]
-                print(json.dumps(json_data, indent=4, ensure_ascii=False))
                 status_data = self._parse_status_json_data(json_data)
                 if status_data["origin_pin_url"] is not None:
                     self.retweeted = True
@@ -467,6 +467,8 @@ class Zhihu(MetadataItem):
                 href_value = a_tag["href"]
                 a_tag.attrs.clear()
                 a_tag["href"] = href_value
+            for br_tag in soup.find_all("br"):
+                br_tag.replace_with("\n")
             return str(soup)
 
         data = self.__dict__
@@ -497,7 +499,9 @@ class Zhihu(MetadataItem):
 
     def _zhihu_content_process(self):
         data = self.__dict__
-        data["raw_content"] = data["raw_content"].replace("\n", "<br>")
+        data["raw_content"] = wrap_text_into_html(
+            data["raw_content"].replace("\n", "<br>"), True
+        )
         self.content = content_template.render(data=data)
 
     def _parse_answer_json_data(self, data: Dict) -> Dict:

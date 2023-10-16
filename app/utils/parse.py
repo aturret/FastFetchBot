@@ -89,7 +89,12 @@ def get_ext_from_url(url: str) -> str:
 
 
 def wrap_text_into_html(text: str, is_html: bool = False) -> str:
-    split_pivot = "<br>" if is_html else "\n"
+    if is_html:
+        soup = BeautifulSoup(text, "html.parser")
+        for item in soup.find_all("br"):
+            item.replace_with("\n")
+        text = soup.get_text()
+    split_pivot = "\n"
     text_list = text.split(split_pivot)
     text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
     text = "".join(text_list)
