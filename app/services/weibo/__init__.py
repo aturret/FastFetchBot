@@ -162,7 +162,7 @@ class Weibo(MetadataItem):
         for pic in fw_pics:
             self.media_files.append(MediaFile(url=pic, media_type="image"))
         self.text += cleaned_text.replace("<br />", "<br>").replace("br/", "br")
-        self.raw_content = self.text
+        self.raw_content = self.text.replace("<br/><br/>", "<br>")
         # resolve medias
         extra_medias = self._get_media_files(weibo_info)
         if extra_medias:
@@ -176,7 +176,7 @@ class Weibo(MetadataItem):
             if i.media_type == "video":
                 self.raw_content += f'<video src="{i.url}" controls="controls"></video>'
             elif i.media_type == "image":
-                self.raw_content += f'<img src="{i.url}"></img>'
+                self.raw_content += f'<img src="{i.url}">'
         self.content = content_template.render(data=self.__dict__)
         self.content = wrap_text_into_html(
             wrap_text_into_html(self.content, is_html=True), is_html=False

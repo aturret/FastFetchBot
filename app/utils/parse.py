@@ -93,8 +93,9 @@ def wrap_text_into_html(text: str, is_html: bool = False) -> str:
         soup = BeautifulSoup(text, "html.parser")
         for item in soup.find_all("br"):
             item.replace_with("\n")
-        text = soup.get_text()
-    split_pivot = "\n"
+        text = str(soup)
+        print(text)
+    split_pivot = "\n" if is_html is False else "<br>"
     text_list = text.split(split_pivot)
     text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
     text = "".join(text_list)
