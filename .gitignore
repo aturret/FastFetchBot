@@ -248,3 +248,5 @@ fabric.properties
 docker-compose.yml
 /data/
 /download/
+/.dockerignore
+/fly.toml
