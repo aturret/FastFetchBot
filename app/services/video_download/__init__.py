@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
 from app.services.audio_transcribe import AudioTranscribe
-from app.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
+from app.config import FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
 from app.utils.logger import logger
 from app.config import JINJA2_ENV
@@ -79,6 +79,7 @@ class VideoDownloader(MetadataItem):
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(url)
                 url = resp.url
+                self.url = str(url)
             if "m.bilibili.com" in url:
                 url = url.replace("m.bilibili.com", "www.bilibili.com")
         elif self.extractor == "youtube" and "youtu.be" in url:
@@ -128,7 +129,6 @@ class VideoDownloader(MetadataItem):
                     logger.info(f"downloading HD video, it may take longer")
                 elif audio_only is True:
                     logger.info(f"downloading audio only")
-            logger.debug(f"downloading video to {DOWNLOAD_DIR}")
             logger.debug(f"downloading video timeout: {DOWNLOAD_VIDEO_TIMEOUT}")
             resp = await client.post(
                 request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT

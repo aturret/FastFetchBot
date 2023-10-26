@@ -73,6 +73,9 @@ async def check_url_type(url: str) -> UrlMetadata:
                 if re.search(pattern, url_main):
                     source = website
                     content_type = "video"
+    # clear the url query
+    if source != "youtube":
+        url = url_object.scheme + "://" + url_object.netloc + url_object.path
     # TODO: check if the url is from Mastodon, according to the request cookie
     return UrlMetadata(url=url, source=source, content_type=content_type)
 
