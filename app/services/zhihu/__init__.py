@@ -61,6 +61,7 @@ class Zhihu(MetadataItem):
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")
+        self.headers["Referer"] = self.url
         self.method = kwargs.get("method", "json")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
