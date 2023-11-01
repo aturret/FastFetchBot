@@ -85,7 +85,7 @@ class Inoreader(MetadataItem):
         return stream_id
 
     @staticmethod
-    async def mark_all_as_read(stream_id: str, timestamp: int = None) -> None:
+    async def mark_all_as_read(stream_id: str, timestamp: int = 0) -> None:
         request_url = "https://www.inoreader.com/reader/api/0/mark-all-as-read"
         params = {"s": stream_id, "ts": timestamp}
         resp = await Inoreader.get_api_info(url=request_url, params=params)

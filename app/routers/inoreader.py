@@ -114,7 +114,7 @@ async def process_inoreader_data(
         await send_item_message(message_metadata_item, chat_id=telegram_channel_id)
         if stream_id:
             await Inoreader.mark_all_as_read(
-                stream_id=stream_id, timestamp=item["timestamp"]
+                stream_id=stream_id, timestamp=item["timestamp"] - 1
             )
 
 
