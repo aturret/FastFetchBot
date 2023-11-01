@@ -85,12 +85,9 @@ class Inoreader(MetadataItem):
         return stream_id
 
     @staticmethod
-    async def mark_all_as_read(stream_id: str) -> None:
+    async def mark_all_as_read(stream_id: str, timestamp: int = None) -> None:
         request_url = "https://www.inoreader.com/reader/api/0/mark-all-as-read"
-        params = {
-            "s": stream_id,
-            "ts": 0,
-        }
+        params = {"s": stream_id, "ts": timestamp}
         resp = await Inoreader.get_api_info(url=request_url, params=params)
         logger.debug(resp.text)
 
@@ -123,7 +120,8 @@ class Inoreader(MetadataItem):
                     "author_url": origin.htmlUrl,
                     "content": summary.content,
                     "category": categories[-1],
-                    "message": comments[0].commentBody
+                    "message": comments[0].commentBody,
+                    "timestamp": updated
                     }
                 """
         data = jmespath.search(expression, data)

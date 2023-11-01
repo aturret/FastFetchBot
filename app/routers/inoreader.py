@@ -68,7 +68,9 @@ async def get_inoreader_item_async(
         stream_id = Inoreader.get_stream_id(stream_type=stream_type, tag=tag, feed=feed)
     if type(data) is dict:
         data = [data]
-    await process_inoreader_data(data, use_inoreader_content, telegram_channel_id)
+    await process_inoreader_data(
+        data, use_inoreader_content, telegram_channel_id, stream_id
+    )
     if stream_id:
         await Inoreader.mark_all_as_read(stream_id=stream_id)
 
@@ -77,6 +79,7 @@ async def process_inoreader_data(
     data: list,
     use_inoreader_content: bool,
     telegram_channel_id: Union[int, str] = default_telegram_channel_id,
+    stream_id: str = None,
 ):
     for item in data:
         url_type_item = await check_url_type(item["aurl"])
@@ -109,6 +112,10 @@ async def process_inoreader_data(
             )
         message_metadata_item = await metadata_item.get_item()
         await send_item_message(message_metadata_item, chat_id=telegram_channel_id)
+        if stream_id:
+            await Inoreader.mark_all_as_read(
+                stream_id=stream_id, timestamp=item["timestamp"]
+            )
 
 
 # @router.post("/", dependencies=[Security(verify_api_key)])
