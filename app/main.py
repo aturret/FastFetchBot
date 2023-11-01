@@ -47,9 +47,7 @@ class LogMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
 
-    async def dispatch(
-        self, request: Request, call_next
-    ):
+    async def dispatch(self, request: Request, call_next):
         logger.info(f"{request.method} {request.url}")
         response = await call_next(request)
         return response
@@ -67,8 +65,3 @@ def create_app():
 
 
 app = create_app()
-
-# @fastapi_application.on_event("shutdown")
-# async def on_shutdown():
-#     # await database.shutdown()
-#     await telegram_bot_service.shutdown()
