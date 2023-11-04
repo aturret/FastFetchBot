@@ -68,6 +68,8 @@ from app.config import (
     TELEBOT_WRITE_TIMEOUT,
     TELEGRAM_IMAGE_DIMENSION_LIMIT,
     TELEGRAM_IMAGE_SIZE_LIMIT,
+    TELEGRAM_GROUP_MESSAGE_BAN_LIST,
+    TELEGRAM_BOT_MESSAGE_BAN_LIST,
     FILE_EXPORTER_ON,
     JINJA2_ENV,
     OPENAI_API_KEY,
@@ -202,7 +204,12 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         process_message = await message.reply_text(
             text=f"Processing the {i + 1}th url...",
         )
-        url_metadata = await check_url_type(url)
+        url_metadata = await check_url_type(url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST)
+        if url_metadata.source == "banned":
+            await process_message.edit_text(
+                text=f"For the {i + 1} th url, the url is banned."
+            )
+            return
         if url_metadata.source == "unknown":
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, no supported url found."
@@ -334,8 +341,10 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
     message = update.message
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
-        url_metadata = await check_url_type(url)
-        if url_metadata.source == "unknown":
+        url_metadata = await check_url_type(
+            url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
+        )
+        if url_metadata.source == "unknown" or url_metadata.source == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
         if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():

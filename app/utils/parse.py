@@ -56,7 +56,9 @@ def second_to_time(second: int) -> str:
     return "{:02d}:{:02d}:{:02d}".format(h, m, s)
 
 
-async def check_url_type(url: str) -> UrlMetadata:
+async def check_url_type(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
+    if not ban_list:
+        ban_list = []
     url_object = urlparse(url)
     url_main = str(url_object.hostname) + str(url_object.path)
     source, content_type = "unknown", "unknown"
@@ -76,6 +78,9 @@ async def check_url_type(url: str) -> UrlMetadata:
     # clear the url query
     if source not in ["youtube", "wechat"]:
         url = url_object.scheme + "://" + url_object.netloc + url_object.path
+    if source in ban_list:
+        source = "banned"
+        content_type = "banned"
     # TODO: check if the url is from Mastodon, according to the request cookie
     return UrlMetadata(url=url, source=source, content_type=content_type)
 

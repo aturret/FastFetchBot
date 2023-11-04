@@ -81,6 +81,33 @@ TELEGRAM_IMAGE_DIMENSION_LIMIT = int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 1600))
 TELEGRAM_IMAGE_SIZE_LIMIT = (
     int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
 )
+telegram_group_message_ban_list = env.get("TELEGRAM_GROUP_MESSAGE_BAN_LIST", "")
+telegram_bot_message_ban_list = env.get("TELEGRAM_BOT_MESSAGE_BAN_LIST", "")
+
+
+def ban_list_resolver(ban_list_string: str) -> list:
+    ban_list = ban_list_string.split(",")
+    for item in ban_list:
+        if item == "social_media":
+            ban_list.extend(
+                [
+                    "weibo",
+                    "twitter",
+                    "instagram",
+                    "zhihu",
+                    "douban",
+                    "wechat",
+                    "xiaohongshu",
+                    "reddit",
+                ]
+            )
+        elif item == "video":
+            ban_list.extend(["youtube", "bilibili"])
+    return ban_list
+
+
+TELEGRAM_GROUP_MESSAGE_BAN_LIST = ban_list_resolver(telegram_group_message_ban_list)
+TELEGRAM_BOT_MESSAGE_BAN_LIST = ban_list_resolver(telegram_bot_message_ban_list)
 
 # Youtube-dl environment variables
 FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
