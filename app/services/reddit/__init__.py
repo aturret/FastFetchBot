@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Any
 
 import asyncpraw
@@ -80,7 +81,7 @@ class Reddit(MetadataItem):
                         caption="",
                     )
                 )
-        if reddit_data["post_hint"] == "image":
+        if reddit_data.get("post_hint", "") == "image":
             preview_url = reddit_data["preview"]["images"][0]["source"]["url"]
             self.media_files.append(
                 MediaFile(
@@ -91,6 +92,7 @@ class Reddit(MetadataItem):
             )
             preview_image_html_tag = f"<img src='{preview_url}'>"
             content_html += preview_image_html_tag
+        self.raw_content = re.sub(r"<!--.*?-->", "", self.raw_content, flags=re.DOTALL)
         soup = BeautifulSoup(self.raw_content, "html.parser")
         # resolve content
         for p in soup.find_all("p"):
