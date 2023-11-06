@@ -38,17 +38,23 @@ async def get_response_json(url: str, headers=None) -> dict:
     return json_result
 
 
-async def get_selector(url: str, headers: dict) -> etree.HTML:
+async def get_selector(
+    url: str, headers: dict, follow_redirects: bool = True
+) -> etree.HTML:
     """
     A function to get etree.HTML selector according to url and headers.
     We can use this function to do additional parsing works.
+    :param follow_redirects:
     :param url: the target webpage url
     :param headers: the headers of the request
     :return: the selector of the target webpage parsed by etree.HTML
     """
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            url, headers=headers, follow_redirects=True, timeout=HTTP_REQUEST_TIMEOUT
+            url,
+            headers=headers,
+            follow_redirects=follow_redirects,
+            timeout=HTTP_REQUEST_TIMEOUT,
         )
         if (
             resp.history
@@ -56,6 +62,12 @@ async def get_selector(url: str, headers: dict) -> etree.HTML:
             print("Request was redirected")
             for h in resp.history:
                 print(h.status_code, h.url)
+                # if code is 302, do not follow the redirect
+                if h.status_code == 302:
+                    selector = await get_selector(
+                        h.url, headers=headers, follow_redirects=False
+                    )
+                    return selector
             print("Final destination:", resp.status_code, resp.url)
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector

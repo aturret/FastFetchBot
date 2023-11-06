@@ -160,16 +160,12 @@ class Zhihu(MetadataItem):
         else:
             try:
                 selector = await get_selector(self.url, headers=self.headers)
-                logger.debug(
-                    "zhihu answer selector: %s",
-                    selector.xpath("string(//*)"),
-                )
             except:
                 raise Exception("Cannot get the selector")
             if self.method == "json":
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
                 json_data = json.loads(json_data)
-                logger.debug(json.dumps(json_data, indent=4, ensure_ascii=False))
+                # logger.debug(json.dumps(json_data, indent=4, ensure_ascii=False))
                 json_data = json_data["initialState"]["entities"]
                 answer_data = self._parse_answer_json_data(json_data)
                 self.question = answer_data["question_detail"]
