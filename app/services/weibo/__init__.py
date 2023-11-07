@@ -9,7 +9,6 @@ from lxml import html
 from fake_useragent import UserAgent
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import CHROME_USER_AGENT
 from app.utils.network import get_response_json
 from app.utils.parse import get_html_text_length, wrap_text_into_html
 from .config import (
