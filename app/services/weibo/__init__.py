@@ -6,9 +6,9 @@ import httpx
 import jmespath
 from bs4 import BeautifulSoup
 from lxml import html
+from fake_useragent import UserAgent
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import CHROME_USER_AGENT
 from app.utils.network import get_response_json
 from app.utils.parse import get_html_text_length, wrap_text_into_html
 from .config import (
@@ -32,7 +32,7 @@ class Weibo(MetadataItem):
         data: Optional[Any] = None,
         method: Optional[str] = "api",
         scraper: Optional[str] = "requests",
-        user_agent: Optional[dict] = CHROME_USER_AGENT,
+        user_agent: Optional[dict] = UserAgent().random,
         cookies: Optional[str] = WEIBO_COOKIES,
     ):
         # basic info

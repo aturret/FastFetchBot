@@ -2,15 +2,15 @@ import asyncio
 import datetime
 import os
 import uuid
-
 import aiofiles
 import httpx
 import traceback
 
 from lxml import etree
+from fake_useragent import UserAgent
 
 from app.models.classes import NamedBytesIO
-from app.utils.config import CHROME_USER_AGENT, HEADERS
+from app.utils.config import HEADERS
 from app.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
 from app.utils.image import check_image_type
 from app.utils.logger import logger
@@ -93,6 +93,8 @@ async def download_file_by_metadata_item(
         try:
             if headers is None:
                 headers = HEADERS
+            ua = UserAgent()
+            headers["User-Agent"]=ua.random
             headers["referer"] = data["url"]
             if data["category"] in ["reddit"]:
                 headers["Accept"] = "image/avif,image/webp,*/*"
