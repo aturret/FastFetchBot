@@ -17,7 +17,7 @@ from app.utils.parse import (
 )
 from app.utils.network import get_selector, get_response_json
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import CHROME_USER_AGENT, HEADERS
+from app.utils.config import HEADERS
 from app.config import JINJA2_ENV
 from .config import (
     SHORT_LIMIT,
