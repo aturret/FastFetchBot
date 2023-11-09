@@ -7,8 +7,7 @@ from bs4 import BeautifulSoup
 from lxml import etree
 
 from app.utils.parse import get_html_text_length, wrap_text_into_html
-from app.utils.network import get_selector
-from app.utils.config import HEADERS
+from app.utils.network import get_selector, HEADERS
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import JINJA2_ENV
 

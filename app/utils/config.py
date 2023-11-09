@@ -1,5 +1,3 @@
-from fake_useragent import UserAgent
-
 """
 patterns for check url type
 """
@@ -41,13 +39,4 @@ VIDEO_WEBSITE_PATTERNS = {
         r"((www\.)?bilibili\.com\/video\/[A-Za-z0-9]+)",
         r"b23\.tv\/[A-Za-z0-9]+",
     ],
-}
-
-"""
-default headers
-"""
-ua = UserAgent()
-HEADERS = {
-    "User-Agent": ua.random,
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
 }

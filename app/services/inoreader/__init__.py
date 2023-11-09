@@ -6,7 +6,7 @@ import jmespath
 from httpx import Response
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import HEADERS
+from app.utils.network import HEADERS
 from app.utils.logger import logger
 from app.utils.parse import get_html_text_length
 from app.config import (

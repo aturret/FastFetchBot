@@ -15,9 +15,8 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
     wrap_text_into_html,
 )
-from app.utils.network import get_selector, get_response_json
+from app.utils.network import get_selector, get_response_json, HEADERS
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import HEADERS
 from app.config import JINJA2_ENV
 from .config import (
     SHORT_LIMIT,

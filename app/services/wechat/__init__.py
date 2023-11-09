@@ -4,9 +4,8 @@ from lxml import etree
 from bs4 import BeautifulSoup, NavigableString
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.config import HEADERS
 from app.utils.logger import logger
-from app.utils.network import get_selector
+from app.utils.network import get_selector, HEADERS
 
 
 class Wechat(MetadataItem):

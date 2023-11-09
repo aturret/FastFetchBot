@@ -6,10 +6,9 @@ import httpx
 import jmespath
 from bs4 import BeautifulSoup
 from lxml import html
-from fake_useragent import UserAgent
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.utils.network import get_response_json
+from app.utils.network import get_response_json, get_random_user_agent
 from app.utils.parse import get_html_text_length, wrap_text_into_html
 from .config import (
     AJAX_HOST,
@@ -32,7 +31,7 @@ class Weibo(MetadataItem):
         data: Optional[Any] = None,
         method: Optional[str] = "api",
         scraper: Optional[str] = "requests",
-        user_agent: Optional[dict] = UserAgent().random,
+        user_agent: Optional[dict] = get_random_user_agent(),
         cookies: Optional[str] = WEIBO_COOKIES,
     ):
         # basic info
