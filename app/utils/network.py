@@ -10,7 +10,6 @@ from lxml import etree
 from fake_useragent import UserAgent
 
 from app.models.classes import NamedBytesIO
-from app.utils.config import HEADERS
 from app.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
 from app.utils.image import check_image_type
 from app.utils.logger import logger
@@ -93,8 +92,7 @@ async def download_file_by_metadata_item(
         try:
             if headers is None:
                 headers = HEADERS
-            ua = UserAgent()
-            headers["User-Agent"]=ua.random
+            headers["User-Agent"] = get_random_user_agent()
             headers["referer"] = data["url"]
             if data["category"] in ["reddit"]:
                 headers["Accept"] = "image/avif,image/webp,*/*"
@@ -133,3 +131,18 @@ async def download_file_to_local(
     async with aiofiles.open(file_path, "wb") as f:
         await f.write(io_object.read())
     return file_path
+
+
+def get_random_user_agent() -> str:
+    ua = UserAgent()
+    return ua.random
+
+
+"""
+default headers
+"""
+
+HEADERS = {
+    "User-Agent": get_random_user_agent(),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+}
