@@ -151,7 +151,7 @@ class Douban(MetadataItem):
 
     async def _get_douban_note(self):
         selector = await get_selector(self.url, headers=self.headers)
-        self.title = selector.xpath('string(//div[@id="content"]//h1)')
+        self.title = selector.xpath("string(//h1)")
         self.author = selector.xpath('string(//div[@class="content"]/a)')
         self.author_url = selector.xpath('string(//div[@class="content"]/a/@href)')
         self.raw_content = str(
@@ -209,7 +209,7 @@ class Douban(MetadataItem):
         for item in soup.find_all(["link", "script"]):
             item.decompose()
         for item in soup.find_all("a"):
-            if item["title"] == "查看原图":
+            if item.get("title") == "查看原图":
                 item.decompose()
         short_text = str(soup)
         short_text = re.sub(r"\n{2,}", "\n", short_text)

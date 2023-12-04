@@ -4,7 +4,6 @@ from fastapi import HTTPException, Security, status
 from fastapi.security.api_key import APIKeyQuery, APIKeyHeader
 
 from app.config import API_KEY_NAME, API_KEY, TELEGRAM_BOT_SECRET_TOKEN
-from app.utils.logger import logger
 
 api_key_query = APIKeyQuery(name=API_KEY_NAME, auto_error=False)
 telegram_secret_token_query = APIKeyHeader(
