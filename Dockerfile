@@ -60,7 +60,7 @@ RUN curl -sSL https://install.python-poetry.org | python
 WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
 
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip wheel setuptools
 
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
 RUN poetry install --no-dev
