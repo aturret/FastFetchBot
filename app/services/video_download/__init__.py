@@ -173,7 +173,7 @@ class VideoDownloader(MetadataItem):
             "author": video_info["uploader"],
             "author_url": video_info["uploader_url"],
             "description": video_info["description"],
-            "playback_data": f"视频播放量：{video_info['view_count']} 点赞数：{video_info['like_count']} 评论数：{video_info['comment_count']}",
+            "playback_data": f"视频播放量：{video_info['view_count']} 评论数：{video_info['comment_count']}",
             "author_avatar": video_info["thumbnail"],
             "upload_date": str(video_info["upload_date"]),
             "duration": second_to_time(round(video_info["duration"])),
