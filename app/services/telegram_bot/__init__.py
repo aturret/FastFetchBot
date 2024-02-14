@@ -42,7 +42,6 @@ from telegram.ext import (
     InvalidCallbackData,
     AIORateLimiter,
 )
-from jinja2 import Environment, FileSystemLoader
 
 from app.database import save_instances
 from app.models.metadata_item import MessageType
@@ -74,6 +73,7 @@ from app.config import (
     JINJA2_ENV,
     OPENAI_API_KEY,
     DATABASE_ON,
+    TEMPLATE_LANGUAGE,
 )
 from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
@@ -82,6 +82,7 @@ from app.services.telegram_bot.config import (
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
     REFERER_REQUIRED,
     TELEGRAM_TEXT_LIMIT,
+    TEMPLATE_TRANSLATION,
 )
 from app.models.classes import NamedBytesIO
 from app.models.url_metadata import UrlMetadata
@@ -117,6 +118,9 @@ else:
 
 environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
+template_text = TEMPLATE_TRANSLATION.get(
+    TEMPLATE_LANGUAGE, TEMPLATE_TRANSLATION["zh_CN"]
+)
 
 
 async def startup() -> None:
@@ -638,7 +642,7 @@ def message_formatting(data: dict) -> str:
         data["text"] = re.compile(r"<[^>]*?(?<!>)$").sub("", data["text"])
         data["text"] += "..."
     message_template = template
-    text = message_template.render(data=data)
+    text = message_template.render(data=data, template_text=template_text)
     logger.debug(f"message text: \n{text}")
     return text
 

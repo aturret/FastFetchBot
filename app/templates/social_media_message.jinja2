@@ -6,7 +6,7 @@
 
 #{{ data.category }}
 {% if data.telegraph_url %}
-<a href="{{ data.telegraph_url }}">Online snapshot</a>
+<a href="{{ data.telegraph_url }}">{{ template_text.online_snapshot }}</a>
 {% endif %}
 {% else %}
     {# title #}
@@ -20,7 +20,7 @@ via #{{ data.category }} - <a href="{{ data.author_url }}">{{ data.author }}</a>
     {# the message, which is from inoreader comment or telegram bot comment function (todo) #}
     {% if data.message %}{{ data.message }}
     {% endif %}
-    {% if data.message_type == "long" %}<a href="{{ data.url }}">Original webpage</a>{% endif %}
+    {% if data.message_type == "long" %}<a href="{{ data.url }}">{{ template_text.original_webpage }}</a>{% endif %}
 {% endif %}
 
 {# the original page function only supports long type item #}

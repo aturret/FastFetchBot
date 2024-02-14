@@ -121,6 +121,7 @@ templates_directory = os.path.join(current_directory, "templates")
 JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
+TEMPLATE_LANGUAGE = env.get("TEMPLATE_LANGUAGE", "zh_CN")  # It is a workaround for translation system
 
 # X-RapidAPI (for instagram)
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
