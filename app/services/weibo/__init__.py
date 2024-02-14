@@ -113,7 +113,7 @@ class Weibo(MetadataItem):
         return ajax_json
 
     async def _process_weibo_item(self, weibo_info: dict) -> None:
-        self.id = str(weibo_info.get("id"))
+        # self.id = str(weibo_info.get("id"))
         # get user info
         self.user_id = weibo_info.get("user_id")
         self.author = weibo_info.get("author")
@@ -140,6 +140,8 @@ class Weibo(MetadataItem):
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
             try:
                 longtext_info = await self._get_weibo_info(method="webpage")
+                # if longtext_info.get("is_long_text"):
+                #     raise Exception("Still a long text weibo, should go long text api.")
                 text = longtext_info.get("text")
                 if not text:
                     raise Exception(
