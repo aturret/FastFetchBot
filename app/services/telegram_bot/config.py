@@ -21,8 +21,8 @@ template translation(just a workaround)
 """
 TEMPLATE_TRANSLATION = {
     "en": {
-        "online_snapshot": "Online snapshot",
-        "original_webpage": "Original webpage",
+        "online_snapshot": "Online Snapshot",
+        "original_webpage": "Original Webpage",
     },
     "zh_CN": {
         "online_snapshot": "原文备份",
