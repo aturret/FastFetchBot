@@ -2,6 +2,8 @@ import asyncio
 import datetime
 import os
 import uuid
+from typing import Optional
+
 import aiofiles
 import httpx
 import traceback
@@ -70,6 +72,17 @@ async def get_selector(
             print("Final destination:", resp.status_code, resp.url)
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
+
+
+async def get_redirect_url(url: str, headers: Optional[dict] = None) -> str:
+    if not headers:
+        headers = HEADERS
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT)
+        if resp.status_code == 302 or resp.status_code == 301:
+            return resp.headers["Location"]
+        else:
+            return url
 
 
 async def download_file_by_metadata_item(

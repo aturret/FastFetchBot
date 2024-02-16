@@ -13,6 +13,7 @@ from app.config import (
     JINJA2_ENV,
 )
 from app.utils.parse import unix_timestamp_to_utc, get_html_text_length
+from app.utils.network import get_redirect_url
 
 short_text_template = JINJA2_ENV.get_template("reddit_short_text.jinja2")
 content_template = JINJA2_ENV.get_template("reddit_content.jinja2")
@@ -30,6 +31,7 @@ class Reddit(MetadataItem):
         return self.to_dict()
 
     async def get_reddit(self) -> None:
+        self.url = await get_redirect_url(self.url)
         reddit_data = await self._get_reddit_data()
         await self._process_reddit_data(reddit_data)
 

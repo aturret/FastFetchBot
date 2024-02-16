@@ -27,7 +27,10 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
         r"(www\.)?xiaohongshu\.com\/(discovery\/item|explore)\/[0-9a-zA-Z_-]+",
         r"(www\.)?xhslink\.com\/[0-9a-zA-Z_-]+",
     ],
-    "reddit": [r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/comments\/[a-zA-Z0-9_-]+"],
+    "reddit": [
+        r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/comments\/[a-zA-Z0-9_-]+",
+        r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/s\/[a-zA-Z0-9_-]+",
+    ],
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [
