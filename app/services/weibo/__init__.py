@@ -59,23 +59,26 @@ class Weibo(MetadataItem):
     async def get_weibo(self) -> None:
         try:
             weibo_info = await self._get_weibo_info()
-        except:
-            weibo_info = await self._get_weibo_info(
-                method="webpage" if self.method == "api" else "api"
-            )
+        except ConnectionError as e:
+            self.method = "webpage"
+            weibo_info = await self._get_weibo_info()
+            # TODO: a better exception handling
         await self._process_weibo_item(weibo_info)
 
     async def _get_weibo_info(self, method=None) -> dict:
-        if not method:
-            method = self.method
-        if method == "webpage":
-            weibo_info = await self._get_weibo_info_webpage()
-        elif method == "api":
-            weibo_info = await self._get_weibo_info_api()
-        else:
-            raise ValueError("method must be webpage or api")
-        weibo_info = self._parse_weibo_info(weibo_info)
-        return weibo_info
+        try:
+            if not method:
+                method = self.method
+            if method == "webpage":
+                weibo_info = await self._get_weibo_info_webpage()
+            elif method == "api":
+                weibo_info = await self._get_weibo_info_api()
+            else:
+                raise ValueError("method must be webpage or api")
+            weibo_info = self._parse_weibo_info(weibo_info)
+            return weibo_info
+        except ConnectionError as e:
+            raise ConnectionError(f"There are some network issues: {e}")
 
     async def _get_weibo_info_webpage(self) -> dict:
         url = WEIBO_WEB_HOST + self.id
@@ -99,11 +102,14 @@ class Weibo(MetadataItem):
         return weibo_info
 
     async def _get_weibo_info_api(self) -> dict:
-        ajax_json = await get_response_json(self.ajax_url, headers=self.headers)
-        logger.debug(f"weibo ajax_json info by api: {ajax_json}")
-        if not ajax_json or ajax_json["ok"] == 0:
-            return await self._get_weibo_info(method="webpage")
-        return ajax_json
+        try:
+            ajax_json = await get_response_json(self.ajax_url, headers=self.headers)
+            logger.debug(f"weibo ajax_json info by api: {ajax_json}")
+            if not ajax_json or ajax_json["ok"] == 0:
+                raise ConnectionError(f"Failed to get weibo info by api")
+            return ajax_json
+        except Exception as e:
+            raise ConnectionError(f"Failed to get weibo info by api: {e}")
 
     async def _get_long_weibo_info_api(self) -> dict:
         ajax_json = await get_response_json(
@@ -117,7 +123,7 @@ class Weibo(MetadataItem):
         # get user info
         self.user_id = weibo_info.get("user_id")
         self.author = weibo_info.get("author")
-        self.author_url = WEIBO_HOST + weibo_info.get("author_url") if weibo_info.get("author_url") else ""
+        self.author_url = WEIBO_HOST + weibo_info.get("author_url")
         self.title = self.author + "的微博"
         # get basic metadata
         self.date = weibo_info.get("created", None)
