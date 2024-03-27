@@ -223,6 +223,7 @@ class Weibo(MetadataItem):
             "pic_video": pic_video,
             "pic_infos": pic_infos,
             "page_info": page_info,
+            "pics": pics,
             "mix_media_info": mix_media_info,
             "url_struct": url_struct,
             "attitudes_count": attitudes_count,
