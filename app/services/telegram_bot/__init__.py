@@ -639,11 +639,8 @@ def message_formatting(data: dict) -> str:
     """
     if data["message_type"] == "short" and len(data["text"]) > TELEGRAM_TEXT_LIMIT:
         data["text"] = data["text"][:TELEGRAM_TEXT_LIMIT]
-        # remove the last incomplete tag
-        INCOMPLETE_TAG_REGEX = r"<[^>]*(?:>|$)"
-        while re.search(INCOMPLETE_TAG_REGEX, data["text"]):
-            data["text"] = re.sub(INCOMPLETE_TAG_REGEX, "", data["text"], count=1)
-        data["text"] += " ..."
+        data["text"] = re.compile(r"<[^>]*?(?<!>)$").sub("", data["text"])
+        data["text"] += "..."
     message_template = template
     text = message_template.render(data=data, template_text=template_text)
     logger.debug(f"message text: \n{text}")
