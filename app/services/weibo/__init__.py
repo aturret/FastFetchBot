@@ -123,7 +123,7 @@ class Weibo(MetadataItem):
         # get user info
         self.user_id = weibo_info.get("user_id")
         self.author = weibo_info.get("author")
-        self.author_url = WEIBO_HOST + weibo_info.get("author_url")
+        self.author_url = weibo_info.get("author_url")
         self.title = self.author + "的微博"
         # get basic metadata
         self.date = weibo_info.get("created", None)
