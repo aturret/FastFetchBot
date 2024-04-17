@@ -529,6 +529,7 @@ async def send_item_message(
                         parse_mode=ParseMode.HTML,
                         caption=caption_text,
                         write_timeout=TELEBOT_WRITE_TIMEOUT,
+                        reply_to_message_id = message.message_id if message else None,
                     )
             else:
                 sent_message = await application.bot.send_message(
