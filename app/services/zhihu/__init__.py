@@ -460,6 +460,9 @@ class Zhihu(MetadataItem):
                 figure.append(BeautifulSoup("<br>", "html.parser"))
                 figure.decompose()
             for a_tag in soup.find_all("a"):
+                if not a_tag.has_attr("href"):
+                    a_tag.unwrap()
+                    continue
                 href_value = a_tag["href"]
                 a_tag.attrs.clear()
                 a_tag["href"] = href_value
