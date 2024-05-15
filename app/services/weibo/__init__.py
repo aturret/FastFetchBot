@@ -190,9 +190,12 @@ class Weibo(MetadataItem):
         )
         # resolve retweet
         if weibo_info.get("retweeted_status"):
-            retweeted_weibo_item = Weibo(
-                url=WEIBO_WEB_HOST + weibo_info["retweeted_status"]["idstr"]
+            retweeted_weibo_id = (
+                weibo_info["retweeted_status"].get("id")
+                or weibo_info["retweeted_status"].get("mid")
+                or weibo_info["retweeted_status"].get("idstr")
             )
+            retweeted_weibo_item = Weibo(url=WEIBO_WEB_HOST + retweeted_weibo_id)
             await retweeted_weibo_item.get_weibo()
             self.retweeted_info = retweeted_weibo_item.__dict__
             self.text += self.retweeted_info["text"]
