@@ -5,127 +5,184 @@ import requests
 import httpx
 from requests_toolbelt import MultipartEncoder
 from .errors import *
-from .converter import convert_html_to_telegraph_format, convert_json_to_html, OutputFormat
+from .converter import (
+    convert_html_to_telegraph_format,
+    convert_json_to_html,
+    OutputFormat,
+)
 
-base_url = 'http://telegra.ph'
-save_url = 'https://edit.telegra.ph/save'
-api_url = 'https://api.telegra.ph'
-default_user_agent = 'Python_telegraph_poster/0.1'
+base_url = "http://telegra.ph"
+save_url = "https://edit.telegra.ph/save"
+api_url = "https://api.telegra.ph"
+default_user_agent = "Python_telegraph_poster/0.1"
 
 
-async def _upload(title, author, text,
-                  author_url='', tph_uuid=None, page_id=None, user_agent=default_user_agent, convert_html=True,
-                  clean_html=True, telegraph_base_url=base_url):
+async def _upload(
+    title,
+    author,
+    text,
+    author_url="",
+    tph_uuid=None,
+    page_id=None,
+    user_agent=default_user_agent,
+    convert_html=True,
+    clean_html=True,
+    telegraph_base_url=base_url,
+):
     if not title:
-        raise TitleRequiredError('Title is required')
+        raise TitleRequiredError("Title is required")
     if not text:
-        raise TextRequiredError('Text is required')
+        raise TextRequiredError("Text is required")
 
-    content = convert_html_to_telegraph_format(text, clean_html) if convert_html else text
+    content = (
+        convert_html_to_telegraph_format(text, clean_html) if convert_html else text
+    )
     cookies = dict(tph_uuid=tph_uuid) if tph_uuid and page_id else None
 
     fields = {
-        'Data': ('content.html', content, 'plain/text'),
-        'title': title,
-        'author': author,
-        'author_url': author_url,
-        'page_id': page_id or '0',
-        'save_hash': ''
+        "Data": ("content.html", content, "plain/text"),
+        "title": title,
+        "author": author,
+        "author_url": author_url,
+        "page_id": page_id or "0",
+        "save_hash": "",
     }
 
-    m = MultipartEncoder(fields, boundary='TelegraPhBoundary21')
+    m = MultipartEncoder(fields, boundary="TelegraPhBoundary21")
 
     headers = {
-        'Content-Type': m.content_type,
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'User-Agent': user_agent,
-        'Origin': telegraph_base_url
+        "Content-Type": m.content_type,
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "User-Agent": user_agent,
+        "Origin": telegraph_base_url,
     }
     timeout = httpx.Timeout(4.0)
     retries = httpx.Limits(max_keepalive_connections=3, max_connections=10)
     async with httpx.AsyncClient(timeout=timeout, limits=retries) as client:
-        response = await client.post(save_url, headers=headers, cookies=cookies, content=m.to_string())
+        response = await client.post(
+            save_url, headers=headers, cookies=cookies, content=m.to_string()
+        )
         result = json.loads(response.text)
-        if 'path' in result:
-            result['tph_uuid'] = response.cookies.get('tph_uuid') or tph_uuid
-            result['url'] = telegraph_base_url + '/' + result['path']
+        if "path" in result:
+            result["tph_uuid"] = response.cookies.get("tph_uuid") or tph_uuid
+            result["url"] = telegraph_base_url + "/" + result["path"]
             return result
         else:
-            error_msg = result['error'] if 'error' in result else ''
+            error_msg = result["error"] if "error" in result else ""
             raise TelegraphError(error_msg)
 
 
 def _prepare_page_upload_params(params):
     # significantly reduce size of request body
-    return json.dumps(params, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    return json.dumps(params, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
-async def _upload_via_api(title, author, text, author_url='', access_token=None, user_agent=default_user_agent,
-                          convert_html=True, clean_html=True, path=None, telegraph_api_url=api_url):
+async def _upload_via_api(
+    title,
+    author,
+    text,
+    author_url="",
+    access_token=None,
+    user_agent=default_user_agent,
+    convert_html=True,
+    clean_html=True,
+    path=None,
+    telegraph_api_url=api_url,
+):
     if not title:
-        raise TitleRequiredError('Title is required')
+        raise TitleRequiredError("Title is required")
     if not text:
-        raise TextRequiredError('Text is required')
+        raise TextRequiredError("Text is required")
     if not access_token:
-        raise APITokenRequiredError('API token is required')
+        raise APITokenRequiredError("API token is required")
     if not author:
-        author = ''  # author is optional
+        author = ""  # author is optional
     if not author_url:
-        author_url = ''  # author_url is optional
+        author_url = ""  # author_url is optional
 
-    content = convert_html_to_telegraph_format(text, clean_html,
-                                               output_format=OutputFormat.PYTHON_LIST) if convert_html else text
-    method = '/createPage' if not path else '/editPage'
+    content = (
+        convert_html_to_telegraph_format(
+            text, clean_html, output_format=OutputFormat.PYTHON_LIST
+        )
+        if convert_html
+        else text
+    )
+    method = "/createPage" if not path else "/editPage"
 
     params = {
-        'access_token': access_token,
-        'title': title[:256],
-        'author_name': author[:128],
-        'author_url': author_url[:512],
-        'content': content,
+        "access_token": access_token,
+        "title": title[:256],
+        "author_name": author[:128],
+        "author_url": author_url[:512],
+        "content": content,
     }
-    request_headers = {
-        'User-Agent': user_agent,
-        'Content-Type': 'application/json'
-    }
+    request_headers = {"User-Agent": user_agent, "Content-Type": "application/json"}
     if path:
-        params.update({'path': path})
+        params.update({"path": path})
     async with httpx.AsyncClient() as client:
-        resp = await client.post(telegraph_api_url + method, content=_prepare_page_upload_params(params),
-                                 headers=request_headers)
+        resp = await client.post(
+            telegraph_api_url + method,
+            content=_prepare_page_upload_params(params),
+            headers=request_headers,
+        )
     # resp = requests.post(telegraph_api_url + method, data=_prepare_page_upload_params(params), headers=request_headers).json()
     resp = resp.json()
-    if resp['ok'] is True:
-        return resp.get('result')
+    if resp["ok"] is True:
+        return resp.get("result")
     else:
-        error_msg = resp['error'] if 'error' in resp else ''
+        error_msg = resp["error"] if "error" in resp else ""
         raise TelegraphError(error_msg)
 
 
-async def create_api_token(short_name, author_name=None, author_url=None, user_agent=default_user_agent):
+async def create_api_token(
+    short_name, author_name=None, author_url=None, user_agent=default_user_agent
+):
     params = {
-        'short_name': short_name,
+        "short_name": short_name,
     }
     if author_name:
-        params.update({'author_name': author_name})
+        params.update({"author_name": author_name})
     if author_url:
-        params.update({'author_url': author_url})
+        params.update({"author_url": author_url})
     async with httpx.AsyncClient() as client:
-        resp = await client.get(api_url + '/createAccount', params=params, headers={'User-Agent': user_agent})
+        resp = await client.get(
+            api_url + "/createAccount",
+            params=params,
+            headers={"User-Agent": user_agent},
+        )
     # resp = requests.get(api_url+'/createAccount', params, headers={'User-Agent': user_agent})
     json_data = resp.json()
-    return json_data['result']
+    return json_data["result"]
 
 
-async def upload_to_telegraph(title, author, text, author_url='', tph_uuid=None, page_id=None,
-                              user_agent=default_user_agent):
-    result = await _upload(title, author, text, author_url, tph_uuid, page_id, user_agent)
+async def upload_to_telegraph(
+    title,
+    author,
+    text,
+    author_url="",
+    tph_uuid=None,
+    page_id=None,
+    user_agent=default_user_agent,
+):
+    result = await _upload(
+        title, author, text, author_url, tph_uuid, page_id, user_agent
+    )
     return result
 
 
 class AsyncTelegraphPoster(object):
-    def __init__(self, tph_uuid=None, page_id=None, user_agent=default_user_agent, clean_html=True, convert_html=True,
-                 use_api=False, access_token=None, telegraph_api_url=api_url, telegraph_base_url=base_url):
+    def __init__(
+        self,
+        tph_uuid=None,
+        page_id=None,
+        user_agent=default_user_agent,
+        clean_html=True,
+        convert_html=True,
+        use_api=False,
+        access_token=None,
+        telegraph_api_url=api_url,
+        telegraph_base_url=base_url,
+    ):
         self.title = None
         self.author = None
         self.author_url = None
@@ -136,7 +193,7 @@ class AsyncTelegraphPoster(object):
         self.user_agent = user_agent
         self.clean_html = clean_html
         self.convert_html = convert_html
-        self.access_token = access_token or os.getenv('TELEGRAPH_ACCESS_TOKEN', None)
+        self.access_token = access_token
         self.account = None
         self.use_api = use_api
         self.telegraph_api_url = telegraph_api_url
@@ -150,14 +207,16 @@ class AsyncTelegraphPoster(object):
         if params:
             params = {k: v for k, v in params.items() if v is not None}
         if self.access_token:
-            params['access_token'] = self.access_token
+            params["access_token"] = self.access_token
         async with httpx.AsyncClient() as client:
-            resp = await client.get(self.telegraph_api_url + '/' + method,
-                                    params=params,
-                                    headers={'User-Agent': self.user_agent})
+            resp = await client.get(
+                self.telegraph_api_url + "/" + method,
+                params=params,
+                headers={"User-Agent": self.user_agent},
+            )
         return resp.json()
 
-    async def post(self, title, author, text, author_url=''):
+    async def post(self, title, author, text, author_url=""):
         self.path = None
         self.title = title
         self.author = author
@@ -165,30 +224,30 @@ class AsyncTelegraphPoster(object):
         self.text = text
         result = await self.edit()
         if not self.use_api:
-            self.tph_uuid = result['tph_uuid']
-            self.page_id = result['page_id']
+            self.tph_uuid = result["tph_uuid"]
+            self.page_id = result["page_id"]
         return result
 
-    async def edit(self, title=None, author=None, text=None, author_url='', path=None):
+    async def edit(self, title=None, author=None, text=None, author_url="", path=None):
         params = {
-            'title': title or self.title,
-            'author': author or self.author,
-            'text': text or self.text,
-            'author_url': author_url or self.author_url,
-            'user_agent': self.user_agent,
-            'clean_html': self.clean_html,
-            'convert_html': self.convert_html
+            "title": title or self.title,
+            "author": author or self.author,
+            "text": text or self.text,
+            "author_url": author_url or self.author_url,
+            "user_agent": self.user_agent,
+            "clean_html": self.clean_html,
+            "convert_html": self.convert_html,
         }
         if self.use_api:
-            params['telegraph_api_url'] = self.telegraph_api_url
-            result = await _upload_via_api(access_token=self.access_token, path=path or self.path, **params)
-            self.path = result['path']
+            params["telegraph_api_url"] = self.telegraph_api_url
+            result = await _upload_via_api(
+                access_token=self.access_token, path=path or self.path, **params
+            )
+            self.path = result["path"]
             return result
         else:
             result = await _upload(
-                tph_uuid=self.tph_uuid,
-                page_id=self.page_id,
-                **params
+                tph_uuid=self.tph_uuid, page_id=self.page_id, **params
             )
             return result
 
@@ -200,13 +259,13 @@ class AsyncTelegraphPoster(object):
         :return: Returns an Account object on success.
         """
         if not self.access_token:
-            raise Exception('Access token is required')
-        result = await self._api_request('getAccountInfo', {
-            'fields': json.dumps(fields) if fields else ''
-        })
-        return result.get('result')
+            raise Exception("Access token is required")
+        result = await self._api_request(
+            "getAccountInfo", {"fields": json.dumps(fields) if fields else ""}
+        )
+        return result.get("result")
 
-    async def edit_account_info(self, short_name, author_name='', author_url=''):
+    async def edit_account_info(self, short_name, author_name="", author_url=""):
         """
             Use this method to update information about a Telegraph account.
             Pass only the parameters that you want to edit
@@ -218,16 +277,14 @@ class AsyncTelegraphPoster(object):
         :return:  Account object with the default fields.
         """
         if not self.access_token:
-            raise Exception('Access token is required')
-        params = {
-            'short_name': short_name
-        }
+            raise Exception("Access token is required")
+        params = {"short_name": short_name}
         if author_name:
-            params['author_name'] = author_name
+            params["author_name"] = author_name
         if author_url:
-            params['author_url'] = author_url
-        result = await self._api_request('editAccountInfo', params)
-        return result.get('result')
+            params["author_url"] = author_url
+        result = await self._api_request("editAccountInfo", params)
+        return result.get("result")
 
     async def get_page(self, path, return_content=False):
         """
@@ -237,14 +294,14 @@ class AsyncTelegraphPoster(object):
         :param return_content: (Boolean, default = false) If true, content field will be returned in Page object.
         :return: Returns a Page object on success
         """
-        json_response = await self._api_request('getPage', {
-            'path': path,
-            'return_content': return_content
-        })
+        json_response = await self._api_request(
+            "getPage", {"path": path, "return_content": return_content}
+        )
         if return_content:
-            json_response['result']['html'] = convert_json_to_html(json_response['result']['content'],
-                                                                   self.telegraph_base_url)
-        return json_response.get('result')
+            json_response["result"]["html"] = convert_json_to_html(
+                json_response["result"]["content"], self.telegraph_base_url
+            )
+        return json_response.get("result")
 
     async def get_page_list(self, offset=0, limit=50):
         """
@@ -253,11 +310,10 @@ class AsyncTelegraphPoster(object):
         :param limit: Limits the number of pages to be retrieved.
         :return: PageList object, sorted by most recently created pages first.
         """
-        json_response = await self._api_request('getPageList', {
-            'offset': offset,
-            'limit': limit
-        })
-        return json_response.get('result')
+        json_response = await self._api_request(
+            "getPageList", {"offset": offset, "limit": limit}
+        )
+        return json_response.get("result")
 
     async def get_views(self, path, year=None, month=None, day=None, hour=None):
         """
@@ -273,14 +329,11 @@ class AsyncTelegraphPoster(object):
         :param hour: If passed, the number of page views for the requested hour will be returned.
         :return: Returns a PageViews object on success. By default, the total number of page views will be returned.
         """
-        result = await self._api_request('getViews', {
-            'path': path,
-            'year': year,
-            'month': month,
-            'day': day,
-            'hour': hour
-        })
-        return result.get('result')
+        result = await self._api_request(
+            "getViews",
+            {"path": path, "year": year, "month": month, "day": day, "hour": hour},
+        )
+        return result.get("result")
 
     async def create_api_token(self, short_name, author_name=None, author_url=None):
         """
@@ -294,10 +347,12 @@ class AsyncTelegraphPoster(object):
             Can be any link, not necessarily to a Telegram profile or channel.
         :return: Account object with the regular fields and an additional access_token field.
         """
-        token_data = await create_api_token(short_name, author_name, author_url, self.user_agent)
+        token_data = await create_api_token(
+            short_name, author_name, author_url, self.user_agent
+        )
         self.use_api = True
         self.account = token_data
-        self.access_token = token_data['access_token']
+        self.access_token = token_data["access_token"]
         return token_data
 
     async def revoke_access_token(self):
@@ -307,31 +362,34 @@ class AsyncTelegraphPoster(object):
         :return: Account object with new access_token and auth_url fields.
         """
         if not self.access_token:
-            raise Exception('Access token is required')
+            raise Exception("Access token is required")
 
-        json_response = await self._api_request('revokeAccessToken')
-        if json_response['ok'] is True:
-            self.access_token = json_response['result']['access_token']
+        json_response = await self._api_request("revokeAccessToken")
+        if json_response["ok"] is True:
+            self.access_token = json_response["result"]["access_token"]
 
-        return json_response['result']
+        return json_response["result"]
 
     async def create_page(self, *args, **kwargs):
         """
-            Shortcut method for post()
+        Shortcut method for post()
         """
         result = await self.post(*args, **kwargs)
         return result
 
     async def edit_page(self, *args, **kwargs):
         """
-            Shortcut method for edit()
+        Shortcut method for edit()
         """
         result = await self.edit(*args, **kwargs)
         return result
 
     async def create_account(self, *args, **kwargs):
         """
-            Shortcut method for create_api_token()
+        Shortcut method for create_api_token()
         """
         result = await self.create_api_token(*args, **kwargs)
         return result
+
+    async def set_token(self, token: str):
+        self.access_token = token

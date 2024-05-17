@@ -108,6 +108,8 @@ def ban_list_resolver(ban_list_string: str) -> list:
 
 TELEGRAM_GROUP_MESSAGE_BAN_LIST = ban_list_resolver(telegram_group_message_ban_list)
 TELEGRAM_BOT_MESSAGE_BAN_LIST = ban_list_resolver(telegram_bot_message_ban_list)
+telegraph_token_list = env.get("TELEGRAPH_TOKEN_LIST", "")
+TELEGRAPH_TOKEN_LIST = telegraph_token_list.split(",") if telegraph_token_list else None
 
 # Youtube-dl environment variables
 FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
@@ -121,7 +123,9 @@ templates_directory = os.path.join(current_directory, "templates")
 JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
-TEMPLATE_LANGUAGE = env.get("TEMPLATE_LANGUAGE", "zh_CN")  # It is a workaround for translation system
+TEMPLATE_LANGUAGE = env.get(
+    "TEMPLATE_LANGUAGE", "zh_CN"
+)  # It is a workaround for translation system
 
 # X-RapidAPI (for instagram)
 X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
