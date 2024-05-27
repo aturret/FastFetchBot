@@ -271,6 +271,12 @@ class Weibo(MetadataItem):
                             url=pic["large"]["url"], media_type="image", caption=""
                         )
                     )
+                    if pic.get("type") == "gifvideos":
+                        media_files.append(
+                            MediaFile(
+                                url=pic["videoSrc"], media_type="video", caption=""
+                            )
+                        )
         elif "pic_infos" in weibo_info and weibo_info.get("pic_num") > 0:
             pic_info = weibo_info["pic_infos"]
             if pic_info:
