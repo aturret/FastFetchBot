@@ -179,7 +179,7 @@ class Twitter(MetadataItem):
                             caption="",
                         )
                     )
-                elif media["type"] == "video":
+                elif media["type"] == "video" or media["type"] == "animated_gif":
                     highest_bitrate_item = max(
                         media["video_info"]["variants"],
                         key=lambda x: x.get("bitrate", 0),
