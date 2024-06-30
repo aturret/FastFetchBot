@@ -29,7 +29,8 @@ from telegram import (
     InputMediaAudio,
 )
 from telegram.error import (
-    RetryAfter
+    RetryAfter,
+    TimedOut
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -73,7 +74,7 @@ from app.config import (
     JINJA2_ENV,
     OPENAI_API_KEY,
     DATABASE_ON,
-    TEMPLATE_LANGUAGE,
+    TEMPLATE_LANGUAGE, TELEBOT_MAX_RETRY,
 )
 from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
@@ -110,7 +111,7 @@ if TELEGRAM_BOT_TOKEN is not None:
         .base_url(TELEBOT_API_SERVER)
         .base_file_url(TELEBOT_API_SERVER_FILE)
         .local_mode(TELEBOT_LOCAL_FILE_MODE)
-        .rate_limiter(AIORateLimiter(max_retries=5))
+        .rate_limiter(AIORateLimiter(max_retries=TELEBOT_MAX_RETRY))
         .build()
     )
 else:
@@ -591,19 +592,21 @@ async def send_item_message(
             )
     except RetryAfter as e:
         logger.error(e)
+    except TimedOut as e:
+        logger.error(e)
+        await application.bot.send_message(
+            chat_id=discussion_chat_id,
+            text="Timed out while sending the item to the target 😕",
+            reply_to_message_id=message.message_id if message else None,
+        )
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
-        if message:
-            await message.reply_text(
-                text="Exception occurred while sending the item to the target 😕"
-            )
-        else:
-            await application.bot.send_message(
-                chat_id=discussion_chat_id,
-                text="Exception occurred while sending the item to the target 😕",
-                reply_to_message_id=message.message_id if message else None,
-            )
+        await application.bot.send_message(
+            chat_id=discussion_chat_id,
+            text="Error occurred while sending the item to the target 😕",
+            reply_to_message_id=message.message_id if message else None,
+        )
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
