@@ -30,7 +30,8 @@ from telegram import (
 )
 from telegram.error import (
     RetryAfter,
-    TimedOut
+    TimedOut,
+    BadRequest,
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -590,20 +591,17 @@ async def send_item_message(
                 else False,
                 disable_notification=True,
             )
-    except RetryAfter as e:
-        logger.error(e)
-        await application.bot.send_message(
-            chat_id=discussion_chat_id,
-            text="Flood control exceeded. Retry in 10 seconds.",
-            reply_to_message_id=message.message_id if message else None,
-        )
-    except TimedOut as e:
-        logger.error(e)
-        await application.bot.send_message(
-            chat_id=discussion_chat_id,
-            text="Timed out while sending the item to the target 😕",
-            reply_to_message_id=message.message_id if message else None,
-        )
+    # except BadRequest as e:
+    #     logger.error(e)
+    # except RetryAfter as e:
+    #     logger.error(e)
+    # except TimedOut as e:
+    #     logger.error(e)
+    #     await application.bot.send_message(
+    #         chat_id=discussion_chat_id,
+    #         text="Timed out while sending the item to the target 😕",
+    #         reply_to_message_id=message.message_id if message else None,
+    #     )
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
@@ -612,6 +610,7 @@ async def send_item_message(
             text="Error occurred while sending the item to the target 😕",
             reply_to_message_id=message.message_id if message else None,
         )
+        await send_debug_channel(traceback.format_exc())
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -632,14 +631,15 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     debug_chat_id = update.message.chat_id
     if TELEBOT_DEBUG_CHANNEL is not None:
         debug_chat_id = TELEBOT_DEBUG_CHANNEL
-        logger.debug(
-            f"""
-        debug chat channel detected: {debug_chat_id}
-        """
-        )
     await context.bot.send_message(
         chat_id=debug_chat_id, text=message, parse_mode=ParseMode.HTML
     )
+
+async def send_debug_channel(message: str) -> None:
+    if TELEBOT_DEBUG_CHANNEL is not None:
+        await application.bot.send_message(
+            chat_id=TELEBOT_DEBUG_CHANNEL, text=message, parse_mode=ParseMode.HTML
+        )
 
 
 def message_formatting(data: dict) -> str:
