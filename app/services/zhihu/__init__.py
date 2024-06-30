@@ -15,7 +15,7 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
     wrap_text_into_html,
 )
-from app.utils.network import get_selector, get_response_json, HEADERS
+from app.utils.network import get_selector, get_response_json, get_random_user_agent
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import JINJA2_ENV
 from .config import (
@@ -58,9 +58,9 @@ class Zhihu(MetadataItem):
         self.upvote = None
         self.retweeted = False
         # reqeust fields
-        self.headers = HEADERS
-        self.headers["Cookie"] = kwargs.get("cookie", "")
-        self.headers["Referer"] = self.url
+        self.headers = {"User-Agent": get_random_user_agent(),
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "Cookie": kwargs.get("cookie", ""), "Referer": self.url}
         self.method = kwargs.get("method", "json")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
