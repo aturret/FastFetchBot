@@ -97,7 +97,9 @@ class Weibo(MetadataItem):
             js = json.loads(html_string, strict=False)
             print(js)
             weibo_info = js.get("status")
-        except:
+        except Exception as e:
+            logger.error(f"Failed to get weibo info by webpage scraping: {e}")
+
             weibo_info = {}
         return weibo_info
 
@@ -271,7 +273,7 @@ class Weibo(MetadataItem):
                             url=pic["large"]["url"], media_type="image", caption=""
                         )
                     )
-                    if pic.get("type") == "gifvideos":
+                    if pic.get("type") in ["gifvideos", "livephoto"]:
                         media_files.append(
                             MediaFile(
                                 url=pic["videoSrc"], media_type="video", caption=""
