@@ -169,13 +169,14 @@ class Twitter(MetadataItem):
         if tweet["media"]:
             for media in tweet["media"]:
                 if media["type"] == "photo":
+                    photo_url = media["media_url_https"] + "?name=orig"
                     tweet_info[
                         "content_group"
-                    ] += f"<img src='{media['media_url_https']}'/>"
+                    ] += f"<img src='{photo_url}'/>"
                     tweet_info["media_files"].append(
                         MediaFile(
                             media_type="image",
-                            url=media["media_url_https"],
+                            url=photo_url,
                             caption="",
                         )
                     )
