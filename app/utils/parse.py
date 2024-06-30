@@ -10,6 +10,8 @@ from bs4 import BeautifulSoup
 from app.models.url_metadata import UrlMetadata
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 
+TELEGRAM_TEXT_LIMIT = 900
+
 mimetypes.init()
 
 
@@ -32,9 +34,9 @@ def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
         for item in soup.find_all(unwrap):
             item.unwrap()
     for (
-        new_line
+            new_line
     ) in (
-        new_line_list
+            new_line_list
     ):  # add a new line after each <p> and <li> tag and then remove the tag(unwrapping)
         for item in soup.find_all(new_line):
             item.append(BeautifulSoup("<br>", "html.parser"))
@@ -108,6 +110,64 @@ def wrap_text_into_html(text: str, is_html: bool = False) -> str:
     text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
     text = "".join(text_list)
     return text
+
+
+def telegram_message_html_trim(html_content: str, trim_length: int = TELEGRAM_TEXT_LIMIT) -> str:
+    # remove all img tag
+    soup = BeautifulSoup(html_content, "html.parser")
+    for img in soup.find_all("img"):
+        img.decompose()
+    html_content = str(soup)
+
+    if len(html_content) <= trim_length:
+        return html_content
+
+        # Initial trimming
+    trimmed_content = html_content[:trim_length]
+    remaining_content = html_content[trim_length:]
+
+    # Find the position of the last complete tag in the trimmed content
+    last_complete_pos = trimmed_content.rfind('<')
+    if last_complete_pos != -1:
+        trimmed_content = trimmed_content[:last_complete_pos]
+        remaining_content = html_content[last_complete_pos:] + remaining_content
+
+    # Remove any incomplete tags by ensuring each tag is closed
+    cleaned_html = ''
+    open_tags = []
+
+    tag_pattern = re.compile(r'<(/?)([a-zA-Z0-9]+)([^>]*)>')
+    pos = 0
+
+    while pos < len(trimmed_content):
+        match = tag_pattern.search(trimmed_content, pos)
+        if not match:
+            break
+
+        start, end = match.span()
+        cleaned_html += trimmed_content[pos:start]
+
+        closing, tag_name, attributes = match.groups()
+
+        if closing:
+            if open_tags and open_tags[-1] == tag_name:
+                open_tags.pop()
+                cleaned_html += match.group(0)
+        else:
+            if not attributes.endswith('/'):
+                open_tags.append(tag_name)
+                cleaned_html += match.group(0)
+
+        pos = end
+
+    cleaned_html += trimmed_content[pos:]
+
+    # Ensure to close all open tags
+    for tag in reversed(open_tags):
+        cleaned_html += f'</{tag}>'
+
+    print(cleaned_html)
+    return cleaned_html + ' ...'
 
 
 def get_bool(value: Optional[str], default: bool = True) -> bool:

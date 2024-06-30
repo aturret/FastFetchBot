@@ -3,12 +3,9 @@
 import asyncio
 import html
 import json
-import logging
 import os
 import mimetypes
-import re
 import aiofiles
-from pathlib import Path
 import traceback
 from io import BytesIO
 from urllib.parse import urlparse
@@ -31,6 +28,9 @@ from telegram import (
     InputMediaAnimation,
     InputMediaAudio,
 )
+from telegram.error import (
+    RetryAfter
+)
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -47,7 +47,7 @@ from app.database import save_instances
 from app.models.metadata_item import MessageType
 from app.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
 from app.services.common import InfoExtractService
-from app.utils.parse import check_url_type, get_html_text_length
+from app.utils.parse import check_url_type, telegram_message_html_trim
 from app.utils.network import download_file_by_metadata_item
 from app.utils.image import Image, image_compressing, check_image_type
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
@@ -110,7 +110,7 @@ if TELEGRAM_BOT_TOKEN is not None:
         .base_url(TELEBOT_API_SERVER)
         .base_file_url(TELEBOT_API_SERVER_FILE)
         .local_mode(TELEBOT_LOCAL_FILE_MODE)
-        .rate_limiter(AIORateLimiter())
+        .rate_limiter(AIORateLimiter(max_retries=5))
         .build()
     )
 else:
@@ -589,6 +589,8 @@ async def send_item_message(
                 else False,
                 disable_notification=True,
             )
+    except RetryAfter as e:
+        logger.error(e)
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
@@ -638,13 +640,8 @@ def message_formatting(data: dict) -> str:
     :param data:
     :return: text (str) the formatted text for telegram bot api sending message.
     """
-    if data["message_type"] == "short" and len(data["text"]) > TELEGRAM_TEXT_LIMIT:
-        data["text"] = data["text"][:TELEGRAM_TEXT_LIMIT]
-        # remove the last incomplete tag
-        INCOMPLETE_TAG_REGEX = r"<[^>]*(?:>|$)"
-        while re.search(INCOMPLETE_TAG_REGEX, data["text"]):
-            data["text"] = re.sub(INCOMPLETE_TAG_REGEX, "", data["text"], count=1)
-        data["text"] += " ..."
+    if data["message_type"] == "short":
+        data["text"] = telegram_message_html_trim(data["text"])
     message_template = template
     text = message_template.render(data=data, template_text=template_text)
     logger.debug(f"message text: \n{text}")
