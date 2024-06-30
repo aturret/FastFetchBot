@@ -592,6 +592,11 @@ async def send_item_message(
             )
     except RetryAfter as e:
         logger.error(e)
+        await application.bot.send_message(
+            chat_id=discussion_chat_id,
+            text="Flood control exceeded. Retry in 10 seconds.",
+            reply_to_message_id=message.message_id if message else None,
+        )
     except TimedOut as e:
         logger.error(e)
         await application.bot.send_message(

@@ -112,6 +112,7 @@ class Douban(MetadataItem):
         data = self.__dict__
         data["short_text"] = short_text
         self.text = short_text_template.render(data=data)
+        self.raw_content = self.raw_content_to_html(self.raw_content)
         self.content = wrap_text_into_html(
             content_template.render(data=data), is_html=True
         )
@@ -215,3 +216,15 @@ class Douban(MetadataItem):
         short_text = re.sub(r"\n{2,}", "\n", short_text)
         short_text = re.sub(r"<br\s*/?>", "\n", short_text)
         return short_text
+
+    @staticmethod
+    def raw_content_to_html(raw_content: str) -> str:
+        # Split the text into paragraphs based on double newlines
+        print(raw_content)
+        paragraphs = raw_content.split('<br>\n')
+        # Wrap each paragraph with <p> tags
+        print(paragraphs)
+        html_paragraphs = [f'<p>{paragraph.strip()}</p>' for paragraph in paragraphs]
+        # Join the paragraphs to form the final HTML string
+        html_string = ''.join(html_paragraphs)
+        return html_string
