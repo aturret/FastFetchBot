@@ -148,6 +148,11 @@ class Zhihu(MetadataItem):
         else:
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
+        # use accessible version webpage for scraping, which is like "https://zhihu.com/aria/..."
+        request_url_path = path
+        if self.zhihu_type == "answer":
+            request_url_path = "/aria" + path
+        self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
         """
@@ -158,7 +163,7 @@ class Zhihu(MetadataItem):
             pass  # zhihu v4 api does not open for answer
         else:
             try:
-                selector = await get_selector(self.url, headers=self.headers)
+                selector = await get_selector(self.request_url, headers=self.headers)
             except:
                 raise Exception("Cannot get the selector")
             if self.method == "json":
@@ -235,7 +240,7 @@ class Zhihu(MetadataItem):
             self.upvote = json_data["like_count"]
         else:
             try:
-                selector = await get_selector(self.url, headers=self.headers)
+                selector = await get_selector(self.request_url, headers=self.headers)
             except:
                 raise Exception("zhihu request failed")
             if self.method == "json":
@@ -400,7 +405,7 @@ class Zhihu(MetadataItem):
             self.upvote = json_data["voteup_count"]
         else:
             try:
-                selector = await get_selector(self.url, headers=self.headers)
+                selector = await get_selector(self.request_url, headers=self.headers)
             except:
                 raise Exception("zhihu request failed")
             if self.method == "json":
