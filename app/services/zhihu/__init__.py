@@ -101,6 +101,8 @@ class Zhihu(MetadataItem):
                 else:
                     self.method = method
                 await function_dict[self.zhihu_type]()
+                if self.title != "":
+                    break
             except Exception as e:
                 traceback.print_exc()
                 if method == ALL_METHODS[-1]:
