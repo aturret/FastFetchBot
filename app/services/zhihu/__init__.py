@@ -35,15 +35,15 @@ content_template = environment.get_template("zhihu_content.jinja2")
 class Zhihu(MetadataItem):
     def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         # metadata fields
-        self.url = url
-        self.title = ""
-        self.author = ""
-        self.author_url = ""
-        self.text = ""
-        self.content = ""
+        self.url: url = url
+        self.title: str = ""
+        self.author: str = ""
+        self.author_url: str = ""
+        self.text: str = ""
+        self.content: str = ""
         self.media_files: list[MediaFile] = []
         self.category = "zhihu"
-        self.message_type = MessageType.SHORT
+        self.message_type: MessageType = MessageType.SHORT
         # auxiliary fields
         self.item_title = ""
         self.item_url = ""
@@ -55,8 +55,8 @@ class Zhihu(MetadataItem):
         self.date = ""
         self.updated = ""
         self.retweet_html = ""
-        self.upvote = None
-        self.retweeted = False
+        self.upvote: int = 0
+        self.retweeted: bool = False
         # reqeust fields
         self.headers = {"User-Agent": get_random_user_agent(),
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -233,20 +233,32 @@ class Zhihu(MetadataItem):
             )
             print(self.api_url)
             json_data = await get_response_json(self.api_url, headers=self.headers)
-            self.author = json_data["author"]["name"]
-            self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
-            self.title = self.author + "的想法"
+            data = self._resolve_status_api_data(json_data) # TODO: separate the function to resolve the api data
+            self.author = data["author"]
+            self.author_url = data["author_url"]
+            self.title = data["author"] + "的想法"
             self.raw_content = json_data["content_html"]
-            self.date = unix_timestamp_to_utc(json_data["created"])
-            self.updated = unix_timestamp_to_utc(json_data["updated"])
-            self.upvote = json_data["like_count"]
+            self.media_files.extend(data["media_files"])
+            self.date = unix_timestamp_to_utc(data["created"])
+            self.updated = unix_timestamp_to_utc(data["updated"])
+            self.upvote = data["like_count"]
+            if data["origin_pin_id"]:
+                self.retweeted = True
+                self.origin_pin_url = ZHIHU_HOST + "/pin/" + data["origin_pin_id"]
+                self.origin_pin_author = data["origin_pin_data"]["author"]
+                self.origin_pin_author_url = data["origin_pin_data"]["author_url"]
+                self.origin_pin_raw_content = data["origin_pin_data"]["raw_content"]
+                self.origin_pin_date = unix_timestamp_to_utc(data["origin_pin_data"]["created"])
+                self.origin_pin_updated = unix_timestamp_to_utc(data["origin_pin_data"]["updated"])
+                self.origin_pin_upvote = data["origin_pin_data"]["like_count"]
+                self.origin_pin_comment_count = data["origin_pin_data"]["comment_count"]
+                self.media_files.extend(data["origin_pin_data"]["media_files"])
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
             except:
                 raise Exception("zhihu request failed")
             if self.method == "json":
-
                 def _process_picture(pictures, content_attr):
                     if not hasattr(self, content_attr):
                         setattr(self, content_attr, "")
@@ -343,7 +355,7 @@ class Zhihu(MetadataItem):
                         'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
                     ).find("PinItem-content-originpin")
                     != -1
-                ):  # 是否存在转发
+                ):  # check if the status is a retweet
                     if (
                         str(
                             etree.tostring(
@@ -355,7 +367,7 @@ class Zhihu(MetadataItem):
                             encoding="utf-8",
                         )
                         != '<div class="RichText ztext PinItem-remainContentRichText"/>'
-                    ):  # 如果转发内容有图
+                    ):  # if the retweet content including pictures
                         pic_html = html.fromstring(
                             str(
                                 etree.tostring(
@@ -551,6 +563,47 @@ class Zhihu(MetadataItem):
         }}"""
         result = jmespath.search(expression, data)
         return result
+
+    @staticmethod
+    def _resolve_status_api_data(data: Dict) -> Dict:
+        result = {
+            "author": data["author"]["name"],
+            "author_url": ZHIHU_HOST + "/people/" + data["author"]["url_token"],
+            "created": data["created"],
+            "updated": data["updated"],
+            "text": None,
+            "raw_content": data["content_html"],
+            "like_count": data["like_count"],
+            "comment_count": data["comment_count"],
+            "media_files": [],
+            "origin_pin_id": None,
+        }
+        for content in data["content"]:
+            if content["type"] == "text":
+                result["text"] = content["content"]
+            elif content["type"] == "image":
+                media_item = MediaFile.from_dict(
+                    {
+                        "media_type": "image",
+                        "url": content["original_url"],
+                        "caption": "",
+                    }
+                )
+                result["media_files"].append(media_item)
+            elif content["type"] == "video":
+                media_item = MediaFile.from_dict(
+                    {
+                        "media_type": "video",
+                        "url": content["video_info"]["playlist"]["hd"]["play_url"],
+                        "caption": "",
+                    }
+                )
+                result["media_files"].append(media_item)
+        if "origin_pin" in data:
+            result["origin_pin_id"] = data["origin_pin"]["id"]
+            result["origin_pin_data"] = Zhihu._resolve_status_api_data(data["origin_pin"])
+        return result
+
 
     def _parse_status_json_data(self, data: Dict) -> Dict:
         expression = f"""{{
