@@ -108,12 +108,13 @@ class Instagram(MetadataItem):
     @staticmethod
     def _get_ins_post_looter2(ins_data: dict) -> dict:
         ins_info = {}
-        ins_info["content"] = (
+        ins_text_data = (
             ins_data["edge_media_to_caption"]["edges"][0]["node"]["text"]
             if ins_data["edge_media_to_caption"]["edges"]
             else ""
         )
-        ins_info["text"] = ins_info["content"]
+        ins_info["content"] = ""
+        ins_info["text"] = ins_text_data
         ins_info["author"] = ins_data["owner"]["username"]
         if ins_data["owner"]["full_name"]:
             ins_info["author"] += "(" + ins_data["owner"]["full_name"] + ")"
@@ -175,18 +176,20 @@ class Instagram(MetadataItem):
                     ins_info["content"] += (
                         '<img src="' + item["node"]["display_url"] + '">'
                     )
+        ins_info["content"] += ins_text_data
         ins_info["status"] = True
         return ins_info
 
     @staticmethod
     def _get_ins_post_ins28_scraper2(ins_data):
         ins_info = {}
-        ins_info["content"] = (
+        ins_text_data = (
             ins_data["items"][0]["caption"]["text"]
             if ins_data["items"][0]["caption"]
             else ""
         )
-        ins_info["text"] = ins_info["content"]
+        ins_info["content"] = ""
+        ins_info["text"] = ins_text_data
         ins_info["author"] = ins_data["items"][0]["user"]["username"]
         if ins_data["items"][0]["user"]["full_name"]:
             ins_info["author"] += "(" + ins_data["items"][0]["user"]["full_name"] + ")"
@@ -260,6 +263,7 @@ class Instagram(MetadataItem):
                         + item["image_versions2"]["candidates"][0]["url"]
                         + '">'
                     )
+        ins_info["content"] += ins_text_data
         ins_info["status"] = True
         return ins_info
 
