@@ -10,6 +10,7 @@ import traceback
 
 from lxml import etree
 from fake_useragent import UserAgent
+from playwright.async_api import async_playwright
 
 from app.models.classes import NamedBytesIO
 from app.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
@@ -18,7 +19,7 @@ from app.utils.logger import logger
 
 
 async def get_response(
-    url: str, headers: dict = None, params: dict = None
+        url: str, headers: dict = None, params: dict = None
 ) -> httpx.Response:
     if headers is None:
         headers = HEADERS
@@ -40,7 +41,7 @@ async def get_response_json(url: str, headers=None) -> dict:
 
 
 async def get_selector(
-    url: str, headers: dict, follow_redirects: bool = True
+        url: str, headers: dict, follow_redirects: bool = True
 ) -> etree.HTML:
     """
     A function to get etree.HTML selector according to url and headers.
@@ -58,7 +59,7 @@ async def get_selector(
             timeout=HTTP_REQUEST_TIMEOUT,
         )
         if (
-            resp.history
+                resp.history
         ):  # if there is a redirect, the request will have a response chain
             print("Request was redirected")
             for h in resp.history:
@@ -70,6 +71,11 @@ async def get_selector(
                     )
                     return selector
             print("Final destination:", resp.status_code, resp.url)
+        # if resp.status_code == 302:
+        #     selector = await get_selector(
+        #             resp.url, headers=headers, follow_redirects=False
+        #         )
+        #     return selector
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
 
@@ -85,12 +91,44 @@ async def get_redirect_url(url: str, headers: Optional[dict] = None) -> str:
             return url
 
 
+async def get_content_async(url):
+    async with async_playwright() as p:
+        browser = await p.firefox.launch()
+        context = await browser.new_context(viewport={"width": 1920, "height": 1080})
+        page = await context.new_page()
+
+        async def scroll_to_end(page):
+            # Scrolls to the bottom of the page
+            await page.evaluate("""
+                async () => {
+                    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+                    while (document.scrollingElement.scrollTop + window.innerHeight < document.scrollingElement.scrollHeight) {
+                        document.scrollingElement.scrollTop += 100;  // Adjust the scroll amount
+                        await delay(100);  // Adjust the delay time
+                    }
+                }
+            """)
+
+        async def wait_for_network_idle():
+            async with page.expect_response("**/api/content") as response_info:
+                response = await response_info.value
+                if response.status == 200:
+                    print("Content loaded")
+
+        await page.goto(url)
+        await wait_for_network_idle()
+        await scroll_to_end(page)
+        content = await page.content()
+        await browser.close()
+        return content
+
+
 async def download_file_by_metadata_item(
-    url: str,
-    data: dict,
-    file_name: str = None,
-    file_format: str = None,
-    headers: dict = None,
+        url: str,
+        data: dict,
+        file_name: str = None,
+        file_format: str = None,
+        headers: dict = None,
 ) -> NamedBytesIO:
     """
     A customized function to download a file from url and return a NamedBytesIO object.
@@ -129,12 +167,12 @@ async def download_file_by_metadata_item(
 
 
 async def download_file_to_local(
-    url: str,
-    file_path: str = None,
-    dir_path: str = DOWNLOAD_DIR,
-    file_name: str = "",
-    headers: dict = None,
-    referer: str = None,
+        url: str,
+        file_path: str = None,
+        dir_path: str = DOWNLOAD_DIR,
+        file_name: str = "",
+        headers: dict = None,
+        referer: str = None,
 ) -> str:
     io_object = await download_file_by_metadata_item(
         url=url, file_name=file_name, headers=headers, referer=referer

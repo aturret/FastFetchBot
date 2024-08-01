@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 
@@ -9,6 +10,7 @@ from app.utils.parse import get_env_bool
 
 env = os.environ
 current_directory = os.path.dirname(os.path.abspath(__file__))
+conf_dir = os.path.join(current_directory, "..", "conf")
 
 # FastAPI environment variables
 BASE_URL = env.get("BASE_URL", "localhost")
@@ -158,6 +160,21 @@ XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
 XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
 XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
 XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
+
+# Zhihu
+zhihu_cookie_path = os.path.join(conf_dir, "zhihu_cookies.json")
+if os.path.exists(zhihu_cookie_path):
+    try:
+        with open(zhihu_cookie_path, "r") as f:
+            ZHIHU_COOKIES_JSON = json.load(f)
+    except json.JSONDecodeError:
+        print("Error: The file is not in a valid JSON format.")
+    except FileNotFoundError:
+        print("Error: The file does not exist.")
+        ZHIHU_COOKIES_JSON = None
+else:
+    print("Error: We cannot find it.")
+    ZHIHU_COOKIES_JSON = None
 
 # Reddit
 REDDIT_CLIENT_ID = env.get("REDDIT_CLIENT_ID", None)

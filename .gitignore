@@ -250,3 +250,7 @@ docker-compose.yml
 /download/
 /.dockerignore
 /fly.toml
+
+conf/*
+!conf/
+!conf/.gitkeep

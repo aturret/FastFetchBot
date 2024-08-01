@@ -1,3 +1,5 @@
+from app.config import ZHIHU_COOKIES_JSON
+
 SHORT_LIMIT = 600
 ZHIHU_COLUMNS_API_HOST = "https://zhuanlan.zhihu.com/api"
 ZHIHU_API_HOST = "https://www.zhihu.com/api/v4"
@@ -11,3 +13,8 @@ There are three methods to get zhihu item: from zhihu v4 api(api), a json object
  would try to parse the html page content directly.
  You can also pass the method as a parameter when initializing the Zhihu object. If not, the default method is api.
 """
+
+if ZHIHU_COOKIES_JSON:
+    ZHIHU_COOKIES = ';'.join(f"{cookie['name']}={cookie['value']}" for cookie in ZHIHU_COOKIES_JSON)
+else:
+    ZHIHU_COOKIES = None

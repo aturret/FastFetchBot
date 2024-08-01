@@ -11,6 +11,8 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     "zhihu": [
         r"(www\.)?zhihu\.com\/question\/[0-9]+\/answer\/[0-9]+",
         r"(www\.)?zhihu\.com\/answer\/[0-9]+",
+        r"(www\.)?zhihu\.com\/aria\/answer\/[0-9]+",
+        r"(www\.)?zhihu\.com\/aria\/question\/[0-9]+\/answer\/[0-9]+",
         r"(www\.)?zhihu\.com\/pin\/[0-9]+",
         r"zhuanlan\.zhihu\.com\/p\/[0-9]+",
     ],

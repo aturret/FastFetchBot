@@ -15,7 +15,7 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
     wrap_text_into_html,
 )
-from app.utils.network import get_selector, get_response_json, get_random_user_agent
+from app.utils.network import get_selector,get_redirect_url, get_response_json, get_random_user_agent, get_content_async
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import JINJA2_ENV
 from .config import (
@@ -24,8 +24,10 @@ from .config import (
     ZHIHU_API_HOST,
     ZHIHU_HOST,
     ALL_METHODS,
+    ZHIHU_COOKIES
 )
 from ...utils.logger import logger
+
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("zhihu_short_text.jinja2")
@@ -61,9 +63,14 @@ class Zhihu(MetadataItem):
         self.headers = {"User-Agent": get_random_user_agent(),
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
                         "Cookie": kwargs.get("cookie", ""), "Referer": self.url}
+        if ZHIHU_COOKIES:
+            self.headers["Cookie"] = ZHIHU_COOKIES
         self.method = kwargs.get("method", "json")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
+        self.status_id = ""
+        self.answer_id = ""
+        self.question_id = ""
         # other hard-coded fields
         self.zhihu_type_translate = {
             "article": "专栏文章",
@@ -153,7 +160,11 @@ class Zhihu(MetadataItem):
         # use accessible version webpage for scraping, which is like "https://zhihu.com/aria/..."
         request_url_path = path
         if self.zhihu_type == "answer":
-            request_url_path = "/aria" + path
+            if path.find("question") != -1:
+                self.question_id = self.urlparser.path.split("/")[-3]
+            else:
+                await self._get_question_id()
+            request_url_path = "/aria/question/" + self.question_id + "/answer/" + self.answer_id
         self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
@@ -166,6 +177,8 @@ class Zhihu(MetadataItem):
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
+                # selector = await get_content_async(self.request_url)
+                # selector = etree.HTML(selector)
             except:
                 raise Exception("Cannot get the selector")
             if self.method == "json":
@@ -632,3 +645,12 @@ class Zhihu(MetadataItem):
                         }}"""
         result.update(jmespath.search(expression, data))
         return result
+
+    async def _get_question_id(self):
+        redirected_url = await get_redirect_url(self.url)
+        self.question_id = urlparse(redirected_url).path.split("/")[2]
+
+    def _generate_zhihu_cookie(self):
+        # TODO: a more elegant way to generate the zhihu cookie
+        pass
+
