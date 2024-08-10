@@ -58,7 +58,7 @@ def second_to_time(second: int) -> str:
     return "{:02d}:{:02d}:{:02d}".format(h, m, s)
 
 
-async def check_url_type(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
+async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
     if not ban_list:
         ban_list = []
     url_object = urlparse(url)

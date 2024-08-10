@@ -12,7 +12,7 @@ from app.services.inoreader import Inoreader
 from fastapi import Security
 from app.auth import verify_api_key
 from app.utils.logger import logger
-from app.utils.parse import check_url_type
+from app.utils.parse import get_url_metadata
 
 router = APIRouter(prefix="/feedPush")
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/feedPush")
 async def get_feed_item(url: str, channel_id: str, **kwargs):
     try:
         channel_id = int(channel_id) if channel_id.startswith("-") else channel_id
-        url_metadata = await check_url_type(url)
+        url_metadata = await get_url_metadata(url)
         item = InfoExtractService(url_metadata, **kwargs)
         metadata_item = await item.get_item()
         if channel_id not in TELEGRAM_CHANNEL_ID:

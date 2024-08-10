@@ -49,7 +49,7 @@ from app.database import save_instances
 from app.models.metadata_item import MessageType
 from app.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
 from app.services.common import InfoExtractService
-from app.utils.parse import check_url_type, telegram_message_html_trim
+from app.utils.parse import get_url_metadata, telegram_message_html_trim
 from app.utils.network import download_file_by_metadata_item
 from app.utils.image import Image, image_compressing, check_image_type
 from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
@@ -210,7 +210,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         process_message = await message.reply_text(
             text=f"Processing the {i + 1}th url...",
         )
-        url_metadata = await check_url_type(url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST)
+        url_metadata = await get_url_metadata(url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST)
         if url_metadata.source == "banned":
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, the url is banned."
@@ -347,7 +347,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
     message = update.message
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
-        url_metadata = await check_url_type(
+        url_metadata = await get_url_metadata(
             url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
         )
         if url_metadata.source == "unknown" or url_metadata.source == "banned":
