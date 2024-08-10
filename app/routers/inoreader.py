@@ -12,7 +12,7 @@ from app.services.inoreader import Inoreader
 from fastapi import Security
 from app.auth import verify_api_key
 from app.utils.logger import logger
-from app.utils.parse import check_url_type, get_bool
+from app.utils.parse import get_url_metadata, get_bool
 
 router = APIRouter(prefix="/inoreader")
 default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else None
@@ -82,13 +82,13 @@ async def process_inoreader_data(
     stream_id: str = None,
 ):
     for item in data:
-        url_type_item = await check_url_type(item["aurl"])
+        url_type_item = await get_url_metadata(item["aurl"])
         url_type_dict = url_type_item.to_dict()
         logger.debug(f"ino original: {use_inoreader_content}")
         if (
             use_inoreader_content is True
             or url_type_dict["content_type"] == "unknown"
-            or url_type_dict["source"] == "zhihu"
+            # or url_type_dict["source"] == "zhihu"
         ):
             is_video = url_type_dict["content_type"] == "video"
             content_type = url_type_dict["content_type"] if is_video else "social_media"
