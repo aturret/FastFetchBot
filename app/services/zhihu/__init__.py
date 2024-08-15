@@ -514,6 +514,10 @@ class Zhihu(MetadataItem):
         self.text = short_text_template.render(data=data)
         soup = BeautifulSoup(self.text, "html.parser")
         soup = format_telegram_short_text(soup)
+        for h_tag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
+            if h_tag.text != "":
+                h_tag.append(BeautifulSoup("<br>", "html.parser"))
+            h_tag.unwrap()
         for p in soup.find_all("p"):
             if p.text != "":
                 p.append(BeautifulSoup("<br>", "html.parser"))
