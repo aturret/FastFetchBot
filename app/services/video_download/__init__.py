@@ -48,6 +48,7 @@ class VideoDownloader(MetadataItem):
         return instance
 
     async def get_item(self) -> dict:
+        self.url = await self._parse_url(self.url)
         await self.get_video()
         return self.to_dict()
 
@@ -76,10 +77,12 @@ class VideoDownloader(MetadataItem):
         url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
         if self.extractor == "bilibili":
             if "b23.tv" in url:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(follow_redirects=False) as client:
                     resp = await client.get(url)
-                url = resp.url
-                self.url = str(url)
+                    if resp.status_code == 200:
+                        url = resp.url
+                    elif resp.status_code == 302:
+                        url = resp.headers["Location"]
             if "m.bilibili.com" in url:
                 url = url.replace("m.bilibili.com", "www.bilibili.com")
         elif self.extractor == "youtube" and "youtu.be" in url:
@@ -194,3 +197,4 @@ class VideoDownloader(MetadataItem):
             "upload_date": unix_timestamp_to_utc(video_info["timestamp"]),
             "duration": second_to_time(round(video_info["duration"])),
         }
+
