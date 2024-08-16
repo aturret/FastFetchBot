@@ -16,15 +16,15 @@ video_info_template = JINJA2_ENV.get_template("video_info.jinja2")
 
 class VideoDownloader(MetadataItem):
     def __init__(
-        self,
-        url: str,
-        category: str,
-        data: Optional[Any] = None,
-        download: bool = True,
-        audio_only: bool = False,
-        hd: bool = False,
-        transcribe: bool = False,
-        **kwargs,
+            self,
+            url: str,
+            category: str,
+            data: Optional[Any] = None,
+            download: bool = True,
+            audio_only: bool = False,
+            hd: bool = False,
+            transcribe: bool = False,
+            **kwargs,
     ):
         self.extractor = category
         self.url = url
@@ -72,35 +72,48 @@ class VideoDownloader(MetadataItem):
             self.content += "<hr>" + wrap_text_into_html(transcribe_text)
 
     async def _parse_url(self, url: str) -> str:
+        async def _get_redirected_url(original_url: str) -> str:
+            async with httpx.AsyncClient(follow_redirects=False) as client:
+                resp = await client.get(original_url)
+                if resp.status_code == 200:
+                    original_url = resp.url
+                elif resp.status_code == 302:
+                    original_url = resp.headers["Location"]
+                return original_url
+
+        def _remove_youtube_link_tracing(original_url: str) -> str:
+            if "youtube.com" in original_url:
+                original_url = original_url.split("&")[0]
+            return original_url
+
+        def _remove_bilibili_link_tracing(original_url: str) -> str:
+            if "bilibili.com" in original_url:
+                temp_url_parser = urlparse(original_url)
+                original_url = temp_url_parser.scheme + "://" + temp_url_parser.netloc + temp_url_parser.path
+            return original_url
+
         logger.info(f"parsing original video url: {url} for {self.extractor}")
         url_parser = urlparse(url)
         url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
         if self.extractor == "bilibili":
             if "b23.tv" in url:
-                async with httpx.AsyncClient(follow_redirects=False) as client:
-                    resp = await client.get(url)
-                    if resp.status_code == 200:
-                        url = resp.url
-                    elif resp.status_code == 302:
-                        url = resp.headers["Location"]
+                url = await _get_redirected_url(url)
             if "m.bilibili.com" in url:
                 url = url.replace("m.bilibili.com", "www.bilibili.com")
+            url = _remove_bilibili_link_tracing(url)
         elif self.extractor == "youtube" and "youtu.be" in url:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url)
-            url = resp.url
-        url_parser = urlparse(url)
-        url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
+            url = await _get_redirected_url(url)
+            url = _remove_youtube_link_tracing(url)
         logger.info(f"parsed video url: {url} for {self.extractor}")
         return url
 
     async def get_video_info(
-        self,
-        url: str = None,
-        download: bool = None,
-        extractor: str = None,
-        audio_only: bool = None,
-        hd: bool = None,
+            self,
+            url: str = None,
+            download: bool = None,
+            extractor: str = None,
+            audio_only: bool = None,
+            hd: bool = None,
     ) -> dict:
         """
         make a request to youtube-dl server to get video info
@@ -189,7 +202,7 @@ class VideoDownloader(MetadataItem):
             "title": video_info["title"],
             "author": video_info["uploader"],
             "author_url": "https://space.bilibili.com/"
-            + str(video_info["uploader_id"]),
+                          + str(video_info["uploader_id"]),
             "author_avatar": video_info["thumbnail"],
             "ext": video_info["ext"],
             "description": video_info["description"],
@@ -197,4 +210,3 @@ class VideoDownloader(MetadataItem):
             "upload_date": unix_timestamp_to_utc(video_info["timestamp"]),
             "duration": second_to_time(round(video_info["duration"])),
         }
-
