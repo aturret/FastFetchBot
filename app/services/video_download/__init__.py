@@ -82,8 +82,16 @@ class VideoDownloader(MetadataItem):
                 return original_url
 
         def _remove_youtube_link_tracing(original_url: str) -> str:
+            if "youtu.be" in original_url:
+                # remove all queries
+                original_url = original_url.split("?")[0]
             if "youtube.com" in original_url:
-                original_url = original_url.split("&")[0]
+                # remove all queries except "?v=" part
+                temp_url_parser = urlparse(original_url)
+                original_url = temp_url_parser.scheme + "://" + temp_url_parser.netloc + temp_url_parser.path
+                if temp_url_parser.query:
+                    v_part_query = [item for item in temp_url_parser.query.split("&") if "v=" in item]
+                    original_url += "?" + v_part_query[0]
             return original_url
 
         def _remove_bilibili_link_tracing(original_url: str) -> str:
@@ -93,17 +101,17 @@ class VideoDownloader(MetadataItem):
             return original_url
 
         logger.info(f"parsing original video url: {url} for {self.extractor}")
-        url_parser = urlparse(url)
-        url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
         if self.extractor == "bilibili":
             if "b23.tv" in url:
                 url = await _get_redirected_url(url)
             if "m.bilibili.com" in url:
                 url = url.replace("m.bilibili.com", "www.bilibili.com")
             url = _remove_bilibili_link_tracing(url)
-        elif self.extractor == "youtube" and "youtu.be" in url:
-            url = await _get_redirected_url(url)
+        elif self.extractor == "youtube":
+            if "youtu.be" in url:
+                url = await _get_redirected_url(url)
             url = _remove_youtube_link_tracing(url)
+
         logger.info(f"parsed video url: {url} for {self.extractor}")
         return url
 
