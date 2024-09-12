@@ -82,33 +82,42 @@ class VideoDownloader(MetadataItem):
                 return original_url
 
         def _remove_youtube_link_tracing(original_url: str) -> str:
-            if "youtu.be" in original_url:
+            original_url_parser = urlparse(original_url)
+            original_url_hostname = str(original_url_parser.hostname)
+
+            if "youtu.be" in original_url_hostname:
                 # remove all queries
                 original_url = original_url.split("?")[0]
-            if "youtube.com" in original_url:
+            if "youtube.com" in original_url_hostname:
                 # remove all queries except "?v=" part
-                temp_url_parser = urlparse(original_url)
-                original_url = temp_url_parser.scheme + "://" + temp_url_parser.netloc + temp_url_parser.path
-                if temp_url_parser.query:
-                    v_part_query = [item for item in temp_url_parser.query.split("&") if "v=" in item]
-                    original_url += "?" + v_part_query[0]
+                original_url = original_url_parser.scheme + "://" + original_url_parser.netloc + original_url_parser.path
+                if original_url_parser.query:
+                    v_part_query = [item for item in original_url_parser.query.split("&") if "v=" in item]
+                    if v_part_query:
+                        original_url += "?" + v_part_query[0]
             return original_url
 
         def _remove_bilibili_link_tracing(original_url: str) -> str:
-            if "bilibili.com" in original_url:
-                temp_url_parser = urlparse(original_url)
-                original_url = temp_url_parser.scheme + "://" + temp_url_parser.netloc + temp_url_parser.path
+            original_url_parser = urlparse(original_url)
+            original_url_hostname = str(original_url_parser.hostname)
+
+            if "bilibili.com" in original_url_hostname:
+                original_url = original_url_parser.scheme + "://" + original_url_parser.netloc + original_url_parser.path
             return original_url
 
         logger.info(f"parsing original video url: {url} for {self.extractor}")
+
+        url_parser = urlparse(url)
+        url_hostname = str(url_parser.hostname)
+
         if self.extractor == "bilibili":
-            if "b23.tv" in url:
+            if "b23.tv" in url_hostname:
                 url = await _get_redirected_url(url)
-            if "m.bilibili.com" in url:
+            if "m.bilibili.com" in url_hostname:
                 url = url.replace("m.bilibili.com", "www.bilibili.com")
             url = _remove_bilibili_link_tracing(url)
         elif self.extractor == "youtube":
-            if "youtu.be" in url:
+            if "youtu.be" in url_hostname:
                 url = await _get_redirected_url(url)
             url = _remove_youtube_link_tracing(url)
 

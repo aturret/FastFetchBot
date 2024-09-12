@@ -61,8 +61,8 @@ def second_to_time(second: int) -> str:
 async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
     if not ban_list:
         ban_list = []
-    url_object = urlparse(url)
-    url_main = str(url_object.hostname) + str(url_object.path)
+    url_parser = urlparse(url)
+    url_main = str(url_parser.hostname) + str(url_parser.path)
     source, content_type = "unknown", "unknown"
     # check if the url is a social media platform website
     for website, patterns in SOCIAL_MEDIA_WEBSITE_PATTERNS.items():
@@ -79,7 +79,7 @@ async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMeta
                     content_type = "video"
     # clear the url query
     if source not in ["youtube", "wechat"]:
-        url = url_object.scheme + "://" + url_object.netloc + url_object.path
+        url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
     if source in ban_list:
         source = "banned"
         content_type = "banned"
