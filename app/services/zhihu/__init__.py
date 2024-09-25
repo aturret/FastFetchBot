@@ -15,7 +15,8 @@ from app.utils.parse import (
     unix_timestamp_to_utc,
     wrap_text_into_html,
 )
-from app.utils.network import get_selector,get_redirect_url, get_response_json, get_random_user_agent, get_content_async
+from app.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
+    get_content_async
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.config import JINJA2_ENV
 from .config import (
@@ -24,14 +25,36 @@ from .config import (
     ZHIHU_API_HOST,
     ZHIHU_HOST,
     ALL_METHODS,
-    ZHIHU_COOKIES
+    ZHIHU_COOKIES,
+    ZHIHU_API_PARAMS
 )
 from ...utils.logger import logger
-
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("zhihu_short_text.jinja2")
 content_template = environment.get_template("zhihu_content.jinja2")
+
+
+def _parse_answer_api_json_data(data: Dict) -> Dict:
+    expression = f"""{{
+            question_id: question.id,
+            title: question.title,
+            question_detail: question.detail,
+            answer_count: question.answer_count,
+            follower_count: question.follower_count,
+            question_created: question.created,
+            question_updated: question.updated_time,
+            author: author.name,
+            author_url_token: author.url_token,
+            content: content,
+            created: created_time
+            updated: updated_time,
+            comment_count: comment_count,
+            voteup_count: voteup_count,
+            ip_info: ipInfo
+        }}"""
+    result = jmespath.search(expression, data)
+    return result
 
 
 class Zhihu(MetadataItem):
@@ -107,6 +130,7 @@ class Zhihu(MetadataItem):
                     self.method = "json"
                 else:
                     self.method = method
+                await self._get_request_url()
                 await function_dict[self.zhihu_type]()
                 if self.title != "":
                     break
@@ -147,9 +171,10 @@ class Zhihu(MetadataItem):
         if host.startswith("zhuanlan."):
             self.zhihu_type = "article"
             self.article_id = self.urlparser.path.split("/")[-1]
-        elif path.find("answer") != -1:
+        elif path.startswith("/answer/") or (path.startswith("/question/") and path.find("/answer/") != -1):
             self.zhihu_type = "answer"
             self.answer_id = self.urlparser.path.split("/")[-1]
+            self.method = "json"
         elif path.startswith("/pin/"):
             self.zhihu_type = "status"
             self.status_id = self.urlparser.path.split("/")[-1]
@@ -157,14 +182,28 @@ class Zhihu(MetadataItem):
         else:
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
-        # use accessible version webpage for scraping, which is like "https://zhihu.com/aria/..."
+
+    async def _get_request_url(self) -> None:
+        urlparser = urlparse(self.url)
+        host = urlparser.netloc
+        path = urlparser.path
         request_url_path = path
         if self.zhihu_type == "answer":
-            if path.find("question") != -1:
-                self.question_id = self.urlparser.path.split("/")[-3]
+            if self.method == "api":
+                self.request_url = (
+                        ZHIHU_API_HOST
+                        + "/answers/"
+                        + self.answer_id
+                        + "?"
+                        + ZHIHU_API_PARAMS
+                )
+                return
             else:
-                await self._get_question_id()
-            request_url_path = "/aria/question/" + self.question_id + "/answer/" + self.answer_id
+                if path.find("question") != -1:
+                    self.question_id = self.urlparser.path.split("/")[-3]
+                else:
+                    await self._get_question_id()
+                request_url_path = "/aria/question/" + self.question_id + "/answer/" + self.answer_id
         self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
@@ -172,42 +211,29 @@ class Zhihu(MetadataItem):
         parse the zhihu answer page and get the metadata.
         support methods: html, json. Recommend: json
         """
-        if self.method == "api":
-            pass  # zhihu v4 api does not open for answer
+        if self.method == "api" or self.method == "json":
+            answer_data = {}
+            if self.method == "api":
+                try:
+                    json_data = await get_response_json(self.request_url, headers=self.headers)
+                    answer_data = _parse_answer_api_json_data(json_data)
+                except Exception as e:
+                    raise Exception("Cannot get the answer by API")
+            elif self.method == "json":
+                try:
+                    selector = await get_selector(self.request_url, headers=self.headers)
+                    json_data = selector.xpath('string(//script[@id="js-initialData"])')
+                    json_data = json.loads(json_data)
+                    json_data = json_data["initialState"]["entities"]
+                    answer_data = self._parse_answer_json_data(json_data)
+                except Exception as e:
+                    raise Exception("Cannot get the selector")
+            if answer_data == {}:
+                raise Exception("Cannot get the answer")
+            self._resolve_answer_json_data(answer_data)
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
-                # selector = await get_content_async(self.request_url)
-                # selector = etree.HTML(selector)
-            except:
-                raise Exception("Cannot get the selector")
-            if self.method == "json":
-                json_data = selector.xpath('string(//script[@id="js-initialData"])')
-                json_data = json.loads(json_data)
-                # logger.debug(json.dumps(json_data, indent=4, ensure_ascii=False))
-                json_data = json_data["initialState"]["entities"]
-                answer_data = self._parse_answer_json_data(json_data)
-                self.question = answer_data["question_detail"]
-                self.question_date = unix_timestamp_to_utc(
-                    answer_data["question_created"]
-                )
-                self.question_updated = unix_timestamp_to_utc(
-                    answer_data["question_updated"]
-                )
-                self.question_follower_count = answer_data["follower_count"]
-                self.question_answer_count = answer_data["answer_count"]
-                self.title = answer_data["title"]
-                self.author = answer_data["author"]
-                self.author_url = (
-                    ZHIHU_HOST + "/people/" + answer_data["author_url_token"]
-                )
-                self.raw_content = answer_data["content"]
-                self.date = unix_timestamp_to_utc(answer_data["created"])
-                self.updated = unix_timestamp_to_utc(answer_data["updated"])
-                self.comment_count = answer_data["comment_count"]
-                self.upvote = answer_data["voteup_count"]
-                self.ip_info = answer_data["ip_info"]
-            elif self.method == "html":
                 self.upvote = selector.xpath(
                     'string(//button[contains(@class,"VoteButton")])'
                 )
@@ -229,8 +255,10 @@ class Zhihu(MetadataItem):
                 )
                 if self.author_url == "https://www.zhihu.com/people/":
                     self.author_url = ""
+            except Exception as e:
+                raise Exception("Cannot get the answer")
         if (
-            self.title == ""
+                self.title == ""
         ):  # TODO: this is not a good way to check if the scraping is successful. To be improved.
             raise Exception("Cannot get the answer")
 
@@ -241,12 +269,12 @@ class Zhihu(MetadataItem):
         """
         if self.method == "api":
             self.api_url = (
-                "https://www.zhihu.com/api/v4/pins/"
-                + self.urlparser.path.split("/")[-1]
+                    "https://www.zhihu.com/api/v4/pins/"
+                    + self.urlparser.path.split("/")[-1]
             )
             print(self.api_url)
             json_data = await get_response_json(self.api_url, headers=self.headers)
-            data = self._resolve_status_api_data(json_data) # TODO: separate the function to resolve the api data
+            data = self._resolve_status_api_data(json_data)  # TODO: separate the function to resolve the api data
             self.author = data["author"]
             self.author_url = data["author_url"]
             self.title = data["author"] + "的想法"
@@ -318,9 +346,9 @@ class Zhihu(MetadataItem):
                     self.origin_pin_url = status_data["origin_pin_url"]
                     self.origin_pin_author = status_data["origin_pin_author"]
                     self.origin_pin_author_url = (
-                        ZHIHU_HOST
-                        + "/people/"
-                        + status_data["origin_pin_author_url_token"]
+                            ZHIHU_HOST
+                            + "/people/"
+                            + status_data["origin_pin_author_url_token"]
                     )
                     self.origin_pin_raw_content = status_data["origin_pin_content"]
                     self.origin_pin_date = unix_timestamp_to_utc(
@@ -339,7 +367,7 @@ class Zhihu(MetadataItem):
                 self.title = status_data["author"] + "的想法"
                 self.author = status_data["author"]
                 self.author_url = (
-                    ZHIHU_HOST + "/people/" + status_data["author_url_token"]
+                        ZHIHU_HOST + "/people/" + status_data["author_url_token"]
                 )
                 self.raw_content = status_data["content"]
                 self.date = unix_timestamp_to_utc(status_data["created"])
@@ -364,22 +392,22 @@ class Zhihu(MetadataItem):
                     'string(//div[@class="ContentItem-time"]//span)'
                 )
                 if (
-                    selector.xpath(
-                        'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
-                    ).find("PinItem-content-originpin")
-                    != -1
+                        selector.xpath(
+                            'string(//div[@class="RichContent"]/div[2]/div[2]/@class)'
+                        ).find("PinItem-content-originpin")
+                        != -1
                 ):  # check if the status is a retweet
                     if (
-                        str(
-                            etree.tostring(
-                                selector.xpath(
-                                    '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
-                                )[0],
+                            str(
+                                etree.tostring(
+                                    selector.xpath(
+                                        '//div[contains(@class,"PinItem-content-originpin")]/div[3]'
+                                    )[0],
+                                    encoding="utf-8",
+                                ),
                                 encoding="utf-8",
-                            ),
-                            encoding="utf-8",
-                        )
-                        != '<div class="RichText ztext PinItem-remainContentRichText"/>'
+                            )
+                            != '<div class="RichText ztext PinItem-remainContentRichText"/>'
                     ):  # if the retweet content including pictures
                         pic_html = html.fromstring(
                             str(
@@ -420,9 +448,9 @@ class Zhihu(MetadataItem):
         self.zhihu_type = "article"
         if self.method == "api":
             self.api_url = (
-                ZHIHU_COLUMNS_API_HOST
-                + "/articles/"
-                + self.urlparser.path.split("/")[-1]
+                    ZHIHU_COLUMNS_API_HOST
+                    + "/articles/"
+                    + self.urlparser.path.split("/")[-1]
             )
             json_data = await get_response_json(self.api_url, headers=self.headers)
             self.title = json_data["title"]
@@ -444,7 +472,7 @@ class Zhihu(MetadataItem):
                 self.raw_content = article_data["content"]
                 self.author = article_data["author"]
                 self.author_url = (
-                    ZHIHU_HOST + "/people/" + article_data["author_url_token"]
+                        ZHIHU_HOST + "/people/" + article_data["author_url_token"]
                 )
                 self.upvote = article_data["voteup_count"]
                 self.comment_count = article_data["comment_count"]
@@ -564,6 +592,28 @@ class Zhihu(MetadataItem):
         result.update(jmespath.search(expression, data))
         return result
 
+    def _resolve_answer_json_data(self, answer_data: Dict) -> None:
+        self.question = answer_data["question_detail"] or ""
+        self.question_date = unix_timestamp_to_utc(
+            answer_data["question_created"] or ""
+        ) or ""
+        self.question_updated = unix_timestamp_to_utc(
+            answer_data["question_updated"] or ""
+        ) or ""
+        self.question_follower_count = answer_data["follower_count"] or 0
+        self.question_answer_count = answer_data["answer_count"] or 0
+        self.title = answer_data["title"] or ""
+        self.author = answer_data["author"] or ""
+        self.author_url = (
+                ZHIHU_HOST + "/people/" + answer_data["author_url_token"] or ""
+        ) or ""
+        self.raw_content = answer_data["content"] or ""
+        self.date = unix_timestamp_to_utc(answer_data["created"] or "") or ""
+        self.updated = unix_timestamp_to_utc(answer_data["updated"] or "") or ""
+        self.comment_count = answer_data["comment_count"] or 0
+        self.upvote = answer_data["voteup_count"] or 0
+        self.ip_info = answer_data["ip_info"] or ""
+
     def _parse_article_json_data(self, data: Dict) -> Dict:
         expression = f"""{{
             "title": articles."{self.article_id}".title,
@@ -621,7 +671,6 @@ class Zhihu(MetadataItem):
             result["origin_pin_data"] = Zhihu._resolve_status_api_data(data["origin_pin"])
         return result
 
-
     def _parse_status_json_data(self, data: Dict) -> Dict:
         expression = f"""{{
                 "author_url_token": pins."{self.status_id}".author,
@@ -657,4 +706,3 @@ class Zhihu(MetadataItem):
     def _generate_zhihu_cookie(self):
         # TODO: a more elegant way to generate the zhihu cookie
         pass
-

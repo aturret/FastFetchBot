@@ -71,11 +71,6 @@ async def get_selector(
                     )
                     return selector
             print("Final destination:", resp.status_code, resp.url)
-        # if resp.status_code == 302:
-        #     selector = await get_selector(
-        #             resp.url, headers=headers, follow_redirects=False
-        #         )
-        #     return selector
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
 

@@ -169,6 +169,7 @@ if os.path.exists(zhihu_cookie_path):
             ZHIHU_COOKIES_JSON = json.load(f)
     except json.JSONDecodeError:
         print("Error: The file is not in a valid JSON format.")
+        ZHIHU_COOKIES_JSON = None
     except FileNotFoundError:
         print("Error: The file does not exist.")
         ZHIHU_COOKIES_JSON = None

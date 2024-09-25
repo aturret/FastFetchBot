@@ -3,6 +3,8 @@ from app.config import ZHIHU_COOKIES_JSON
 SHORT_LIMIT = 600
 ZHIHU_COLUMNS_API_HOST = "https://zhuanlan.zhihu.com/api"
 ZHIHU_API_HOST = "https://www.zhihu.com/api/v4"
+ZHIHU_API_PARAMS = ("include=content%2Cexcerpt%2Cauthor%2Cvoteup_count%2Ccomment_count%2Cquestion%2Ccreated_time"
+                    "%2Cquestion.detail")
 ZHIHU_HOST = "https://www.zhihu.com"
 ALL_METHODS = ["api", "json", "html"]
 """
