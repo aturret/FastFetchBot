@@ -19,18 +19,24 @@ from app.utils.logger import logger
 
 
 async def get_response(
-        url: str, headers: dict = None, params: dict = None
+        url: str, headers: dict = None, params: dict = None, client: httpx.AsyncClient = None
 ) -> httpx.Response:
     if headers is None:
         headers = HEADERS
-    async with httpx.AsyncClient() as client:
+    if client:
         resp = await client.get(
             url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT
         )
         return resp
+    else:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT
+            )
+            return resp
 
 
-async def get_response_json(url: str, headers=None) -> dict:
+async def get_response_json(url: str, headers=None, client: httpx.AsyncClient = None) -> dict:
     try:
         response = await get_response(url, headers)
         json_result = response.json()
@@ -38,6 +44,7 @@ async def get_response_json(url: str, headers=None) -> dict:
         print(e, traceback.format_exc())
         json_result = None
     return json_result
+
 
 
 async def get_selector(

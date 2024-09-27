@@ -33,6 +33,7 @@ from ...utils.logger import logger
 environment = JINJA2_ENV
 short_text_template = environment.get_template("zhihu_short_text.jinja2")
 content_template = environment.get_template("zhihu_content.jinja2")
+zhihu_client = httpx.AsyncClient()
 
 
 def _parse_answer_api_json_data(data: Dict) -> Dict:
@@ -83,9 +84,12 @@ class Zhihu(MetadataItem):
         self.upvote: int = 0
         self.retweeted: bool = False
         # reqeust fields
+        self.httpx_client = zhihu_client
         self.headers = {"User-Agent": get_random_user_agent(),
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "Cookie": kwargs.get("cookie", ""), "Referer": self.url}
+                        "Referer": self.url}
+        if kwargs.get("cookie"):
+            self.headers["Cookie"] = kwargs.get("cookie")
         if ZHIHU_COOKIES:
             self.headers["Cookie"] = ZHIHU_COOKIES
         self.method = kwargs.get("method", "json")
@@ -159,9 +163,8 @@ class Zhihu(MetadataItem):
         - article (example: https://zhuanlan.zhihu.com/p/35142635)
         - status (example: https://www.zhihu.com/pin/1667965059081945088)
         """
-        urlparser = urlparse(self.url)
-        host = urlparser.netloc
-        path = urlparser.path
+        host = self.urlparser.netloc
+        path = self.urlparser.path
         logger.debug(
             f"""
         host: {host}
@@ -184,9 +187,8 @@ class Zhihu(MetadataItem):
         self.url = f"https://{host}{path}"
 
     async def _get_request_url(self) -> None:
-        urlparser = urlparse(self.url)
-        host = urlparser.netloc
-        path = urlparser.path
+        host = self.urlparser.netloc
+        path = self.urlparser.path
         request_url_path = path
         if self.zhihu_type == "answer":
             if self.method == "api":
@@ -204,6 +206,16 @@ class Zhihu(MetadataItem):
                 else:
                     await self._get_question_id()
                 request_url_path = "/aria/question/" + self.question_id + "/answer/" + self.answer_id
+        elif self.zhihu_type == "article":
+            if self.method == "api":
+                self.request_url = (
+                        ZHIHU_COLUMNS_API_HOST
+                        + "/articles/"
+                        + self.article_id
+                        + "?"
+                        + ZHIHU_API_PARAMS
+                )
+                return
         self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
@@ -215,7 +227,8 @@ class Zhihu(MetadataItem):
             answer_data = {}
             if self.method == "api":
                 try:
-                    json_data = await get_response_json(self.request_url, headers=self.headers)
+                    json_data = await get_response_json(self.request_url, headers=self.headers,
+                                                        client=self.httpx_client)
                     answer_data = _parse_answer_api_json_data(json_data)
                 except Exception as e:
                     raise Exception("Cannot get the answer by API")
@@ -273,7 +286,7 @@ class Zhihu(MetadataItem):
                     + self.urlparser.path.split("/")[-1]
             )
             print(self.api_url)
-            json_data = await get_response_json(self.api_url, headers=self.headers)
+            json_data = await get_response_json(self.api_url, headers=self.headers, client=self.httpx_client)
             data = self._resolve_status_api_data(json_data)  # TODO: separate the function to resolve the api data
             self.author = data["author"]
             self.author_url = data["author_url"]
@@ -447,21 +460,19 @@ class Zhihu(MetadataItem):
     async def _get_zhihu_article(self):
         self.zhihu_type = "article"
         if self.method == "api":
-            self.api_url = (
-                    ZHIHU_COLUMNS_API_HOST
-                    + "/articles/"
-                    + self.urlparser.path.split("/")[-1]
-            )
-            json_data = await get_response_json(self.api_url, headers=self.headers)
-            self.title = json_data["title"]
-            self.content = json_data["content"]
-            self.author = json_data["author"]["name"]
-            self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
-            self.upvote = json_data["voteup_count"]
+            try:
+                json_data = await get_response_json(self.request_url, headers=self.headers, client=self.httpx_client)
+                self.title = json_data["title"]
+                self.raw_content = json_data["content"]
+                self.author = json_data["author"]["name"]
+                self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
+                self.upvote = json_data["voteup_count"]
+            except Exception as e:
+                raise Exception("zhihu request failed")
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
-            except:
+            except Exception as e:
                 raise Exception("zhihu request failed")
             if self.method == "json":
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
@@ -605,8 +616,8 @@ class Zhihu(MetadataItem):
         self.title = answer_data["title"] or ""
         self.author = answer_data["author"] or ""
         self.author_url = (
-                ZHIHU_HOST + "/people/" + answer_data["author_url_token"] or ""
-        ) or ""
+                                  ZHIHU_HOST + "/people/" + answer_data["author_url_token"] or ""
+                          ) or ""
         self.raw_content = answer_data["content"] or ""
         self.date = unix_timestamp_to_utc(answer_data["created"] or "") or ""
         self.updated = unix_timestamp_to_utc(answer_data["updated"] or "") or ""
