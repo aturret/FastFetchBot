@@ -1,3 +1,4 @@
+from typing import Optional
 from urllib.parse import quote
 
 import httpx
@@ -97,7 +98,7 @@ class Inoreader(MetadataItem):
         tag: str = None,
         feed: str = None,
         params: dict = None,
-    ) -> dict:
+    ) -> Optional[dict | list]:
         stream_id = Inoreader.get_stream_id(stream_type=stream_type, tag=tag, feed=feed)
         request_url = INOREADER_CONTENT_URL + stream_id
         default_params = {
@@ -112,22 +113,28 @@ class Inoreader(MetadataItem):
         resp = await Inoreader.get_api_info(url=request_url, params=params)
         logger.debug(resp.text)
         data = resp.json()
+        data = await Inoreader.process_items_data(data)
+        return data
+
+    @staticmethod
+    async def process_items_data(data: dict) -> Optional[dict | list]:
         expression = """
-                    items[].{
-                    "aurl": canonical[0].href,
-                    "title": title,
-                    "author": origin.title,
-                    "author_url": origin.htmlUrl,
-                    "content": summary.content,
-                    "category": categories[-1],
-                    "message": comments[0].commentBody,
-                    "timestamp": updated
-                    }
-                """
+                            items[].{
+                            "aurl": canonical[0].href,
+                            "title": title,
+                            "author": origin.title,
+                            "author_url": origin.htmlUrl,
+                            "content": summary.content,
+                            "category": categories[-1],
+                            "message": comments[0].commentBody,
+                            "timestamp": updated
+                            }
+                        """
         data = jmespath.search(expression, data)
         for item in data:
             item["category"] = item["category"].split("/")[-1]
         return data
+
 
     @staticmethod
     async def get_api_info(

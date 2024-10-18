@@ -40,10 +40,10 @@ default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else
 
 
 async def get_inoreader_item_async(
-    data: Optional[Dict] = None,
-    trigger: bool = False,
-    params: Optional[Dict] = None,
-    # filters: Optional[Dict] = None,
+        data: Optional[Dict] = None,
+        trigger: bool = False,
+        params: Optional[Dict] = None,
+        # filters: Optional[Dict] = None,
 ) -> None:
     stream_id = None
     use_inoreader_content = True
@@ -76,19 +76,19 @@ async def get_inoreader_item_async(
 
 
 async def process_inoreader_data(
-    data: list,
-    use_inoreader_content: bool,
-    telegram_channel_id: Union[int, str] = default_telegram_channel_id,
-    stream_id: str = None,
+        data: list,
+        use_inoreader_content: bool,
+        telegram_channel_id: Union[int, str] = default_telegram_channel_id,
+        stream_id: str = None,
 ):
     for item in data:
         url_type_item = await get_url_metadata(item["aurl"])
         url_type_dict = url_type_item.to_dict()
         logger.debug(f"ino original: {use_inoreader_content}")
         if (
-            use_inoreader_content is True
-            or url_type_dict["content_type"] == "unknown"
-            # or url_type_dict["source"] == "zhihu"
+                use_inoreader_content is True
+                or url_type_dict["content_type"] == "unknown"
+                # or url_type_dict["source"] == "zhihu"
         ):
             is_video = url_type_dict["content_type"] == "video"
             content_type = url_type_dict["content_type"] if is_video else "social_media"
@@ -118,6 +118,10 @@ async def process_inoreader_data(
             )
 
 
+async def get_inoreader_webhook_data(data: dict):
+    result = data["items"]
+    return result
+
 # @router.post("/", dependencies=[Security(verify_api_key)])
 # async def inoreader_repost_webhook(request: Request, background_tasks: BackgroundTasks):
 #     data = await request.json()
@@ -141,4 +145,12 @@ async def inoreader_trigger_webhook(request: Request):
         return "inoreader app id or key not set"
     params = request.query_params
     await get_inoreader_item_async(trigger=True, params=params)
+    return "ok"
+
+
+@router.post("/webhook", dependencies=[Security(verify_api_key)])
+async def inoreader_tag_webhook(request: Request):
+    data = await request.json()
+    data = await Inoreader.process_items_data(data)
+    await process_inoreader_data(data=data, use_inoreader_content=True, telegram_channel_id=default_telegram_channel_id)
     return "ok"
