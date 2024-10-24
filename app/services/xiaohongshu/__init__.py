@@ -68,7 +68,7 @@ class Xiaohongshu(MetadataItem):
         account_pool = proxy_account_pool.create_account_pool()
         crawler.init_config("xhs", "cookie", account_pool)
         note_detail = None
-        for _ in range(10):
+        for _ in range(5):
             try:
                 note_detail = await crawler.start(id=self.id)
                 break
