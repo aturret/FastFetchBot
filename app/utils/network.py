@@ -141,31 +141,29 @@ async def download_file_by_metadata_item(
     :param headers:
     :return:
     """
-    for _ in range(5):
-        try:
-            if headers is None:
-                headers = HEADERS
-            headers["User-Agent"] = get_random_user_agent()
-            headers["referer"] = data["url"]
-            if data["category"] in ["reddit"]:
-                headers["Accept"] = "image/avif,image/webp,*/*"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
-                )
-                # if redirect 302, get the final url
-                if response.status_code == 302 or response.status_code == 301:
-                    url = response.headers["Location"]
-                    continue
-            file_data = response.content
-            if file_name is None:
-                file_format = file_format if file_format else url.split(".")[-1]
-                file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
-            io_object = NamedBytesIO(file_data, name=file_name)
-            return io_object
-        except Exception as e:
-            await asyncio.sleep(2)
-            logger.error(f"Failed to download {url}, {e}")
+    try:
+        if headers is None:
+            headers = HEADERS
+        headers["User-Agent"] = get_random_user_agent()
+        headers["referer"] = data["url"]
+        if data["category"] in ["reddit"]:
+            headers["Accept"] = "image/avif,image/webp,*/*"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
+            )
+            # if redirect 302, get the final url
+            if response.status_code == 302 or response.status_code == 301:
+                url = response.headers["Location"]
+        file_data = response.content
+        if file_name is None:
+            file_format = file_format if file_format else url.split(".")[-1]
+            file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
+        io_object = NamedBytesIO(file_data, name=file_name)
+        return io_object
+    except Exception as e:
+        await asyncio.sleep(2)
+        logger.error(f"Failed to download {url}, {e}")
 
 
 async def download_file_to_local(
@@ -176,9 +174,7 @@ async def download_file_to_local(
         headers: dict = None,
         referer: str = None,
 ) -> str:
-    io_object = await download_file_by_metadata_item(
-        url=url, file_name=file_name, headers=headers, referer=referer
-    )
+    io_object = await download_file_by_metadata_item(url=url, data={}, file_name=file_name, headers=headers)
     ext = await check_image_type(io_object)
     io_object.seek(0)
     file_name = file_name + uuid.uuid4().hex + "." + ext

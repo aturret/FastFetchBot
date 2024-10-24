@@ -30,10 +30,10 @@ class DocumentPreprocessor:
     @staticmethod
     async def _upload_image(url):
         new_image_url = None
-        try:
-            new_image_url = await upload_image(url)
-        except Exception:
-            logger.error(f"Could not upload image {url}")
+        # try:
+        #     new_image_url = await upload_image(url)
+        # except Exception:
+        #     logger.error(f"Could not upload image {url}")
 
         return new_image_url
 

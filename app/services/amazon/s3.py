@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import datetime
-from urllib.parse import urlparse,quote
+from urllib.parse import urlparse, quote
 
 import aiofiles.os
 from pathlib import Path
@@ -13,7 +13,6 @@ from app.utils.logger import logger
 from app.utils.network import download_file_to_local
 from app.config import AWS_S3_BUCKET_NAME, AWS_REGION_NAME, AWS_DOMAIN_HOST
 
-
 session = aioboto3.Session()
 image_url_host = (
     AWS_DOMAIN_HOST
@@ -22,7 +21,7 @@ image_url_host = (
 )
 
 
-async def download_and_upload(url: str, referer: str = None,suite:str="test") -> str:
+async def download_and_upload(url: str, referer: str = None, suite: str = "test") -> str:
     urlparser = urlparse(url)
     file_name = (urlparser.netloc + urlparser.path).replace("/", "-")
     local_path = await download_file_to_local(url=url, referer=referer, file_name=file_name)
@@ -40,11 +39,11 @@ async def download_and_upload(url: str, referer: str = None,suite:str="test") ->
 
 
 async def upload(
-    staging_path: Path,
-    bucket: str = AWS_S3_BUCKET_NAME,
-    suite: str = "test",
-    release: str = datetime.now().strftime("%Y-%m-%d"),
-    file_name: str = None,
+        staging_path: Path,
+        bucket: str = AWS_S3_BUCKET_NAME,
+        suite: str = "test",
+        release: str = datetime.now().strftime("%Y-%m-%d"),
+        file_name: str = None,
 ) -> str:
     if not file_name:
         file_name = uuid.uuid4().hex
