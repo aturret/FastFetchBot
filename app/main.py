@@ -1,5 +1,6 @@
+import asyncio
+
 import sentry_sdk
-import multiprocessing
 
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
@@ -13,7 +14,6 @@ from app.utils.logger import logger
 
 SENTRY_DSN = ""
 
-
 # https://docs.sentry.io/platforms/python/guides/fastapi/
 sentry_sdk.init(
     dsn=SENTRY_DSN,
@@ -23,24 +23,26 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
-started = multiprocessing.Value("i", 0)
-mutex = multiprocessing.Lock()
+started = False
+lock = asyncio.Lock()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    mutex.acquire()
-    if started.value == 0:
-        started.value = 1
-        await telegram_bot_service.set_webhook()
-    mutex.release()
+    global started
+    async with lock:
+        if not started:
+            started = True
+            await telegram_bot_service.set_webhook()
+            await telegram_bot_service.startup()
     if DATABASE_ON:
         await database.startup()
-    await telegram_bot_service.startup()
-    yield
-    if DATABASE_ON:
-        await database.shutdown()
-    await telegram_bot_service.shutdown()
+    try:
+        yield
+    finally:
+        if DATABASE_ON:
+            await database.shutdown()
+        await telegram_bot_service.shutdown()
 
 
 class LogMiddleware(BaseHTTPMiddleware):
