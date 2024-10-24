@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import auth, database
-from app.routers import telegram_bot, inoreader
+from app.routers import telegram_bot, inoreader, scraper_routers, scraper
 from app.services import telegram_bot as telegram_bot_service
 from app.config import TELEGRAM_BOT_TOKEN, DATABASE_ON
 from app.utils.logger import logger
@@ -63,6 +63,9 @@ def create_app():
     else:
         logger.warning("Telegram bot token not set, telegram bot disabled")
     fastapi_app.include_router(inoreader.router)
+    fastapi_app.include_router(scraper.router)
+    for router in scraper_routers.scraper_routers:
+        fastapi_app.include_router(router)
     return fastapi_app
 
 
