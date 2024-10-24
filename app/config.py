@@ -38,6 +38,7 @@ TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
 TELEGRAM_BOT_SECRET_TOKEN = env.get(
     "TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32)
 )
+
 TELEGRAM_CHANNEL_ID = []
 telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "").split(",")
 for single_telegram_channel_id in telegram_channel_id:
@@ -60,7 +61,9 @@ TELEGRAM_CHANNEL_ADMIN_LIST = [
 ]
 if not TELEGRAM_CHANNEL_ADMIN_LIST:
     TELEGRAM_CHANNEL_ADMIN_LIST = None
+
 TELEGRAM_WEBHOOK_URL = f"https://{BASE_URL}/telegram/bot/webhook"
+
 TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
 TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
 TELEBOT_API_SERVER = (

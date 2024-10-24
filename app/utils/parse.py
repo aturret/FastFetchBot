@@ -58,6 +58,12 @@ def second_to_time(second: int) -> str:
     return "{:02d}:{:02d}:{:02d}".format(h, m, s)
 
 
+def string_to_list(string: str, divider: str = ",") -> list:
+    if string is None:
+        return []
+    return string.split(divider)
+
+
 async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
     if not ban_list:
         ban_list = []

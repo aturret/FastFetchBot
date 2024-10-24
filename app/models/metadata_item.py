@@ -68,7 +68,7 @@ class MetadataItem:
     title: str
     author_url: str
     category: str
-    message_type: str
+    message_type: MessageType
 
     @staticmethod
     def from_dict(obj: Any) -> "MetadataItem":
@@ -82,7 +82,7 @@ class MetadataItem:
         title = from_str(obj.get("title"))
         author_url = from_str(obj.get("author_url"))
         category = from_str(obj.get("category"))
-        message_type = from_str(obj.get("message_type"))
+        message_type = MessageType(obj.get("message_type"))
         return MetadataItem(
             url,
             telegraph_url,
@@ -109,7 +109,7 @@ class MetadataItem:
         result["title"] = from_str(self.title)
         result["author_url"] = from_str(self.author_url)
         result["category"] = from_str(self.category)
-        result["message_type"] = from_str(self.message_type)
+        result["message_type"] = self.message_type.value
         return result
 
 

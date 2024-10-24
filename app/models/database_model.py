@@ -41,4 +41,3 @@ class Metadata(Document):
 
 document_list = [Metadata]
 document_list.extend(telegram_chat_document_list)
-logger.debug(f"document_list: {document_list}")
