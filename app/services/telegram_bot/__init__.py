@@ -12,9 +12,10 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 from typing import Optional, Union
 
+import httpx
+
 mimetypes.init()
 
-import magic
 from telegram import (
     Update,
     MessageEntity,
@@ -27,11 +28,6 @@ from telegram import (
     InputMediaDocument,
     InputMediaAnimation,
     InputMediaAudio,
-)
-from telegram.error import (
-    RetryAfter,
-    TimedOut,
-    BadRequest,
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -167,9 +163,7 @@ async def startup() -> None:
             buttons_process_handler,
         ]
     )
-    application.add_error_handler(error_handler)
-    # webhook_info = await application.bot.get_webhook_info()
-    # logger.debug("webhook info: " + str(webhook_info))
+    application.add_error_handler(error_process)
     if application.post_init:
         await application.post_init()
     await application.start()
@@ -193,7 +187,6 @@ async def process_telegram_update(
     :return:
     """
     update = Update.de_json(data=data, bot=application.bot)
-    # logger.debug(f"update: {update}")
     application.bot.insert_callback_data(update)
     await application.update_queue.put(update)
 
@@ -204,7 +197,6 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         text="Processing...",
     )
     url_dict: dict = message.parse_entities(types=["url"])
-    print(url_dict)
     await welcome_message.delete()
     for i, url in enumerate(url_dict.values()):
         process_message = await message.reply_text(
@@ -613,7 +605,7 @@ async def send_item_message(
         await send_debug_channel(traceback.format_exc())
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def error_process(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
     tb_list = traceback.format_exception(
         None, context.error, context.error.__traceback__
@@ -634,6 +626,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     await context.bot.send_message(
         chat_id=debug_chat_id, text=message, parse_mode=ParseMode.HTML
     )
+
 
 async def send_debug_channel(message: str) -> None:
     if TELEBOT_DEBUG_CHANNEL is not None:

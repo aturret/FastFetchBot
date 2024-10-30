@@ -4,16 +4,16 @@ from fastapi.requests import Request
 from app.services.telegram_bot import set_webhook, process_telegram_update
 from app.config import TELEGRAM_WEBHOOK_URL, TELEGRAM_BOT_SECRET_TOKEN
 from app.utils.logger import logger
-from fastapi import Security
+from fastapi import Security, BackgroundTasks
 from app.auth import verify_api_key, verify_telegram_api_header
 
 router = APIRouter(prefix="/telegram")
 
 
 @router.post("/bot/webhook", dependencies=[Security(verify_telegram_api_header)])
-async def telegram_bot_webhook(request: Request):
+async def telegram_bot_webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
-    await process_telegram_update(data)
+    background_tasks.add_task(process_telegram_update, data)
     return "ok"
 
 
