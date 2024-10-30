@@ -447,6 +447,9 @@ class Weibo(MetadataItem):
         for img in soup.find_all("img"):
             alt_text = img.get("alt", "")
             img.replace_with(alt_text)
+        for image in soup.find_all("image"):
+            if image.get("src") == "https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_web_default.png":
+                image.replace_with("")
         for a in soup.find_all("a"):
             if a.text == "查看图片":
                 fw_pics.append(a.attrs.get("href"))
