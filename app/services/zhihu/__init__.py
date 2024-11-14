@@ -26,7 +26,7 @@ from .config import (
     ZHIHU_HOST,
     ALL_METHODS,
     ZHIHU_COOKIES,
-    ZHIHU_API_PARAMS
+    ZHIHU_API_ANSWER_PARAMS
 )
 from ...utils.logger import logger
 
@@ -197,7 +197,7 @@ class Zhihu(MetadataItem):
                         + "/answers/"
                         + self.answer_id
                         + "?"
-                        + ZHIHU_API_PARAMS
+                        + ZHIHU_API_ANSWER_PARAMS
                 )
                 return
             else:
@@ -210,10 +210,10 @@ class Zhihu(MetadataItem):
             if self.method == "api":
                 self.request_url = (
                         ZHIHU_COLUMNS_API_HOST
-                        + "/articles/"
+                        + "/article/"
                         + self.article_id
                         + "?"
-                        + ZHIHU_API_PARAMS
+                        + ZHIHU_API_ANSWER_PARAMS
                 )
                 return
         self.request_url = f"https://{host}{request_url_path}"
