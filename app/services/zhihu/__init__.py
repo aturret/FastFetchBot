@@ -210,12 +210,16 @@ class Zhihu(MetadataItem):
             if self.method == "api":
                 self.request_url = (
                         ZHIHU_COLUMNS_API_HOST
-                        + "/article/"
+                        + "/articles/"
                         + self.article_id
                         + "?"
                         + ZHIHU_API_ANSWER_PARAMS
                 )
                 return
+                # TODO: There are two api url to get a single article. The first one may fail in the future.
+                # Therefore, I remain the second one.
+                # self.request_url = (
+                #    ZHIHU_API_HOST + "/article/" + self.article_id + "?" + ZHIHU_API_ANSWER_PARAMS)
         self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
