@@ -1269,13 +1269,13 @@ files = [
 
 [[package]]
 name = "html-telegraph-poster-v2"
-version = "0.1.0"
+version = "0.1.3"
 description = "Upload HTML document to telegra.ph"
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "html_telegraph_poster_v2-0.1.0-py3-none-any.whl", hash = "sha256:c6b6089b001c28351df0cdbd3746c766ec0bac86e3965b06feed50f81b9a41a7"},
-    {file = "html_telegraph_poster_v2-0.1.0.tar.gz", hash = "sha256:58b2d8868bd6b4f90bdbf7c83be8e6c506dbd3d6436ce8c7ceb81369bdc26549"},
+    {file = "html_telegraph_poster_v2-0.1.3-py3-none-any.whl", hash = "sha256:eb25d748c7070ef1f14b0f2eea47a764e9cad2b745801ec80e3846fb06818281"},
+    {file = "html_telegraph_poster_v2-0.1.3.tar.gz", hash = "sha256:2182fcb7d95f23742b6e094ec41d4d8a2c3df41fe3916782c536c81e525e5b96"},
 ]
 
 [package.dependencies]
