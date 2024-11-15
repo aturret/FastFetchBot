@@ -6,6 +6,12 @@ A social media fetch bot based on [FastAPI](https://fastapi.tiangolo.com/).
 
 Supported most mainstream social media platforms. You can get a permanent copy of the content by just sending the url to the bot.
 
+Other separated microservices for this project:
+
+- [FastFileExporter](https://github.com/aturret/FastFileExporter)
+- [FastFetchBot-Telegram-Bot](https://github.com/aturret/FastFetchBot-Telegram-Bot)
+
+
 ## Installation
 
 ### Docker (Recommended)
