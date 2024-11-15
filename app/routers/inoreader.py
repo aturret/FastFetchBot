@@ -18,27 +18,6 @@ router = APIRouter(prefix="/inoreader")
 default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else None
 
 
-# def get_inoreader_item(
-#     data: dict,
-#     trigger: bool = False,
-#     telegram_channel_id: Union[int, str] = default_telegram_channel_id,
-# ):
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     if trigger:
-#         data = loop.run_until_complete(Inoreader.request_api_info())
-#     url_metadata = UrlMetadata(
-#         url=data["aurl"],
-#         content_type="social_media",
-#         source="inoreader",
-#     )
-#     item = InfoExtractService(url_metadata=url_metadata, data=data, store_document=True)
-#     metadata_item = loop.run_until_complete(item.get_item())
-#     loop.run_until_complete(
-#         send_item_message(metadata_item, chat_id=telegram_channel_id)
-#     )
-
-
 async def get_inoreader_item_async(
         data: Optional[Dict] = None,
         trigger: bool = False,
@@ -122,22 +101,6 @@ async def get_inoreader_webhook_data(data: dict):
     result = data["items"]
     return result
 
-# @router.post("/", dependencies=[Security(verify_api_key)])
-# async def inoreader_repost_webhook(request: Request, background_tasks: BackgroundTasks):
-#     data = await request.json()
-#     background_tasks.add_task(get_inoreader_item, data, False)
-#     return "ok"
-
-
-# @router.post("/trigger", dependencies=[Security(verify_api_key)])
-# async def inoreader_trigger_webhook(
-#     request: Request, background_tasks: BackgroundTasks
-# ):
-#     if not INOREADER_APP_ID or not INOREADER_APP_KEY:
-#         return "inoreader app id or key not set"
-#     background_tasks.add_task(get_inoreader_item, {}, True)
-#     return "ok"
-
 
 @router.post("/triggerAsync", dependencies=[Security(verify_api_key)])
 async def inoreader_trigger_webhook(request: Request):
@@ -152,5 +115,7 @@ async def inoreader_trigger_webhook(request: Request):
 async def inoreader_tag_webhook(request: Request):
     data = await request.json()
     data = await Inoreader.process_items_data(data)
-    await process_inoreader_data(data=data, use_inoreader_content=True, telegram_channel_id=default_telegram_channel_id)
+    params = request.query_params
+    telegram_channel_id = params.get("channel_id", default_telegram_channel_id)
+    await process_inoreader_data(data=data, use_inoreader_content=True, telegram_channel_id=telegram_channel_id)
     return "ok"

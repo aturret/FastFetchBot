@@ -74,7 +74,7 @@ class Inoreader(MetadataItem):
 
     @staticmethod
     def get_stream_id(
-        stream_type: str = "broadcast", tag: str = None, feed: str = None
+            stream_type: str = "broadcast", tag: str = None, feed: str = None
     ) -> str:
         if stream_type == "feed":
             stream_id = feed
@@ -94,10 +94,10 @@ class Inoreader(MetadataItem):
 
     @staticmethod
     async def get_api_item_data(
-        stream_type: str = "broadcast",
-        tag: str = None,
-        feed: str = None,
-        params: dict = None,
+            stream_type: str = "broadcast",
+            tag: str = None,
+            feed: str = None,
+            params: dict = None,
     ) -> Optional[dict | list]:
         stream_id = Inoreader.get_stream_id(stream_type=stream_type, tag=tag, feed=feed)
         request_url = INOREADER_CONTENT_URL + stream_id
@@ -135,11 +135,10 @@ class Inoreader(MetadataItem):
             item["category"] = item["category"].split("/")[-1]
         return data
 
-
     @staticmethod
     async def get_api_info(
-        url: str,
-        params=None,
+            url: str,
+            params=None,
     ) -> Response:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
