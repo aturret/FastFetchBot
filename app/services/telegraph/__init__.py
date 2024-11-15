@@ -3,12 +3,12 @@ import random
 import traceback
 from typing import Any
 
-from app.config import TELEGRAPH_TOKEN_LIST
-from app.services.html_telegraph_poster_async import (
-    upload_to_telegraph,
+from html_telegraph_poster_v2.async_poster import (
     AsyncTelegraphPoster,
 )
-from app.services.html_telegraph_poster_async.utils import DocumentPreprocessor
+from html_telegraph_poster_v2.async_poster.utils import DocumentPreprocessor
+
+from app.config import TELEGRAPH_TOKEN_LIST
 from app.models.telegraph_item import TelegraphItem, from_str
 from app.utils.logger import logger
 
