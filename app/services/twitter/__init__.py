@@ -22,12 +22,12 @@ from app.utils.logger import logger
 
 class Twitter(MetadataItem):
     def __init__(
-        self,
-        url: str,
-        data: Optional[Any] = None,
-        scraper: Optional[str] = "Twitter135",
-        instruction: Optional[str] = "threads",
-        **kwargs,
+            self,
+            url: str,
+            data: Optional[Any] = None,
+            scraper: Optional[str] = "Twitter135",
+            instruction: Optional[str] = "threads",
+            **kwargs,
     ):
         # metadata fields
         self.url = url
@@ -85,11 +85,11 @@ class Twitter(MetadataItem):
             if response.status_code == 200:
                 tweet_data = response.json()
                 if (
-                    type(tweet_data) == dict
-                    and ("errors" in tweet_data or "detail" in tweet_data)
+                        type(tweet_data) == dict
+                        and ("errors" in tweet_data or "detail" in tweet_data)
                 ) or (
-                    type(tweet_data) == str
-                    and ("400" in tweet_data or "429" in tweet_data)
+                        type(tweet_data) == str
+                        and ("400" in tweet_data or "429" in tweet_data)
                 ):
                     raise Exception("Invalid response from Twitter API")
                 else:
@@ -110,19 +110,19 @@ class Twitter(MetadataItem):
         # if self.scraper == "api-client":
         #     self.process_twitter_api_client(tweet_data)
         if self.scraper in ["api-client", "Twitter135"]:
-            self._process_tweet_Twitter135(tweet_data)
+            self._process_tweet_twitter135(tweet_data)
         elif self.scraper in ["Twitter154", "twitter-v24"]:
             self._process_tweet_Twitter154(tweet_data)
 
-    def _process_tweet_Twitter135(self, tweet_data: Dict):
+    def _process_tweet_twitter135(self, tweet_data: Dict):
         entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][
             "instructions"
         ][0]["entries"]
         tweets = []
         for i in entries:
             if (
-                i["content"]["entryType"] == "TimelineTimelineItem"
-                and i["content"]["itemContent"]["itemType"] == "TimelineTweet"
+                    i["content"]["entryType"] == "TimelineTimelineItem"
+                    and i["content"]["itemContent"]["itemType"] == "TimelineTweet"
             ):
                 tweets.append(i["content"]["itemContent"]["tweet_results"]["result"])
         for tweet in tweets:
@@ -134,7 +134,7 @@ class Twitter(MetadataItem):
         self.text = self.text[:-1]
         self.content += self.content_group
         self.message_type = (
-            "long" if get_html_text_length(self.text) > SHORT_LIMIT else "short"
+            MessageType.LONG if get_html_text_length(self.text) > SHORT_LIMIT else MessageType.SHORT
         )
 
     def process_single_tweet_Twitter135(self, tweet: Dict, retweeted=False) -> None:
@@ -223,7 +223,7 @@ class Twitter(MetadataItem):
         self.headers = {
             "X-RapidAPI-Key": X_RAPIDAPI_KEY,
             "X-RapidAPI-Host": SCRAPER_INFO[self.scraper]["top_domain"]
-            + X_RAPIDAPI_HOST,
+                               + X_RAPIDAPI_HOST,
             "content-type": "application/octet-stream",
         }
         self.params = {
