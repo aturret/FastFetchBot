@@ -247,7 +247,9 @@ class Zhihu(MetadataItem):
                 try:
                     json_data = await get_response_json(self.request_url, headers=self.headers,
                                                         client=self.httpx_client)
+                    logger.debug(f"json data: {json_data}")
                     answer_data = _parse_answer_api_json_data(json_data)
+                    logger.debug(f"answer data: {answer_data}")
                 except Exception as e:
                     raise Exception("Cannot get the answer by API")
             elif self.method == "json":
