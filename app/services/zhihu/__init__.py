@@ -18,7 +18,7 @@ from app.utils.parse import (
 from app.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
     get_content_async
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.config import JINJA2_ENV
+from app.config import JINJA2_ENV,FXZHIHU_HOST
 from .config import (
     SHORT_LIMIT,
     ZHIHU_COLUMNS_API_HOST,
@@ -86,8 +86,11 @@ class Zhihu(MetadataItem):
         # reqeust fields
         self.httpx_client = zhihu_client
         self.headers = {"User-Agent": get_random_user_agent(),
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "Referer": self.url}
+                        "Accept": "*/*",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Referer": self.url,
+                        "Connection": "keep-alive",
+                        }
         if kwargs.get("cookie"):
             self.headers["Cookie"] = kwargs.get("cookie")
         if ZHIHU_COOKIES:
@@ -190,6 +193,17 @@ class Zhihu(MetadataItem):
         host = self.urlparser.netloc
         path = self.urlparser.path
         request_url_path = path
+        if self.method == "fxzhihu":
+            if self.zhihu_type == "answer":
+                self.request_url = (
+                        "https://" + FXZHIHU_HOST + '/answer/' + self.answer_id
+                )
+                return
+            elif self.zhihu_type == "article":
+                self.request_url = (
+                        "https://" + FXZHIHU_HOST + '/p/' + self.article_id
+                )
+                return
         if self.zhihu_type == "answer":
             if self.method == "api":
                 self.request_url = (
@@ -227,9 +241,9 @@ class Zhihu(MetadataItem):
         parse the zhihu answer page and get the metadata.
         support methods: html, json. Recommend: json
         """
-        if self.method == "api" or self.method == "json":
+        if self.method in ["api", "json", "fxzhihu"]:
             answer_data = {}
-            if self.method == "api":
+            if self.method in ["api", "fxzhihu"]:
                 try:
                     json_data = await get_response_json(self.request_url, headers=self.headers,
                                                         client=self.httpx_client)
@@ -463,13 +477,13 @@ class Zhihu(MetadataItem):
 
     async def _get_zhihu_article(self):
         self.zhihu_type = "article"
-        if self.method == "api":
+        if self.method in ["api", "fxzhihu"]:
             try:
                 json_data = await get_response_json(self.request_url, headers=self.headers, client=self.httpx_client)
                 self.title = json_data["title"]
                 self.raw_content = json_data["content"]
                 self.author = json_data["author"]["name"]
-                self.author_url = ZHIHU_HOST + "/people/" + json_data["author"]["url_token"]
+                self.author_url = json_data["author"]["url"]
                 self.upvote = json_data["voteup_count"]
             except Exception as e:
                 raise Exception("zhihu request failed")

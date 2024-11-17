@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import os
 import uuid
 from typing import Optional
@@ -38,7 +39,7 @@ async def get_response(
 
 async def get_response_json(url: str, headers=None, client: httpx.AsyncClient = None) -> dict:
     try:
-        response = await get_response(url, headers)
+        response = await get_response(url, headers=headers, client=client)
         json_result = response.json()
     except Exception as e:
         print(e, traceback.format_exc())
