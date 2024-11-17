@@ -34,6 +34,8 @@ MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
 MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
 
 # Telegram bot environment variables
+TELEGRAM_BOT_ON = get_env_bool(env, "TELEGRAM_BOT_ON", True)
+TELEGRAM_BOT_MODE = env.get("TELEGRAM_BOT_MODE", "polling")
 TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
 TELEGRAM_BOT_SECRET_TOKEN = env.get(
     "TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32)
@@ -165,6 +167,8 @@ XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
 XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
 
 # Zhihu
+FXZHIHU_HOST = env.get("FXZHIHU_HOST", "fxzhihu.com")
+
 zhihu_cookie_path = os.path.join(conf_dir, "zhihu_cookies.json")
 if os.path.exists(zhihu_cookie_path):
     try:
