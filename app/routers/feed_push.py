@@ -1,14 +1,11 @@
 # TODO: this script is now unused, will be removed in the future
-import asyncio
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from fastapi.requests import Request
 
 from app.config import TELEGRAM_CHANNEL_ID
-from app.models.url_metadata import UrlMetadata
 from app.services.telegram_bot import send_item_message
-from app.services.common import InfoExtractService
-from app.services.inoreader import Inoreader
+from app.services.scrapers.common import InfoExtractService
 from fastapi import Security
 from app.auth import verify_api_key
 from app.utils.logger import logger

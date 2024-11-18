@@ -2,8 +2,7 @@ from fastapi import APIRouter
 from fastapi.requests import Request
 
 from app.config import API_KEY_NAME
-from app.models.url_metadata import UrlMetadata
-from app.services.common import InfoExtractService
+from app.services.scrapers.common import InfoExtractService
 from fastapi import Security
 from app.auth import verify_api_key
 from app.utils.parse import get_url_metadata

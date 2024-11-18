@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.services.common import InfoExtractService
+from app.services.scrapers.common import InfoExtractService
 from fastapi import Security
 from app.auth import verify_api_key
 

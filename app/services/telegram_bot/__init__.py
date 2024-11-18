@@ -10,9 +10,7 @@ import traceback
 from io import BytesIO
 from urllib.parse import urlparse
 from urllib.request import url2pathname
-from typing import Optional, Union
-
-import httpx
+from typing import Union
 
 mimetypes.init()
 
@@ -22,7 +20,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
-    InputFile,
     InputMediaPhoto,
     InputMediaVideo,
     InputMediaDocument,
@@ -44,7 +41,7 @@ from telegram.ext import (
 from app.database import save_instances
 from app.models.metadata_item import MessageType
 from app.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
-from app.services.common import InfoExtractService
+from app.services.scrapers.common import InfoExtractService
 from app.utils.parse import get_url_metadata, telegram_message_html_trim
 from app.utils.network import download_file_by_metadata_item
 from app.utils.image import Image, image_compressing, check_image_type
