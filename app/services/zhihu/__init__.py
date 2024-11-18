@@ -204,6 +204,11 @@ class Zhihu(MetadataItem):
                         "https://" + FXZHIHU_HOST + '/p/' + self.article_id
                 )
                 return
+            elif self.zhihu_type == "status":
+                self.request_url = (
+                        "https://" + FXZHIHU_HOST + '/pin/' + self.status_id
+                )
+                return
         if self.zhihu_type == "answer":
             if self.method == "api":
                 self.request_url = (
@@ -234,6 +239,13 @@ class Zhihu(MetadataItem):
                 # Therefore, I remain the second one.
                 # self.request_url = (
                 #    ZHIHU_COLUMNS_API_HOST_V2 + self.article_id + "?" + ZHIHU_API_ANSWER_PARAMS)
+        elif self.zhihu_type == "status":
+            if self.method == "api":
+                self.request_url = (
+                        "https://www.zhihu.com/api/v4/pins/"
+                        + self.urlparser.path.split("/")[-1]
+                )
+                return
         self.request_url = f"https://{host}{request_url_path}"
 
     async def _get_zhihu_answer(self) -> None:
@@ -300,13 +312,8 @@ class Zhihu(MetadataItem):
         parse the zhihu status page and get the metadata.
         support methods: api, html
         """
-        if self.method == "api":
-            self.api_url = (
-                    "https://www.zhihu.com/api/v4/pins/"
-                    + self.urlparser.path.split("/")[-1]
-            )
-            print(self.api_url)
-            json_data = await get_response_json(self.api_url, headers=self.headers, client=self.httpx_client)
+        if self.method in ["api", "fxzhihu"]:
+            json_data = await get_response_json(self.request_url, headers=self.headers, client=self.httpx_client)
             data = self._resolve_status_api_data(json_data)  # TODO: separate the function to resolve the api data
             self.author = data["author"]
             self.author_url = data["author_url"]

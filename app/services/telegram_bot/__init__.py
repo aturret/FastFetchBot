@@ -524,7 +524,10 @@ async def send_item_message(
                         write_timeout=TELEBOT_WRITE_TIMEOUT,
                         reply_to_message_id=message.message_id if message else None,
                     )
-                    reply_to_message_id = sent_media_files_message[1].message_id
+                    if sent_media_files_message is tuple:
+                        reply_to_message_id = sent_media_files_message[0].message_id
+                    elif sent_media_files_message is Message:
+                        reply_to_message_id = sent_media_files_message.message_id
                     logger.debug(f"sent media files message: {sent_media_files_message}")
             else:
                 sent_message = await application.bot.send_message(
