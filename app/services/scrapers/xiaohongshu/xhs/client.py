@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Dict, Optional
+from typing import Dict
 
 import httpx
 from playwright.async_api import BrowserContext, Page

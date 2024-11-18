@@ -2,20 +2,12 @@ from typing import Optional, Any
 
 from app.models.database_model import Metadata
 from app.models.url_metadata import UrlMetadata
-from app.models.metadata_item import MetadataItem, MessageType
+from app.models.metadata_item import MessageType
 from app.services import (
-    threads,
-    twitter,
-    instagram,
-    weibo,
     telegraph,
-    douban,
-    zhihu,
-    video_download,
-    wechat,
-    document_export,
-    inoreader, xiaohongshu, reddit,
-)
+    inoreader, )
+from app.services.file_export import video_download
+from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
 
 from app.database import save_instances
 from app.utils.logger import logger
@@ -95,7 +87,7 @@ class InfoExtractService(object):
         ):
             logger.info("store in document")
             try:
-                pdf_document = document_export.pdf_export.PdfExport(
+                pdf_document = app.services.file_export.document_export.pdf_export.PdfExport(
                     title=metadata_item["title"], html_string=metadata_item["content"]
                 )
                 output_filename = await pdf_document.export(method="file")

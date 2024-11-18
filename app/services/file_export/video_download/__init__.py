@@ -1,11 +1,10 @@
 from typing import Any, Optional
 
 import httpx
-import os
 from urllib.parse import urlparse
 
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
-from app.services.audio_transcribe import AudioTranscribe
+from app.services.file_export.audio_transcribe import AudioTranscribe
 from app.config import FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
 from app.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
 from app.utils.logger import logger

@@ -18,7 +18,7 @@ from .config import (
     WEIBO_TEXT_LIMIT,
 )
 from app.config import JINJA2_ENV, WEIBO_COOKIES
-from ...utils.logger import logger
+from app.utils.logger import logger
 
 short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")
 content_template = JINJA2_ENV.get_template("weibo_content.jinja2")

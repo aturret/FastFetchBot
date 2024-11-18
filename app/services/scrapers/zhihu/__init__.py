@@ -28,7 +28,7 @@ from .config import (
     ZHIHU_COOKIES,
     ZHIHU_API_ANSWER_PARAMS
 )
-from ...utils.logger import logger
+from app.utils.logger import logger
 
 environment = JINJA2_ENV
 short_text_template = environment.get_template("zhihu_short_text.jinja2")

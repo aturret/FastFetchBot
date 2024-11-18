@@ -1,21 +1,19 @@
 import asyncio
-import json
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 import jmespath
-from bs4 import BeautifulSoup
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from ...utils.network import HEADERS
+from app.utils.network import HEADERS
 from app.config import JINJA2_ENV, HTTP_REQUEST_TIMEOUT
 from .xhs.core import XiaoHongShuCrawler
 from .xhs.client import XHSClient
 from .xhs import proxy_account_pool
 
-from ...utils.logger import logger
-from ...utils.parse import (
+from app.utils.logger import logger
+from app.utils.parse import (
     unix_timestamp_to_utc,
     get_html_text_length,
     wrap_text_into_html,
