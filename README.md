@@ -146,4 +146,6 @@ The Weibo scraper is based on [weiboSpider](https://github.com/dataabc/weiboSpid
 
 The Twitter scraper is based on [twitter-api-client](https://github.com/trevorhobenshield/twitter-api-client).
 
+The Zhihu scraper is based on [fxzhihu](https://github.com/frostming/fxzhihu).
+
 All the code is licensed under the MIT license. I either used their code as-is or made modifications to implement certain functions. I want to express my gratitude to the projects mentioned above for their contributions.
