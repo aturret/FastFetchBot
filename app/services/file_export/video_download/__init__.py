@@ -205,7 +205,7 @@ class VideoDownloader(MetadataItem):
             "id": video_info["id"],
             "title": video_info["title"],
             "author": video_info["uploader"],
-            "author_url": video_info["uploader_url"],
+            "author_url": video_info["uploader_url"] or video_info["channel_url"],
             "description": video_info["description"],
             "playback_data": f"视频播放量：{video_info['view_count']} 评论数：{video_info['comment_count']}",
             "author_avatar": video_info["thumbnail"],
