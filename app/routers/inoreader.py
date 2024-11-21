@@ -1,13 +1,17 @@
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from app.config import TELEGRAM_CHANNEL_ID, INOREADER_APP_ID, INOREADER_APP_KEY
-from app.services.inoreader import Inoreader, process_inoreader_data, get_inoreader_item_async
+from app.config import INOREADER_APP_ID, INOREADER_APP_KEY
+from app.services.inoreader import Inoreader
+from app.services.inoreader.telegram_process import (
+    get_inoreader_item_async,
+    process_inoreader_data,
+    default_telegram_channel_id
+)
 from fastapi import Security
 from app.auth import verify_api_key
 
 router = APIRouter(prefix="/inoreader")
-default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else None
 
 
 async def get_inoreader_webhook_data(data: dict):

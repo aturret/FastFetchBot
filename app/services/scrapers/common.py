@@ -5,7 +5,8 @@ from app.models.url_metadata import UrlMetadata
 from app.models.metadata_item import MessageType
 from app.services import (
     telegraph,
-    inoreader, )
+    inoreader
+)
 from app.services.file_export import video_download
 from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
 

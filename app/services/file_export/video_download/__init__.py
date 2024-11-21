@@ -27,6 +27,7 @@ class VideoDownloader(MetadataItem):
     ):
         self.extractor = category
         self.url = url
+        self.author_url = ""
         self.download = download
         self.audio_only = audio_only
         self.transcribe = transcribe
@@ -60,6 +61,7 @@ class VideoDownloader(MetadataItem):
         }
         meta_info = video_info_funcs[self.extractor](content_info)
         self._video_info_formatting(meta_info)
+        # AI transcribe
         if self.transcribe:
             audio_content_info = await self.get_video_info(audio_only=True)
             audio_file_path = audio_content_info["file_path"]
