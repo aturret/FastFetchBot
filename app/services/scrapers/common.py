@@ -7,7 +7,7 @@ from app.services import (
     telegraph,
     inoreader
 )
-from app.services.file_export import video_download
+from app.services.file_export import video_download, document_export
 from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
 
 from app.database import save_instances
@@ -88,7 +88,7 @@ class InfoExtractService(object):
         ):
             logger.info("store in document")
             try:
-                pdf_document = app.services.file_export.document_export.pdf_export.PdfExport(
+                pdf_document = document_export.pdf_export.PdfExport(
                     title=metadata_item["title"], html_string=metadata_item["content"]
                 )
                 output_filename = await pdf_document.export(method="file")
