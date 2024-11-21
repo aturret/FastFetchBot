@@ -138,7 +138,7 @@ You can set the api key of OpenAI to use the transcription function.
 
 ## Acknowledgements
 
-The HTML to Telegra.ph converter function is based on [html-telegraph-poster](https://github.com/mercuree/html-telegraph-poster).
+The HTML to Telegra.ph converter function is based on [html-telegraph-poster](https://github.com/mercuree/html-telegraph-poster). I separated it from this project as an independent Python package: [html-telegraph-poster-v2](https://github.com/aturret/html-telegraph-poster-v2).
 
 The Xiaohongshu scraper is based on [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler).
 
