@@ -3319,4 +3319,4 @@ windows = ["python-magic-bin"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.14"
-content-hash = "e99d875b942cba9b71759f967580154cf39644300baa89c024dce0e6df5db497"
+content-hash = "4c18dcff3c59abe3f827e666d9ed0af213bc01bee9181b9628761080ea3a0422"

@@ -40,7 +40,7 @@ html-telegraph-poster-v2 = "*"
 fastfetchbot-telegram-bot = "*"
 
 [tool.poetry.group.dev]
-#optional = true
+optional = true
 [tool.poetry.group.dev.dependencies]
 html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
 fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
