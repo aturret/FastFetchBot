@@ -878,25 +878,23 @@ name = "fastfetchbot-telegram-bot"
 version = "0.1.1"
 description = "The telegram bot service module for FastFetchBot project."
 optional = false
-python-versions = "^3.11"
-files = []
-develop = false
+python-versions = "<4.0,>=3.11"
+files = [
+    {file = "fastfetchbot_telegram_bot-0.1.1-py3-none-any.whl", hash = "sha256:559f48cb3f2cbcb7a1838b6b7d3fb1f3bed325e25124bc885da9ad0cb399bb30"},
+    {file = "fastfetchbot_telegram_bot-0.1.1.tar.gz", hash = "sha256:a3b0ee8e792837d351b235e4b9e36525738f030174c5f71a8d4d0cd3f60d8498"},
+]
 
 [package.dependencies]
-aiofiles = "^24.1.0"
-beautifulsoup4 = "^4.12.2"
-fake-useragent = "^1.5.1"
-jinja2 = "^3.1.4"
-pillow = "^10.0.0"
-python-magic = "^0.4.27"
-python-telegram-bot = {version = "^21.6", extras = ["callback-data", "rate-limiter"]}
+aiofiles = ">=24.1.0,<25.0.0"
+beautifulsoup4 = ">=4.12.2,<5.0.0"
+fake-useragent = ">=1.5.1,<2.0.0"
+jinja2 = ">=3.1.4,<4.0.0"
+pillow = ">=10.0.0,<11.0.0"
+python-magic = ">=0.4.27,<0.5.0"
+python-telegram-bot = {version = ">=21.6,<22.0", extras = ["callback-data", "rate-limiter"]}
 
 [package.extras]
 windows = ["python-magic-bin (>=0.4.14,<0.5.0)"]
-
-[package.source]
-type = "directory"
-url = "../FastFetchBot-Telegram-Bot"
 
 [[package]]
 name = "frozenlist"
@@ -1121,22 +1119,20 @@ name = "html-telegraph-poster-v2"
 version = "0.1.4"
 description = "Upload HTML document to telegra.ph"
 optional = false
-python-versions = "^3.11"
-files = []
-develop = false
+python-versions = "<4.0,>=3.11"
+files = [
+    {file = "html_telegraph_poster_v2-0.1.4-py3-none-any.whl", hash = "sha256:52daaa162b0a5e8d23ac1e21f8eccb4a6c6ab1054b4e1461abae1a20b79fdfe1"},
+    {file = "html_telegraph_poster_v2-0.1.4.tar.gz", hash = "sha256:9315f5831b8cf39c15f219199b6708d46a1620596596c8591859019c206f2693"},
+]
 
 [package.dependencies]
-aioboto3 = "^11.3.0"
-aiofiles = "^24.1.0"
-httpx = "^0.27.2"
-loguru = "^0.7.2"
-lxml = "^4.7.1"
-requests = "^2.26.0"
-requests_toolbelt = "^0.9.1"
-
-[package.source]
-type = "directory"
-url = "../html-telegraph-poster-v2"
+aioboto3 = ">=11.3.0,<12.0.0"
+aiofiles = ">=24.1.0,<25.0.0"
+httpx = ">=0.27.2,<0.28.0"
+loguru = ">=0.7.2,<0.8.0"
+lxml = ">=4.7.1,<5.0.0"
+requests = ">=2.26.0,<3.0.0"
+requests_toolbelt = ">=0.9.1,<0.10.0"
 
 [[package]]
 name = "html5lib"
@@ -3319,4 +3315,4 @@ windows = ["python-magic-bin"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.14"
-content-hash = "4c18dcff3c59abe3f827e666d9ed0af213bc01bee9181b9628761080ea3a0422"
+content-hash = "7249c638f861441e48b62d120b2e050e6b8840505d04817f0d9c34c126d797dd"

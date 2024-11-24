@@ -42,8 +42,8 @@ fastfetchbot-telegram-bot = "*"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]
-html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
-fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
+#html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
+#fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
 black = "^23.3.0"
 
 [tool.poetry.extras]
