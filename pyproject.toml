@@ -39,6 +39,7 @@ asyncpraw = "^7.7.1"
 html-telegraph-poster-v2 = "*"
 fastfetchbot-telegram-bot = "*"
 
+pytest = "^8.3.3"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]
@@ -46,8 +47,8 @@ optional = true
 #fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
 black = "^23.3.0"
 pytest = "^8.3.3"
-
 pytest-asyncio = "^0.24.0"
+
 [tool.poetry.extras]
 windows = ["python-magic-bin"]
 
