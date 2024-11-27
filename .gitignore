@@ -255,3 +255,4 @@ conf/*
 !conf/
 !conf/.gitkeep
 .run/Template Python tests.run.xml
+/.run/

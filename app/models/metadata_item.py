@@ -60,15 +60,15 @@ class MediaFile:
 @dataclass
 class MetadataItem:
     url: str
-    telegraph_url: str
-    content: str
-    text: str
+    telegraph_url: Optional[str]
+    content: Optional[str]
+    text: Optional[str]
     media_files: List[MediaFile]
     author: str
     title: str
-    author_url: str
+    author_url: Optional[str]
     category: str
-    message_type: MessageType
+    message_type: Optional[MessageType]
 
     @staticmethod
     def from_dict(obj: Any) -> "MetadataItem":
@@ -97,19 +97,19 @@ class MetadataItem:
         )
 
     def to_dict(self) -> dict:
-        result: dict = {}
-        result["url"] = from_str(self.url)
-        result["telegraph_url"] = ""
-        result["content"] = from_str(self.content)
-        result["text"] = from_str(self.text)
-        result["media_files"] = from_list(
-            lambda x: to_class(MediaFile, x), self.media_files
-        )
-        result["author"] = from_str(self.author)
-        result["title"] = from_str(self.title)
-        result["author_url"] = from_str(self.author_url)
-        result["category"] = from_str(self.category)
-        result["message_type"] = self.message_type.value
+        result: dict = {
+            "url": from_str(self.url),
+            "telegraph_url": "", "content": from_str(self.content),
+            "text": from_str(self.text),
+            "media_files": from_list(
+                lambda x: to_class(MediaFile, x), self.media_files
+            ),
+            "author": from_str(self.author),
+            "title": from_str(self.title),
+            "author_url": from_str(self.author_url),
+            "category": from_str(self.category),
+            "message_type": self.message_type.value
+        }
         return result
 
 
