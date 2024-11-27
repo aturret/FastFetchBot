@@ -8,42 +8,44 @@ from app.services import (
     inoreader
 )
 from app.services.file_export import video_download, document_export
-from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
-
+from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads, \
+    bluesky
+from app.services.scrapers.scraper_manager import ScraperManager
 from app.database import save_instances
 from app.utils.logger import logger
 from app.config import DATABASE_ON
 
 
 class InfoExtractService(object):
+    service_classes: dict = {
+        "twitter": twitter.Twitter,
+        "threads": threads.Threads,
+        "reddit": reddit.Reddit,
+        "weibo": weibo.Weibo,
+        "wechat": wechat.Wechat,
+        "instagram": instagram.Instagram,
+        "douban": douban.Douban,
+        "zhihu": zhihu.Zhihu,
+        "xiaohongshu": xiaohongshu.Xiaohongshu,
+        "youtube": video_download.VideoDownloader,
+        "bilibili": video_download.VideoDownloader,
+        "inoreader": inoreader.Inoreader,
+    }
+
     def __init__(
-        self,
-        url_metadata: UrlMetadata,
-        data: Any = None,
-        store_database: Optional[bool] = DATABASE_ON,
-        store_telegraph: Optional[bool] = True,
-        store_document: Optional[bool] = False,
-        **kwargs,
+            self,
+            url_metadata: UrlMetadata,
+            data: Any = None,
+            store_database: Optional[bool] = DATABASE_ON,
+            store_telegraph: Optional[bool] = True,
+            store_document: Optional[bool] = False,
+            **kwargs,
     ):
         url_metadata = url_metadata.to_dict()
         self.url = url_metadata["url"]
         self.content_type = url_metadata["content_type"]
         self.source = url_metadata["source"]
         self.data = data
-        self.service_classes = {
-            "twitter": twitter.Twitter,
-            "threads": threads.Threads,
-            "reddit": reddit.Reddit,
-            "weibo": weibo.Weibo,
-            "wechat": wechat.Wechat,
-            "instagram": instagram.Instagram,
-            "douban": douban.Douban,
-            "zhihu": zhihu.Zhihu,
-            "xiaohongshu": xiaohongshu.Xiaohongshu,
-            "youtube": video_download.VideoDownloader,
-            "bilibili": video_download.VideoDownloader,
-            "inoreader": inoreader.Inoreader,
-        }
         self.kwargs = kwargs
         self.store_database = store_database
         self.store_telegraph = store_telegraph
@@ -59,10 +61,15 @@ class InfoExtractService(object):
                 self.kwargs["category"] = self.category
         if not metadata_item:
             try:
-                scraper_item = self.service_classes[self.category](
-                    url=self.url, data=self.data, **self.kwargs
-                )
-                metadata_item = await scraper_item.get_item()
+                if self.category in ["bluesky"]:  # it is a workaround before the code refactor
+                    await ScraperManager.init_scraper(self.category)
+                    item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
+                    metadata_item = await item_data_processor.get_item()
+                else:
+                    scraper_item = InfoExtractService.service_classes[self.category](
+                        url=self.url, data=self.data, **self.kwargs
+                    )
+                    metadata_item = await scraper_item.get_item()
             except Exception as e:
                 logger.error(f"Error while getting item: {e}")
                 raise e
@@ -84,7 +91,7 @@ class InfoExtractService(object):
                 telegraph_url = ""
             metadata_item["telegraph_url"] = telegraph_url
         if self.store_document or (
-            not self.store_document and metadata_item["telegraph_url"] == ""
+                not self.store_document and metadata_item["telegraph_url"] == ""
         ):
             logger.info("store in document")
             try:

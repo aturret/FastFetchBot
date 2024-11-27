@@ -149,6 +149,10 @@ TWITTER_COOKIES = {
     "auth_token": TWITTER_AUTH_TOKEN,
 }
 
+# Bluesky
+BLUESKY_USERNAME = env.get("BLUESKY_USERNAME", None)
+BLUESKY_PASSWORD = env.get("BLUESKY_PASSWORD", None)
+
 # Weibo
 WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
 

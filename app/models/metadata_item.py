@@ -14,6 +14,8 @@ T = TypeVar("T")
 
 
 def from_str(x: Any) -> str:
+    if x is None:
+        return ""
     assert isinstance(x, str)
     return x
 

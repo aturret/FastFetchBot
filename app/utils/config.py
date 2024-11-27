@@ -33,6 +33,9 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
         r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/comments\/[a-zA-Z0-9_-]+",
         r"(www\.)?reddit\.com\/r\/[a-zA-Z0-9_-]+\/s\/[a-zA-Z0-9_-]+",
     ],
+    "bluesky": [
+        r"(www\.)?bsky\.app\/profile/[a-zA-Z0-9\.]+\/post\/[a-zA-Z0-9\-_]+",
+    ]
 }
 VIDEO_WEBSITE_PATTERNS = {
     "youtube": [
