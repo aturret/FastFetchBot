@@ -254,3 +254,4 @@ docker-compose.yml
 conf/*
 !conf/
 !conf/.gitkeep
+.run/Template Python tests.run.xml
