@@ -121,15 +121,16 @@ You can set the api key of OpenAI to use the transcription function.
 ### Social Media Content
 
 - [x] Twitter
+- [x] Bluesky (Beta, only supports part of posts)
 - [x] Instagram
-- [x] Threads
-- [x] Reddit
+- [ ] Threads 
+- [x] Reddit (Beta, only supports part of posts)
 - [ ] Quora
 - [x] Weibo
 - [x] WeChat Public Account Articles
 - [x] Zhihu
 - [x] Douban
-- [x] Xiaohongshu
+- [ ] Xiaohongshu
 
 ### Video Content
 
