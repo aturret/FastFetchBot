@@ -88,6 +88,7 @@ application and handlers initialization
 
 
 async def set_webhook() -> bool:
+    logger.debug(f"set_webhook: {TELEGRAM_WEBHOOK_URL}, secret_token: {TELEGRAM_BOT_SECRET_TOKEN}")
     return await application.bot.set_webhook(
         url=TELEGRAM_WEBHOOK_URL, secret_token=TELEGRAM_BOT_SECRET_TOKEN
     )

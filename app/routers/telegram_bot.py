@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, HTTPException
 from fastapi.requests import Request
 
@@ -12,8 +14,10 @@ router = APIRouter(prefix="/telegram")
 
 @router.post("/bot/webhook", dependencies=[Security(verify_telegram_api_header)])
 async def telegram_bot_webhook(request: Request, background_tasks: BackgroundTasks):
+    logger.debug("A telegram bot webhook received")
     data = await request.json()
     background_tasks.add_task(process_telegram_update, data)
+    logger.debug(f"telegram bot webhook data received, background task added: {data}")
     return "ok"
 
 

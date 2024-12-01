@@ -55,7 +55,7 @@ class InfoExtractService(object):
     def category(self) -> str:
         return self.source
 
-    async def get_item(self, metadata_item: dict = None) -> dict:
+    async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
         if self.content_type == "video":
             if not self.kwargs.get("category"):
                 self.kwargs["category"] = self.category
@@ -110,5 +110,5 @@ class InfoExtractService(object):
                 logger.error(f"Error while exporting document: {e}")
         if self.store_database:
             logger.info("store in database")
-            await save_instances(Metadata.construct(**metadata_item))
+            await save_instances(Metadata.model_construct(**metadata_item))
         return metadata_item
