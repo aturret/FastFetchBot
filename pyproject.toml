@@ -14,7 +14,6 @@ sentry-sdk = { extras = ["fastapi"], version = "^1.26.0" }
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.3"
 httpx = "*"
-gunicorn = "^20.1.0"
 python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^21.6" }
 fake-useragent = "^1.5.1"
 jmespath = "^1.0.1"
