@@ -61,7 +61,7 @@ class InfoExtractService(object):
                 self.kwargs["category"] = self.category
         if not metadata_item:
             try:
-                if self.category in ["bluesky"]:  # it is a workaround before the code refactor
+                if self.category in ["bluesky", "weibo"]:  # it is a workaround before the code refactor
                     await ScraperManager.init_scraper(self.category)
                     item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
                     metadata_item = await item_data_processor.get_item()
