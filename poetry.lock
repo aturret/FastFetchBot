@@ -1130,19 +1130,19 @@ files = [
 
 [[package]]
 name = "html-telegraph-poster-v2"
-version = "0.2.2"
+version = "0.2.4"
 description = "Upload HTML document to telegra.ph"
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "html_telegraph_poster_v2-0.2.2-py3-none-any.whl", hash = "sha256:82b693e056751ba14efd773004e1be9bb947ef38adee7ba05402014afbc7a44c"},
-    {file = "html_telegraph_poster_v2-0.2.2.tar.gz", hash = "sha256:605122d191c41d841d8df52fe5d9d070055b826d2ceac73187886e236959e436"},
+    {file = "html_telegraph_poster_v2-0.2.4-py3-none-any.whl", hash = "sha256:4b91ba00e5f9745f9e8481221e876dcffd3c397cab32ba289cae67a5eeb98511"},
+    {file = "html_telegraph_poster_v2-0.2.4.tar.gz", hash = "sha256:baff5d147b996765a7f52d0955a716387a47a00911bfc2f6c88e545c17b223e1"},
 ]
 
 [package.dependencies]
 aioboto3 = ">=13.2.0,<14.0.0"
 aiofiles = ">=24.1.0,<25.0.0"
-httpx = ">=0.27.2,<0.28.0"
+httpx = ">=0.27.0"
 loguru = ">=0.7.3,<0.8.0"
 lxml = {version = ">=5.3.0,<6.0.0", extras = ["html-clean"]}
 requests = ">=2.26.0,<3.0.0"
@@ -3694,4 +3694,4 @@ windows = ["python-magic-bin"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.14"
-content-hash = "68de3f79f70d0de50c81a7cf264283ab5fd762f1436b78545d2d8f2e6b93ea93"
+content-hash = "9eb8a073bef40f8e9140e8c5c52382f3690b8262bea71a89fa820121d828debf"
