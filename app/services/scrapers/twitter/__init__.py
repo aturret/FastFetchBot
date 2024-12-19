@@ -8,7 +8,7 @@ import jmespath
 
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
 from app.utils.parse import get_html_text_length, wrap_text_into_html
-from .twitter_client_api.scraper import Scraper
+from twitter.scraper import Scraper
 from .config import (
     ALL_SCRAPER,
     ALL_SINGLE_SCRAPER,
