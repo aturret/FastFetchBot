@@ -18,7 +18,7 @@ python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^
 fake-useragent = "^1.5.1"
 jmespath = "^1.0.1"
 playwright = "^1.35.0"
-jinja2 = "^3.1.2"
+jinja2 = "^3.1.5"
 babel = "^2.12.1"
 openai = "^1.58.1"
 gunicorn = "^23.0.0"
