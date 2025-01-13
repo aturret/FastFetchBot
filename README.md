@@ -2,7 +2,7 @@ Demo: https://t.me/aturretrss_bot
 
 # FastFetchBot
 
-A social media fetch bot based on [FastAPI](https://fastapi.tiangolo.com/).
+A social media fetch API based on [FastAPI](https://fastapi.tiangolo.com/), with Telegram Bot as the default client.
 
 Supported most mainstream social media platforms. You can get a permanent copy of the content by just sending the url to the bot.
 
