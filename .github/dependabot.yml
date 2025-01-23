@@ -3,7 +3,7 @@ updates:
   - package-ecosystem: "pip" # Use pip as the ecosystem for Poetry projects
     directory: "/" # Path to your project root where pyproject.toml is located
     schedule:
-      interval: "daily" # Check for updates daily
+      interval: "weekly" # Check for updates every week
     versioning-strategy: "increase"
     ignore:
       - dependency-name: "python" # Optional: Ignore updates to Python itself
