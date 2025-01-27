@@ -25,7 +25,7 @@ gunicorn = "^23.0.0"
 uvicorn = "^0.34.0"
 aiofiles = "^24.1.0"
 twitter-api-client = "^0.10.22"
-atproto = "^0.0.57"
+atproto = "^0.0.58"
 pillow = "^10.0.0"
 python-magic = "^0.4.27"
 python-magic-bin = { version = "^0.4.14", optional = true }
