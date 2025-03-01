@@ -13,7 +13,7 @@ fastapi = "^0.115.10"
 sentry-sdk = { extras = ["fastapi"], version = "^2.22.0" }
 beautifulsoup4 = "^4.13.3"
 lxml = "^5.3.1"
-httpx = "^0.27.2"
+httpx = "^0.28.1"
 python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^21.10" }
 fake-useragent = "^1.5.1"
 jmespath = "^1.0.1"
