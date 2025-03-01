@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "pip" # Use pip as the ecosystem for Poetry projects
+    directory: "/" # Path to your project root where pyproject.toml is located
+    schedule:
+      interval: "monthly" # Check for updates every week
+    versioning-strategy: "increase"
+    ignore:
+      - dependency-name: "python" # Optional: Ignore updates to Python itself
+    commit-message:
+      prefix: "deps" # Customize the commit message prefix for PRs
+    groups:
+      deps:
+        patterns:
+          - "*"
