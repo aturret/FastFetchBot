@@ -9,18 +9,18 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.11,<3.14"
 loguru = "^0.7.2"
-fastapi = "^0.115.10"
-sentry-sdk = { extras = ["fastapi"], version = "^2.22.0" }
+fastapi = "^0.115.12"
+sentry-sdk = { extras = ["fastapi"], version = "^2.25.0" }
 beautifulsoup4 = "^4.13.3"
 lxml = "^5.3.1"
 httpx = "^0.28.1"
-python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^21.10" }
+python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^21.11" }
 fake-useragent = "^1.5.1"
 jmespath = "^1.0.1"
-playwright = "^1.50.0"
-jinja2 = "^3.1.5"
+playwright = "^1.51.0"
+jinja2 = "^3.1.6"
 babel = "^2.17.0"
-openai = "^1.65.1"
+openai = "^1.70.0"
 gunicorn = "^23.0.0"
 uvicorn = "^0.34.0"
 aiofiles = "^24.1.0"
@@ -39,15 +39,15 @@ asyncpraw = "^7.8.1"
 html-telegraph-poster-v2 = "^0.2.5"
 fastfetchbot-telegram-bot = "*"
 
-pytest = "^8.3.3"
+pytest = "^8.3.5"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]
 #html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
 #fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
 black = "^25.1.0"
-pytest = "^8.3.3"
-pytest-asyncio = "^0.25.3"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.26.0"
 
 [tool.poetry.extras]
 windows = ["python-magic-bin"]
