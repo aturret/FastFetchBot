@@ -1,4 +1,5 @@
 # TODO: https://rapidapi.com/Glavier/api/twitter135
+import asyncio
 import traceback
 from urllib.parse import urlparse
 from typing import Dict, Optional, Any
@@ -100,9 +101,9 @@ class Twitter(MetadataItem):
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(
             save=DEBUG_MODE,
+            cookies=TWITTER_COOKIES
         )
-        await scraper.async_init(cookies=TWITTER_COOKIES)
-        tweet_data = await scraper.tweets_details([int(self.tid)])
+        tweet_data = await asyncio.to_thread(scraper.tweets_details, [int(self.tid)])
         logger.debug(tweet_data)
         return tweet_data[0]
 
