@@ -116,9 +116,14 @@ class Twitter(MetadataItem):
             self._process_tweet_Twitter154(tweet_data)
 
     def _process_tweet_twitter135(self, tweet_data: Dict):
-        entries = tweet_data["data"]["threaded_conversation_with_injections_v2"][
+        tweet_data_instructions = tweet_data["data"]["threaded_conversation_with_injections_v2"][
             "instructions"
-        ][0]["entries"]
+        ]
+        entries_instruction = next(
+            (instr for instr in tweet_data_instructions if 'entries' in instr),
+            None
+        )
+        entries = entries_instruction['entries']
         tweets = []
         for i in entries:
             if (
