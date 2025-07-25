@@ -84,7 +84,7 @@ async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMeta
                     source = website
                     content_type = "video"
     # clear the url query
-    if source not in ["youtube", "wechat"]:
+    if source not in ["youtube", "bilibili", "wechat"]:
         url = url_parser.scheme + "://" + url_parser.netloc + url_parser.path
     if source in ban_list:
         source = "banned"

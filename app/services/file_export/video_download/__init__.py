@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 import httpx
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from app.models.metadata_item import MetadataItem, MessageType, MediaFile
 from app.services.file_export.audio_transcribe import AudioTranscribe
@@ -101,10 +101,12 @@ class VideoDownloader(MetadataItem):
         def _remove_bilibili_link_tracing(original_url: str) -> str:
             original_url_parser = urlparse(original_url)
             original_url_hostname = str(original_url_parser.hostname)
+            query_dict = parse_qs(original_url_parser.query)
+            bilibili_p_query_string = "?p=" + query_dict["p"][0] if 'p' in query_dict else ""
 
             if "bilibili.com" in original_url_hostname:
                 original_url = original_url_parser.scheme + "://" + original_url_parser.netloc + original_url_parser.path
-            return original_url
+            return original_url + bilibili_p_query_string
 
         logger.info(f"parsing original video url: {url} for {self.extractor}")
 
