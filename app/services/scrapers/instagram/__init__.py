@@ -18,8 +18,8 @@ class Instagram(MetadataItem):
         self.url = url
         self.category = "instagram"
         # auxiliary variables
-        urlparser = urlparse(url)
-        self.post_id = re.sub(r".*((/p/)|(/reel/))", "", urlparser.path).replace(
+        self.urlparser = urlparse(url)
+        self.post_id = re.sub(r".*((/p/)|(/reel/))", "", self.urlparser.path).replace(
             "/", ""
         )
         self.message_type = MessageType.SHORT
@@ -34,11 +34,11 @@ class Instagram(MetadataItem):
 
     def _check_instagram_url(self):
         if (
-            self.url.find("instagram.com/p/") != -1
-            or self.url.find("instagram.com/reel/") != -1
+            self.urlparser.path.find("p") != -1
+            or self.urlparser.path.find("reel") != -1
         ):
             self.ins_type = "post"
-        if self.url.find("instagram.com/stories/") != -1:
+        if self.urlparser.path.find("stories") != -1:
             self.ins_type = "story"
 
     async def _get_instagram_info(self):

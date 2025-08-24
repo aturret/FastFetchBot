@@ -7,7 +7,7 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
         r"(www\.)?weibo\.com\/(status\/)?[0-9a-zA-Z]+",
     ],
     "twitter": [r"(twitter|x)\.com\/[^\/]+\/status\/[0-9]+"],
-    "instagram": [r"(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+"],
+    "instagram": [r"(www\.)?instagram\.com(\/share)?\/(p|reel)\/[A-Za-z0-9_-]+"],
     "zhihu": [
         r"(www\.)?zhihu\.com\/question\/[0-9]+\/answer\/[0-9]+",
         r"(www\.)?zhihu\.com\/answer\/[0-9]+",
