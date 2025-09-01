@@ -9,45 +9,45 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.11,<3.14"
 loguru = "^0.7.2"
-fastapi = "^0.115.12"
-sentry-sdk = { extras = ["fastapi"], version = "^2.27.0" }
-beautifulsoup4 = "^4.13.4"
+fastapi = "^0.116.1"
+sentry-sdk = { extras = ["fastapi"], version = "^2.35.2" }
+beautifulsoup4 = "^4.13.5"
 lxml = "^5.4.0"
 httpx = "^0.28.1"
 python-telegram-bot = { extras = ["callback-data", "rate-limiter"], version = "^21.11" }
 fake-useragent = "^1.5.1"
 jmespath = "^1.0.1"
-playwright = "^1.52.0"
+playwright = "^1.55.0"
 jinja2 = "^3.1.6"
 babel = "^2.17.0"
-openai = "^1.76.2"
+openai = "^1.102.0"
 gunicorn = "^23.0.0"
-uvicorn = "^0.34.2"
+uvicorn = "^0.35.0"
 aiofiles = "^24.1.0"
 twitter-api-client = "^0.10.22"
-atproto = "^0.0.61"
+atproto = "^0.0.62"
 pillow = "^10.0.0"
 python-magic = "^0.4.27"
 python-magic-bin = { version = "^0.4.14", optional = true }
 pydub = "^0.25.1"
 xhtml2pdf = "^0.2.17"
 aioboto3 = "^13.4.0"
-beanie = "^1.29.0"
+beanie = "^2.0.0"
 tenacity = "^9.1.2"
 markdown = "^3.8"
 asyncpraw = "^7.8.1"
 html-telegraph-poster-v2 = "^0.2.5"
 fastfetchbot-telegram-bot = "*"
 
-pytest = "^8.3.5"
+pytest = "^8.4.1"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]
 #html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
 #fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
 black = "^25.1.0"
-pytest = "^8.3.5"
-pytest-asyncio = "^0.26.0"
+pytest = "^8.4.1"
+pytest-asyncio = "^1.1.0"
 
 [tool.poetry.extras]
 windows = ["python-magic-bin"]
