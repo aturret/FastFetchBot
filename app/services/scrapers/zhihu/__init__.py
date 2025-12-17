@@ -16,9 +16,9 @@ from app.utils.parse import (
     wrap_text_into_html,
 )
 from app.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
-    get_content_async
+    get_content_async, get_response
 from app.models.metadata_item import MetadataItem, MediaFile, MessageType
-from app.config import JINJA2_ENV,FXZHIHU_HOST
+from app.config import JINJA2_ENV, FXZHIHU_HOST
 from .config import (
     SHORT_LIMIT,
     ZHIHU_COLUMNS_API_HOST,
@@ -87,7 +87,6 @@ class Zhihu(MetadataItem):
         self.httpx_client = zhihu_client
         self.headers = {"User-Agent": get_random_user_agent(),
                         "Accept": "*/*",
-                        "Accept-Encoding": "gzip, deflate, br",
                         "Referer": self.url,
                         "Connection": "keep-alive",
                         }
@@ -95,7 +94,7 @@ class Zhihu(MetadataItem):
             self.headers["Cookie"] = kwargs.get("cookie")
         if ZHIHU_COOKIES:
             self.headers["Cookie"] = ZHIHU_COOKIES
-        self.method = kwargs.get("method", "json")
+        self.method = kwargs.get("method", "fxzhihu")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
         self.status_id = ""
@@ -180,11 +179,13 @@ class Zhihu(MetadataItem):
         elif path.startswith("/answer/") or (path.startswith("/question/") and path.find("/answer/") != -1):
             self.zhihu_type = "answer"
             self.answer_id = self.urlparser.path.split("/")[-1]
-            self.method = "json"
+            if path.find("/question/") != -1:
+                self.question_id = self.urlparser.path.split("/")[-3]
+            # self.method = "json"
         elif path.startswith("/pin/"):
             self.zhihu_type = "status"
             self.status_id = self.urlparser.path.split("/")[-1]
-            self.method = "api"
+            # self.method = "api"
         else:
             self.zhihu_type = "unknown"
         self.url = f"https://{host}{path}"
@@ -194,7 +195,13 @@ class Zhihu(MetadataItem):
         path = self.urlparser.path
         request_url_path = path
         if self.method == "fxzhihu":
+            self.headers["Content-Type"] = "text/html"
             if self.zhihu_type == "answer":
+                if self.question_id:
+                    self.request_url = (
+                            "https://" + FXZHIHU_HOST + '/question/' + self.question_id + '/answer/' + self.answer_id
+                    )
+                    return
                 self.request_url = (
                         "https://" + FXZHIHU_HOST + '/answer/' + self.answer_id
                 )
@@ -255,7 +262,7 @@ class Zhihu(MetadataItem):
         """
         if self.method in ["api", "json", "fxzhihu"]:
             answer_data = {}
-            if self.method in ["api", "fxzhihu"]:
+            if self.method == "api":
                 try:
                     json_data = await get_response_json(self.request_url, headers=self.headers,
                                                         client=self.httpx_client)
@@ -264,6 +271,15 @@ class Zhihu(MetadataItem):
                     logger.debug(f"answer data: {answer_data}")
                 except Exception as e:
                     raise Exception("Cannot get the answer by API")
+            elif self.method == "fxzhihu":
+                try:
+                    resp = await get_response(url=self.request_url, headers=self.headers, client=self.httpx_client)
+                    json_data = json.loads(resp.text)
+                    logger.debug(f"json data: {json_data}")
+                    answer_data = _parse_answer_api_json_data(json_data)
+                    logger.debug(f"answer data: {answer_data}")
+                except Exception as e:
+                    raise Exception("Cannot get the answer by fxzhihu, error: " + str(e))
             elif self.method == "json":
                 try:
                     selector = await get_selector(self.request_url, headers=self.headers)

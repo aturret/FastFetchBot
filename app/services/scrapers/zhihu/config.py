@@ -7,7 +7,7 @@ ZHIHU_API_HOST = "https://www.zhihu.com/api/v4"
 ZHIHU_API_ANSWER_PARAMS = ("include=content%2Cexcerpt%2Cauthor%2Cvoteup_count%2Ccomment_count%2Cquestion%2Ccreated_time"
                     "%2Cquestion.detail")
 ZHIHU_HOST = "https://www.zhihu.com"
-ALL_METHODS = ["fxzhihu", "api", "json", "html"]
+ALL_METHODS = ["fxzhihu"]
 """
 There are three methods to get zhihu item: from zhihu v4 api(api), a json object in the html script(json),
  or parsing the html page content directly.
