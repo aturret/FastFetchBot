@@ -58,6 +58,31 @@ def _parse_answer_api_json_data(data: Dict) -> Dict:
     return result
 
 
+def _fix_json_quotes(raw_str):
+    raw_str = raw_str.replace('\"\&quot;', '\"')
+    raw_str = raw_str.replace('\&quot;\"', '\"')
+    raw_str = raw_str.replace('\n', '\\n').replace('\r', '\\r')
+    pattern = r'("detail":\s*")(.*?)("(?=,"id"))'
+
+    def replace_func(match):
+        prefix = match.group(1)  # "detail":"
+        content = match.group(2)  # 这里的 HTML 包含非法的 "
+        suffix = match.group(3)  # "
+
+        # 步骤 2: 将内容中所有本应转义但未转义的 " 处理掉
+        # 先统一把已有的 \" 还原成 "，防止出现 \\\" 这种重复转义
+
+        clean_content = content.replace('\\"', '"')
+        # 再把所有的 " 替换为 \"
+        fixed_content = clean_content.replace('"', '\\"')
+
+        return prefix + fixed_content + suffix
+
+    # 使用 re.DOTALL 确保 . 可以匹配换行符
+    res =  re.sub(pattern, replace_func, raw_str, flags=re.DOTALL)
+    return res
+
+
 class Zhihu(MetadataItem):
     def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         # metadata fields
@@ -274,7 +299,7 @@ class Zhihu(MetadataItem):
             elif self.method == "fxzhihu":
                 try:
                     resp = await get_response(url=self.request_url, headers=self.headers, client=self.httpx_client)
-                    json_data = json.loads(resp.text)
+                    json_data = json.loads(_fix_json_quotes(resp.text))
                     logger.debug(f"json data: {json_data}")
                     answer_data = _parse_answer_api_json_data(json_data)
                     logger.debug(f"answer data: {answer_data}")
