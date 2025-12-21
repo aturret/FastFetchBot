@@ -59,28 +59,34 @@ def _parse_answer_api_json_data(data: Dict) -> Dict:
 
 
 def _fix_json_quotes(raw_str):
-    raw_str = raw_str.replace('\"\&quot;', '\"')
-    raw_str = raw_str.replace('\&quot;\"', '\"')
+    """
+        通用修复函数：
+        1. 修复物理换行
+        2. 修复 key: value 结构中 value 内部未正确转义的引号
+        3. 修复特殊的 href="null" 等非法结构
+        """
+
     raw_str = raw_str.replace('\n', '\\n').replace('\r', '\\r')
-    pattern = r'("detail":\s*")(.*?)("(?=,"id"))'
+    raw_str = re.sub(r'href="([^\\].*?)"', r'href=\\"\1\\"', raw_str)
 
-    def replace_func(match):
-        prefix = match.group(1)  # "detail":"
-        content = match.group(2)  # 这里的 HTML 包含非法的 "
-        suffix = match.group(3)  # "
+    target_keys = ['content', 'detail', 'excerpt', 'headline']
 
-        # 步骤 2: 将内容中所有本应转义但未转义的 " 处理掉
-        # 先统一把已有的 \" 还原成 "，防止出现 \\\" 这种重复转义
+    for key in target_keys:
+        pattern = r'("' + key + r'":\s*")(.*?)("(?=,"[a-z_]+":))'
 
-        clean_content = content.replace('\\"', '"')
-        # 再把所有的 " 替换为 \"
-        fixed_content = clean_content.replace('"', '\\"')
+        def replace_inner_quotes(match):
+            prefix = match.group(1)  # "key":"
+            body = match.group(2)  # 乱七八糟的内容
+            suffix = match.group(3)  # "
 
-        return prefix + fixed_content + suffix
+            fixed_body = body.replace('\\"', '"').replace('&quot;', '"')
+            fixed_body = fixed_body.replace('"', '\\"')
 
-    # 使用 re.DOTALL 确保 . 可以匹配换行符
-    res =  re.sub(pattern, replace_func, raw_str, flags=re.DOTALL)
-    return res
+            return prefix + fixed_body + suffix
+
+        raw_str = re.sub(pattern, replace_inner_quotes, raw_str, flags=re.DOTALL)
+
+    return raw_str
 
 
 class Zhihu(MetadataItem):
