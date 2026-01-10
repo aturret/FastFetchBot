@@ -69,18 +69,17 @@ def _fix_json_quotes(raw_str):
     raw_str = raw_str.replace('\n', '\\n').replace('\r', '\\r')
     raw_str = re.sub(r'href="([^\\].*?)"', r'href=\\"\1\\"', raw_str)
 
-    target_keys = ['content', 'detail', 'excerpt', 'headline']
+    target_keys = ['content','detail']
 
     for key in target_keys:
         pattern = r'("' + key + r'":\s*")(.*?)("(?=,"[a-z_]+":))'
 
         def replace_inner_quotes(match):
-            prefix = match.group(1)  # "key":"
-            body = match.group(2)  # 乱七八糟的内容
-            suffix = match.group(3)  # "
+            prefix = match.group(1)
+            body = match.group(2)
+            suffix = match.group(3)
 
-            fixed_body = body.replace('\\"', '"').replace('&quot;', '"')
-            fixed_body = fixed_body.replace('"', '\\"')
+            fixed_body = body.replace('\\"', '"').replace('\\&quot;', '').replace('"', '\\"')
 
             return prefix + fixed_body + suffix
 
