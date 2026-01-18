@@ -3,6 +3,7 @@ from typing import Optional
 from app.utils.logger import logger
 from app.services.scrapers.bluesky.scraper import BlueskyScraper
 from app.services.scrapers.weibo.scraper import WeiboScraper
+from app.services.scrapers.firecrawl_client.scraper import FirecrawlScraper
 from app.config import (
     BLUESKY_USERNAME, BLUESKY_PASSWORD
 )
@@ -12,9 +13,12 @@ class ScraperManager:
 
     bluesky_scraper: Optional[BlueskyScraper] = None
     weibo_scraper: Optional[WeiboScraper] = None
+    firecrawl_scraper: Optional[FirecrawlScraper] = None
 
     scrapers = {"bluesky": bluesky_scraper,
-                "weibo": bluesky_scraper}
+                "weibo": weibo_scraper,
+                "other": firecrawl_scraper,
+                "unknown": firecrawl_scraper}
 
     @classmethod
     async def init_scrapers(cls):
@@ -28,6 +32,8 @@ class ScraperManager:
                 scraper = await cls.init_bluesky_scraper()
             elif category == "weibo" and not cls.weibo_scraper:
                 scraper = await cls.init_weibo_scraper()
+            elif category in ["other", "unknown"] and not cls.firecrawl_scraper:
+                scraper = await cls.init_firecrawl_scraper()
             if scraper:
                 cls.scrapers[category] = scraper
         else:
@@ -44,3 +50,9 @@ class ScraperManager:
     async def init_weibo_scraper(cls) -> WeiboScraper:
         weibo_scraper = WeiboScraper()
         return weibo_scraper
+
+    @classmethod
+    async def init_firecrawl_scraper(cls) -> FirecrawlScraper:
+        firecrawl_scraper = FirecrawlScraper()
+        return firecrawl_scraper
+

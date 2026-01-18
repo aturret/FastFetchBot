@@ -1,8 +1,12 @@
 {# templates/social_media_message.html #}
 
 {% if data.message_type == "short" %}
-{{ data.text }}{% if data.category in ['youtube', 'bilibili'] %}
-{% endif %}
+   {% if data.title %}
+<b>{{ data.title }}</b>
+   {% endif %}
+{{ data.text }}
+    {% if data.category in ['youtube', 'bilibili'] %}
+    {% endif %}
 
 #{{ data.category }}
 {% if data.telegraph_url %}

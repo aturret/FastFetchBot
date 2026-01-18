@@ -8,8 +8,7 @@ from app.services import (
     inoreader
 )
 from app.services.file_export import video_download, document_export
-from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads, \
-    bluesky
+from app.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
 from app.services.scrapers.scraper_manager import ScraperManager
 from app.database import save_instances
 from app.utils.logger import logger
@@ -61,7 +60,7 @@ class InfoExtractService(object):
                 self.kwargs["category"] = self.category
         if not metadata_item:
             try:
-                if self.category in ["bluesky", "weibo"]:  # it is a workaround before the code refactor
+                if self.category in ["bluesky", "weibo", "other", "unknown"]:  # it is a workaround before the code refactor
                     await ScraperManager.init_scraper(self.category)
                     item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
                     metadata_item = await item_data_processor.get_item()

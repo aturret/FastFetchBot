@@ -68,7 +68,7 @@ from app.config import (
     JINJA2_ENV,
     OPENAI_API_KEY,
     DATABASE_ON,
-    TEMPLATE_LANGUAGE, TELEBOT_MAX_RETRY,
+    TEMPLATE_LANGUAGE, TELEBOT_MAX_RETRY, FIRECRAWL_ON,
 )
 from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
@@ -207,6 +207,14 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             )
             return
         if url_metadata.source == "unknown":
+            if FIRECRAWL_ON:
+                await process_message.edit_text(
+                    text=f"Uncategorized url found. General webpage parser is on, Processing..."
+                )
+                metadata_item = await content_process_function(url_metadata=url_metadata)
+                await send_item_message(
+                    metadata_item, chat_id=message.chat_id
+                )
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, no supported url found."
             )
@@ -340,6 +348,11 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
         url_metadata = await get_url_metadata(
             url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
         )
+        if url_metadata.source == "unknown" and FIRECRAWL_ON:
+            metadata_item = await content_process_function(url_metadata=url_metadata)
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id, message=message
+            )
         if url_metadata.source == "unknown" or url_metadata.source == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
@@ -486,7 +499,7 @@ async def send_item_message(
         raise ValueError("must provide chat_id or message")
     if (
             not chat_id
-    ) and message:  # this function supports directly reply to a message even if the chat_id is None
+    ) and message:  # this function supports direct reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
     the_chat = await application.bot.get_chat(chat_id=chat_id)
@@ -565,7 +578,7 @@ async def send_item_message(
                     reply_to_message_id = group_chat.pinned_message.id + 1
             if (
                     len(file_message_group) > 0
-            ):  # send files, the files messages should be replied to the message sent before
+            ):  # to send files, the files messages should be replied to the message sent before
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
                 for file_group in file_message_group:
                     logger.debug(f"file group: {file_group}")
