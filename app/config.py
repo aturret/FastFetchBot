@@ -211,6 +211,12 @@ INOREADER_PASSWORD = env.get("INOREADER_PASSWORD", None)
 # Open AI API environment variables
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
 
+# Firecrawl API environment variables
+FIRECRAWL_ON = get_env_bool(env, "FIRECRAWL_ON", False)
+FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+FIRECRAWL_TIMEOUT_SECONDS = env.get("FIRECRAWL_TIMEOUT_SECONDS", 60)
+
 # Locale environment variables
 localedir = os.path.join(os.path.dirname(__file__), "locale")
 translation = gettext.translation("messages", localedir=localedir, fallback=True)

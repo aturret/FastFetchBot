@@ -256,3 +256,4 @@ conf/*
 !conf/.gitkeep
 .run/Template Python tests.run.xml
 /.run/
+.DS_Store
