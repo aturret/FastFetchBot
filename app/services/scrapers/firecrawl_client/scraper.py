@@ -128,7 +128,7 @@ class FirecrawlDataProcessor(DataProcessor):
         }
 
         # Process text content - use description or first part of markdown
-        text = description if description else markdown_content[:500]
+        text = description if description else markdown_content[:FIRECRAWL_TEXT_LIMIT]
         item_data["text"] = text
 
         html_content = await self.parsing_article_body_by_llm(html_content)
