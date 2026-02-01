@@ -123,6 +123,10 @@ def telegram_message_html_trim(html_content: str, trim_length: int = TELEGRAM_TE
     soup = BeautifulSoup(html_content, "html.parser")
     for img in soup.find_all("img"):
         img.decompose()
+    for div in soup.find_all("div"):
+        div.unwrap()
+    for script in soup.find_all("script"):
+        script.decompose()
     html_content = str(soup)
 
     if len(html_content) <= trim_length:
