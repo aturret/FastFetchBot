@@ -116,7 +116,7 @@ class FirecrawlDataProcessor(DataProcessor):
         # Extract metadata fields
         title = metadata.get("title", "") or metadata.get("ogTitle", "") or self.url
         author = metadata.get("author", "") or metadata.get("ogSiteName", "") or self.url_parser.netloc
-        description = metadata.get("description", "") or metadata.get("ogDescription", "")
+        # description = metadata.get("description", "") or metadata.get("ogDescription", "")
 
         item_data = {
             "id": self.id,
@@ -128,7 +128,7 @@ class FirecrawlDataProcessor(DataProcessor):
         }
 
         # Process text content - use description or first part of markdown
-        text = description if description else markdown_content[:FIRECRAWL_TEXT_LIMIT]
+        text = html_content[:FIRECRAWL_TEXT_LIMIT]
         item_data["text"] = text
 
         html_content = await self.parsing_article_body_by_llm(html_content)
