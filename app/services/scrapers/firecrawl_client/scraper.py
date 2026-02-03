@@ -24,6 +24,7 @@ Instructions:
 4. Keep important formatting like bold, italic, links, and images
 5. Return clean HTML containing only the article content
 6. If you cannot identify the main content, return the original HTML unchanged
+7. remove some basic HTML tags like <!DOCTYPE>, <html>, <script>, <body>
 
 Return ONLY the extracted HTML content, no explanations or markdown."""
 
