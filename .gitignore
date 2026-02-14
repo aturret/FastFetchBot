@@ -257,3 +257,4 @@ conf/*
 .run/Template Python tests.run.xml
 /.run/
 .DS_Store
+/.claude/
