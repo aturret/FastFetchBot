@@ -8,7 +8,7 @@ from urllib.parse import urlparse, unquote
 from bs4 import BeautifulSoup
 
 from app.models.url_metadata import UrlMetadata
-from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
+from app.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS
 
 TELEGRAM_TEXT_LIMIT = 900
 
@@ -89,6 +89,12 @@ async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMeta
     if source in ban_list:
         source = "banned"
         content_type = "banned"
+    else:
+        for item in BANNED_PATTERNS:
+            if re.search(item, url):
+                source = "banned"
+                content_type = "banned"
+                break
     # TODO: check if the url is from Mastodon, according to the request cookie
     return UrlMetadata(url=url, source=source, content_type=content_type)
 
@@ -123,6 +129,10 @@ def telegram_message_html_trim(html_content: str, trim_length: int = TELEGRAM_TE
     soup = BeautifulSoup(html_content, "html.parser")
     for img in soup.find_all("img"):
         img.decompose()
+    for div in soup.find_all("div"):
+        div.unwrap()
+    for script in soup.find_all("script"):
+        script.decompose()
     html_content = str(soup)
 
     if len(html_content) <= trim_length:

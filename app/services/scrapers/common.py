@@ -107,6 +107,7 @@ class InfoExtractService(object):
                 )
             except Exception as e:
                 logger.error(f"Error while exporting document: {e}")
+        metadata_item["title"] = metadata_item["title"].strip()
         if self.store_database:
             logger.info("store in database")
             await save_instances(Metadata.model_construct(**metadata_item))
