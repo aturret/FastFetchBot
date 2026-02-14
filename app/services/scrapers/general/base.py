@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import Optional
 from urllib.parse import urlparse
 
+from bs4 import BeautifulSoup, Doctype
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 
@@ -15,7 +16,7 @@ from app.utils.logger import logger
 
 GENERAL_TEXT_LIMIT = 800
 
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_OPENAI_MODEL = "gpt-5-nano"
 
 # System prompt for LLM to extract article content
 ARTICLE_EXTRACTION_PROMPT = """You are an expert content extractor. Your task is to extract the main article content from the provided HTML.
@@ -27,7 +28,7 @@ Instructions:
 4. Keep important formatting like bold, italic, links, and images
 5. Return clean HTML containing only the article content
 6. If you cannot identify the main content, return the original HTML unchanged
-7. remove some basic HTML tags like <!DOCTYPE>, <html>, <script>, <body>
+7. After all of the above, remove some basic HTML tags like <!DOCTYPE>, <html>, <script>, <body>
 
 Return ONLY the extracted HTML content, no explanations or markdown."""
 
@@ -81,12 +82,15 @@ class BaseGeneralDataProcessor(DataProcessor):
         }
 
         # Process text content - use description or first part of markdown
+        # Strip any HTML tags to ensure plain text for Telegram short messages
         text = description if description else markdown_content[:500]
+        text = BeautifulSoup(text, "html.parser").get_text()
         item_data["text"] = text
 
-        # Process HTML content with LLM if available
+        # Process HTML content with LLM if available, then sanitize deterministically
         if html_content:
             cleaned_html = await self.parsing_article_body_by_llm(html_content)
+            cleaned_html = self.sanitize_html(cleaned_html)
             content = wrap_text_into_html(cleaned_html, is_html=True)
         else:
             content = wrap_text_into_html(markdown_content, is_html=False)
@@ -108,6 +112,42 @@ class BaseGeneralDataProcessor(DataProcessor):
         )
 
         self._data = item_data
+
+    @staticmethod
+    def sanitize_html(html_content: str) -> str:
+        """
+        Deterministic HTML sanitizer that removes all non-content tags.
+
+        This runs AFTER the LLM extraction as a safety net — the LLM is unreliable,
+        and when it fails (or when OPENAI_API_KEY is not set), raw Firecrawl HTML
+        (including <!DOCTYPE>, <script>, etc.) passes through unchanged.
+
+        Keeps content-meaningful tags: p, h1-h6, a, b/strong, i/em, u, ul, ol, li,
+        blockquote, pre, code, img, br, table, tr, td, th, thead, tbody.
+        """
+        if not html_content:
+            return html_content
+
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Remove DOCTYPE declarations
+        for item in soup.contents:
+            if isinstance(item, Doctype):
+                item.extract()
+
+        # Remove tags that should be destroyed with all their content
+        for tag_name in ["script", "style", "head", "meta", "link", "noscript", "iframe", "svg", "form", "input", "button"]:
+            for tag in soup.find_all(tag_name):
+                tag.decompose()
+
+        # Unwrap structural/layout tags — keep their text content, discard the tag itself
+        for tag_name in ["html", "body", "div", "span", "section", "article", "nav",
+                         "header", "footer", "main", "aside", "figure", "figcaption",
+                         "details", "summary", "dd", "dt", "dl"]:
+            for tag in soup.find_all(tag_name):
+                tag.unwrap()
+
+        return str(soup).strip()
 
     @staticmethod
     async def parsing_article_body_by_llm(html_content: str) -> str:
@@ -141,7 +181,7 @@ class BaseGeneralDataProcessor(DataProcessor):
                     ChatCompletionUserMessageParam(role="user", content=f"Extract the main article content from this HTML:\n\n{truncated_content}")
                 ],
                 temperature=0.1,
-                max_tokens=16000,
+                max_completion_tokens=10000,
             )
 
             extracted_content = response.choices[0].message.content

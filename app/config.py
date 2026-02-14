@@ -218,6 +218,7 @@ GENERAL_SCRAPING_API = env.get("GENERAL_SCRAPING_API", "FIRECRAWL")
 # Firecrawl API
 FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+FIRECRAWL_WAIT_FOR = int(env.get("FIRECRAWL_WAIT_FOR", 3000))  # milliseconds to wait for JS rendering
 
 
 # Zyte API

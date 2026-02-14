@@ -1,7 +1,14 @@
+from app.config import FIRECRAWL_WAIT_FOR
 from app.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
 from app.services.scrapers.general.firecrawl_client import FirecrawlClient
 from app.services.scrapers.scraper import DataProcessor
 from app.utils.logger import logger
+
+# HTML tags to exclude from Firecrawl output at the source
+FIRECRAWL_EXCLUDE_TAGS = [
+    "nav", "footer", "aside", "script", "style",
+    "noscript", "iframe", "svg", "form",
+]
 
 
 class FirecrawlDataProcessor(BaseGeneralDataProcessor):
@@ -20,6 +27,8 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
                 url=self.url,
                 formats=["markdown", "html"],
                 only_main_content=True,
+                exclude_tags=FIRECRAWL_EXCLUDE_TAGS,
+                wait_for=FIRECRAWL_WAIT_FOR,
             )
             await self._process_firecrawl_result(result)
         except Exception as e:

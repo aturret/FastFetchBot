@@ -68,13 +68,26 @@ class FirecrawlClient:
             formats: Optional[List[str]] = None,
             only_main_content: bool = True,
             timeout: Optional[int] = None,
+            exclude_tags: Optional[List[str]] = None,
+            wait_for: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        timeout: milliseconds
+        Args:
+            url: The URL to scrape.
+            formats: Output formats (e.g. ["markdown", "html"]).
+            only_main_content: If True, extract only the main content.
+            timeout: Request timeout in milliseconds.
+            exclude_tags: HTML tag names to exclude from output (e.g. ["nav", "footer"]).
+            wait_for: Time in milliseconds to wait for JS rendering before scraping.
         """
         try:
-            return self._app.scrape(url, formats=formats, only_main_content=only_main_content,
-                                    timeout=timeout).model_dump(
-                exclude_none=True)
+            return self._app.scrape(
+                url,
+                formats=formats,
+                only_main_content=only_main_content,
+                timeout=timeout,
+                exclude_tags=exclude_tags,
+                wait_for=wait_for,
+            ).model_dump(exclude_none=True)
         except Exception as e:
             raise RuntimeError(f"Firecrawl scrape_url failed: url={url}") from e
