@@ -68,7 +68,7 @@ from app.config import (
     JINJA2_ENV,
     OPENAI_API_KEY,
     DATABASE_ON,
-    TEMPLATE_LANGUAGE, TELEBOT_MAX_RETRY, FIRECRAWL_ON,
+    TEMPLATE_LANGUAGE, TELEBOT_MAX_RETRY, GENERAL_SCRAPING_ON,
 )
 from app.services.telegram_bot.config import (
     HTTPS_URL_REGEX,
@@ -207,7 +207,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             )
             return
         if url_metadata.source == "unknown":
-            if FIRECRAWL_ON:
+            if GENERAL_SCRAPING_ON:
                 await process_message.edit_text(
                     text=f"Uncategorized url found. General webpage parser is on, Processing..."
                 )
@@ -348,7 +348,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
         url_metadata = await get_url_metadata(
             url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
         )
-        if url_metadata.source == "unknown" and FIRECRAWL_ON:
+        if url_metadata.source == "unknown" and GENERAL_SCRAPING_ON:
             metadata_item = await content_process_function(url_metadata=url_metadata)
             await send_item_message(
                 metadata_item, chat_id=message.chat_id, message=message
@@ -475,7 +475,7 @@ async def _create_choose_channel_keyboard(data: dict) -> list:
 async def invalid_buttons(update: Update, context: CallbackContext) -> None:
     await update.callback_query.answer("Invalid button!")
     await update.effective_message.edit_text(
-        "Sorry, Error Occured, I could not process this button click 😕."
+        "Sorry, Error Occurred, I could not process this button click 😕."
     )
 
 

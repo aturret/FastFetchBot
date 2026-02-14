@@ -1,4 +1,6 @@
 import hashlib
+from abc import abstractmethod
+from typing import Optional
 from urllib.parse import urlparse
 
 from openai import AsyncOpenAI
@@ -7,12 +9,13 @@ from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUs
 from app.config import OPENAI_API_KEY
 from app.models.metadata_item import MediaFile, MessageType
 from app.services.scrapers.scraper import Scraper, DataProcessor
-from app.services.scrapers.firecrawl_client import FirecrawlItem
-from app.services.scrapers.firecrawl_client.client import FirecrawlClient
+from app.services.scrapers.general import GeneralItem
 from app.utils.parse import get_html_text_length, wrap_text_into_html
 from app.utils.logger import logger
 
-FIRECRAWL_TEXT_LIMIT = 800
+GENERAL_TEXT_LIMIT = 800
+
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 # System prompt for LLM to extract article content
 ARTICLE_EXTRACTION_PROMPT = """You are an expert content extractor. Your task is to extract the main article content from the provided HTML.
@@ -28,9 +31,10 @@ Instructions:
 Return ONLY the extracted HTML content, no explanations or markdown."""
 
 
-class FirecrawlDataProcessor(DataProcessor):
+class BaseGeneralDataProcessor(DataProcessor):
     """
-    FirecrawlDataProcessor: Process URLs using Firecrawl to extract content.
+    Base class for general webpage data processors.
+    Each specific scraper (Firecrawl, Zyte, etc.) should inherit from this class.
     """
 
     def __init__(self, url: str):
@@ -38,27 +42,71 @@ class FirecrawlDataProcessor(DataProcessor):
         self._data: dict = {}
         self.url_parser = urlparse(url)
         self.id = hashlib.md5(url.encode()).hexdigest()[:16]
-        self._client: FirecrawlClient = FirecrawlClient.get_instance()
+        self.scraper_type: str = "base"
 
     async def get_item(self) -> dict:
         await self.process_data()
-        firecrawl_item = FirecrawlItem.from_dict(self._data)
-        return firecrawl_item.to_dict()
+        general_item = GeneralItem.from_dict(self._data)
+        return general_item.to_dict()
 
     async def process_data(self) -> None:
         await self._get_page_content()
 
+    @abstractmethod
     async def _get_page_content(self) -> None:
-        try:
-            result = self._client.scrape_url(
-                url=self.url,
-                formats=["markdown", "html"],
-                only_main_content=True,
-            )
-            await self._process_firecrawl_result(result)
-        except Exception as e:
-            logger.error(f"Failed to scrape URL with Firecrawl: {e}")
-            raise
+        """Subclasses must implement this method to fetch page content."""
+        pass
+
+    async def _build_item_data(
+        self,
+        title: str,
+        author: str,
+        description: str,
+        markdown_content: str,
+        html_content: str,
+        og_image: Optional[str] = None,
+    ) -> None:
+        """
+        Common method to build item data from scraped content.
+        """
+        item_data = {
+            "id": self.id,
+            "category": "other",
+            "url": self.url,
+            "title": title or self.url,
+            "author": author or self.url_parser.netloc,
+            "author_url": f"{self.url_parser.scheme}://{self.url_parser.netloc}",
+            "scraper_type": self.scraper_type,
+        }
+
+        # Process text content - use description or first part of markdown
+        text = description if description else markdown_content[:500]
+        item_data["text"] = text
+
+        # Process HTML content with LLM if available
+        if html_content:
+            cleaned_html = await self.parsing_article_body_by_llm(html_content)
+            content = wrap_text_into_html(cleaned_html, is_html=True)
+        else:
+            content = wrap_text_into_html(markdown_content, is_html=False)
+        item_data["content"] = content
+        item_data["raw_content"] = markdown_content
+
+        # Process media files - extract og:image if available
+        media_files = []
+        if og_image:
+            media_files.append(MediaFile(url=og_image, media_type="image"))
+
+        item_data["media_files"] = [m.to_dict() for m in media_files]
+
+        # Determine the message type based on content length (not text length)
+        item_data["message_type"] = (
+            MessageType.LONG
+            if get_html_text_length(content) > GENERAL_TEXT_LIMIT
+            else MessageType.SHORT
+        )
+
+        self._data = item_data
 
     @staticmethod
     async def parsing_article_body_by_llm(html_content: str) -> str:
@@ -66,7 +114,7 @@ class FirecrawlDataProcessor(DataProcessor):
         Use LLM to extract the main article content from HTML.
 
         Args:
-            html_content: Raw HTML content from Firecrawl
+            html_content: Raw HTML content from a scraper
 
         Returns:
             Cleaned HTML containing only the main article content
@@ -86,7 +134,7 @@ class FirecrawlDataProcessor(DataProcessor):
             truncated_content = html_content[:max_content_length] if len(html_content) > max_content_length else html_content
 
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=DEFAULT_OPENAI_MODEL,
                 messages=[
                     ChatCompletionSystemMessageParam(role="system", content=ARTICLE_EXTRACTION_PROMPT),
                     ChatCompletionUserMessageParam(role="user", content=f"Extract the main article content from this HTML:\n\n{truncated_content}")
@@ -108,61 +156,12 @@ class FirecrawlDataProcessor(DataProcessor):
             logger.error(f"Failed to parse article body with LLM: {e}")
             return html_content
 
-    async def _process_firecrawl_result(self, result: dict) -> None:
-        metadata = result.get("metadata", {})
-        markdown_content = result.get("markdown", "")
-        html_content = result.get("html", "")
 
-        # Extract metadata fields
-        title = metadata.get("title", "") or metadata.get("ogTitle", "") or self.url
-        author = metadata.get("author", "") or metadata.get("ogSiteName", "") or self.url_parser.netloc
-        description = metadata.get("description", "") or metadata.get("ogDescription", "")
-
-        item_data = {
-            "id": self.id,
-            "category": "other",
-            "url": self.url,
-            "title": title,
-            "author": author,
-            "author_url": f"{self.url_parser.scheme}://{self.url_parser.netloc}",
-        }
-
-        # Process text content - use description or first part of markdown
-        text = description if description else markdown_content[:500]
-        item_data["text"] = text
-
-        html_content = await self.parsing_article_body_by_llm(html_content)
-
-        # Process HTML content
-        if html_content:
-            content = wrap_text_into_html(html_content, is_html=True)
-        else:
-            content = wrap_text_into_html(markdown_content, is_html=False)
-        item_data["content"] = content
-        item_data["raw_content"] = markdown_content
-
-        # Process media files - extract og:image if available
-        media_files = []
-        og_image = metadata.get("ogImage")
-        if og_image:
-            media_files.append(MediaFile(url=og_image, media_type="image"))
-
-        item_data["media_files"] = [m.to_dict() for m in media_files]
-
-        # Determine message type based on text length
-        item_data["message_type"] = (
-            MessageType.LONG
-            if get_html_text_length(content) > FIRECRAWL_TEXT_LIMIT
-            else MessageType.SHORT
-        )
-
-        self._data = item_data
-
-
-class FirecrawlScraper(Scraper):
+class BaseGeneralScraper(Scraper):
     """
-    FirecrawlScraper: Scraper implementation using Firecrawl for generic URL scraping.
+    Base class for general webpage scrapers.
     """
 
+    @abstractmethod
     async def get_processor_by_url(self, url: str) -> DataProcessor:
-        return FirecrawlDataProcessor(url)
+        pass

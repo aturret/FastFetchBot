@@ -6,14 +6,13 @@ from typing import Any, Dict, List, Optional
 
 from firecrawl import Firecrawl
 
-from app.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY, FIRECRAWL_TIMEOUT_SECONDS
+from app.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY
 
 
 @dataclass(frozen=True)
 class FirecrawlSettings:
     api_url: str
     api_key: str
-    timeout_seconds: int = 60  # 你也可以在反代侧控制超时
 
 
 class FirecrawlClient:
@@ -33,10 +32,7 @@ class FirecrawlClient:
 
     @staticmethod
     def _create_app(config: FirecrawlSettings) -> Firecrawl:
-        try:
-            return Firecrawl(api_url=config.api_url, api_key=config.api_key)
-        except TypeError:
-            return Firecrawl(api_url=config.api_url, api_key=config.api_key)
+        return Firecrawl(api_url=config.api_url, api_key=config.api_key)
 
     @classmethod
     def get_instance(cls) -> "FirecrawlClient":
@@ -55,7 +51,6 @@ class FirecrawlClient:
             config = FirecrawlSettings(
                 api_url=FIRECRAWL_API_URL,
                 api_key=FIRECRAWL_API_KEY,
-                timeout_seconds=FIRECRAWL_TIMEOUT_SECONDS,
             )
 
             cls._instance = cls(config)
@@ -72,24 +67,14 @@ class FirecrawlClient:
             url: str,
             formats: Optional[List[str]] = None,
             only_main_content: bool = True,
-            timeout_seconds: Optional[int] = None,
-            extra_params: Optional[Dict[str, Any]] = None,
+            timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        单页抓取（最常用）
+        timeout: milliseconds
         """
-        params: Dict[str, Any] = {
-            "formats": formats or ["markdown"],
-            "onlyMainContent": only_main_content,
-        }
-        if extra_params:
-            params.update(extra_params)
-
-        # if timeout_seconds is None:
-        #     timeout_seconds = self._settings.timeout_seconds
-
         try:
-            return self._app.scrape(url, formats=formats, only_main_content=only_main_content).model_dump(
+            return self._app.scrape(url, formats=formats, only_main_content=only_main_content,
+                                    timeout=timeout).model_dump(
                 exclude_none=True)
         except Exception as e:
             raise RuntimeError(f"Firecrawl scrape_url failed: url={url}") from e
