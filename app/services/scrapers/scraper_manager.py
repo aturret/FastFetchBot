@@ -42,17 +42,17 @@ class ScraperManager:
 
     @classmethod
     async def init_bluesky_scraper(cls) -> BlueskyScraper:
-        bluesky_scraper = BlueskyScraper(username=BLUESKY_USERNAME, password=BLUESKY_PASSWORD)
-        await bluesky_scraper.init()
-        return bluesky_scraper
+        cls.bluesky_scraper = BlueskyScraper(username=BLUESKY_USERNAME, password=BLUESKY_PASSWORD)
+        await cls.bluesky_scraper.init()
+        return cls.bluesky_scraper
 
     @classmethod
     async def init_weibo_scraper(cls) -> WeiboScraper:
-        weibo_scraper = WeiboScraper()
-        return weibo_scraper
+        cls.weibo_scraper = WeiboScraper()
+        return cls.weibo_scraper
 
     @classmethod
     async def init_general_scraper(cls) -> GeneralScraper:
-        general_scraper = GeneralScraper()
-        return general_scraper
+        cls.general_scraper = GeneralScraper()
+        return cls.general_scraper
 
