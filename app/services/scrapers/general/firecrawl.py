@@ -23,7 +23,7 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
 
     async def _get_page_content(self) -> None:
         try:
-            result = self._client.scrape_url(
+            result = await self._client.scrape_url(
                 url=self.url,
                 formats=["markdown", "html"],
                 only_main_content=True,

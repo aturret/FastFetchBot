@@ -4,7 +4,7 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from firecrawl import Firecrawl
+from firecrawl import AsyncFirecrawl
 
 from app.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY
 
@@ -28,11 +28,11 @@ class FirecrawlClient:
 
     def __init__(self, config: FirecrawlSettings):
         self._settings: FirecrawlSettings = config
-        self._app: Firecrawl = self._create_app(config)
+        self._app: AsyncFirecrawl = self._create_app(config)
 
     @staticmethod
-    def _create_app(config: FirecrawlSettings) -> Firecrawl:
-        return Firecrawl(api_url=config.api_url, api_key=config.api_key)
+    def _create_app(config: FirecrawlSettings) -> AsyncFirecrawl:
+        return AsyncFirecrawl(api_url=config.api_url, api_key=config.api_key)
 
     @classmethod
     def get_instance(cls) -> "FirecrawlClient":
@@ -62,7 +62,7 @@ class FirecrawlClient:
         with cls._lock:
             cls._instance = None
 
-    def scrape_url(
+    async def scrape_url(
             self,
             url: str,
             formats: Optional[List[str]] = None,
@@ -81,13 +81,14 @@ class FirecrawlClient:
             wait_for: Time in milliseconds to wait for JS rendering before scraping.
         """
         try:
-            return self._app.scrape(
+            result = await self._app.scrape(
                 url,
                 formats=formats,
                 only_main_content=only_main_content,
                 timeout=timeout,
                 exclude_tags=exclude_tags,
                 wait_for=wait_for,
-            ).model_dump(exclude_none=True)
+            )
+            return result.model_dump(exclude_none=True)
         except Exception as e:
             raise RuntimeError(f"Firecrawl scrape_url failed: url={url}") from e
