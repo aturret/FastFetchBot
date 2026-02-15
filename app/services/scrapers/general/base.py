@@ -83,7 +83,7 @@ class BaseGeneralDataProcessor(DataProcessor):
 
         # Process text content - use description or first part of markdown
         # Strip any HTML tags to ensure plain text for Telegram short messages
-        text = description if description else markdown_content[:500]
+        text = description if description else (markdown_content or "")[:500]
         text = BeautifulSoup(text, "html.parser").get_text()
         item_data["text"] = text
 
@@ -93,7 +93,7 @@ class BaseGeneralDataProcessor(DataProcessor):
             cleaned_html = self.sanitize_html(cleaned_html)
             content = wrap_text_into_html(cleaned_html, is_html=True)
         else:
-            content = wrap_text_into_html(markdown_content, is_html=False)
+            content = wrap_text_into_html(markdown_content or "", is_html=False)
         item_data["content"] = content
         item_data["raw_content"] = markdown_content
 
