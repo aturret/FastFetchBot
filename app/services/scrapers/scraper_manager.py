@@ -36,6 +36,10 @@ class ScraperManager:
                 scraper = await cls.init_general_scraper()
             if scraper:
                 cls.scrapers[category] = scraper
+                # general_scraper serves both "other" and "unknown" — keep both keys in sync
+                if category in ["other", "unknown"]:
+                    cls.scrapers["other"] = scraper
+                    cls.scrapers["unknown"] = scraper
         else:
             logger.error(f"Scraper {category} is not supported")
             raise ValueError(f"Scraper {category} is not supported")
