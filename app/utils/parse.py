@@ -116,37 +116,54 @@ def wrap_text_into_html(text: str, is_html: bool = False) -> str:
         for item in soup.find_all("br"):
             item.replace_with("\n")
         text = str(soup)
-        print(text)
-    split_pivot = "\n" if is_html is False else "<br>"
-    text_list = text.split(split_pivot)
+    text_list = text.split("\n")
     text_list = [f"<p>{item}</p>" for item in text_list if item.strip() != ""]
     text = "".join(text_list)
     return text
 
 
 def telegram_message_html_trim(html_content: str, trim_length: int = TELEGRAM_TEXT_LIMIT) -> str:
-    # remove all img tag
+    from bs4 import Doctype
+
     soup = BeautifulSoup(html_content, "html.parser")
-    for img in soup.find_all("img"):
-        img.decompose()
-    for div in soup.find_all("div"):
-        div.unwrap()
-    for script in soup.find_all("script"):
-        script.decompose()
-    html_content = str(soup)
+
+    # Remove DOCTYPE declarations
+    for item in soup.contents:
+        if isinstance(item, Doctype):
+            item.extract()
+
+    # Decompose tags that should be removed entirely (with their content)
+    for tag_name in ["img", "script", "style", "head", "meta", "link", "noscript", "iframe", "svg", "form", "input", "button"]:
+        for tag in soup.find_all(tag_name):
+            tag.decompose()
+
+    # Unwrap structural/layout tags — keep their text, discard the wrapper
+    for tag_name in ["div", "span", "section", "article", "nav", "header", "footer",
+                     "main", "aside", "figure", "figcaption", "html", "body"]:
+        for tag in soup.find_all(tag_name):
+            tag.unwrap()
+
+    # Convert headings to bold text with line break
+    for level in range(1, 7):
+        for tag in soup.find_all(f"h{level}"):
+            tag.name = "b"
+
+    # Unwrap <p> tags (keep text content)
+    for tag in soup.find_all("p"):
+        tag.unwrap()
+
+    html_content = str(soup).strip()
 
     if len(html_content) <= trim_length:
         return html_content
 
-        # Initial trimming
+    # Initial trimming
     trimmed_content = html_content[:trim_length]
-    remaining_content = html_content[trim_length:]
 
     # Find the position of the last complete tag in the trimmed content
     last_complete_pos = trimmed_content.rfind('<')
     if last_complete_pos != -1:
         trimmed_content = trimmed_content[:last_complete_pos]
-        remaining_content = html_content[last_complete_pos:] + remaining_content
 
     # Remove any incomplete tags by ensuring each tag is closed
     cleaned_html = ''
@@ -182,7 +199,6 @@ def telegram_message_html_trim(html_content: str, trim_length: int = TELEGRAM_TE
     for tag in reversed(open_tags):
         cleaned_html += f'</{tag}>'
 
-    print(cleaned_html)
     return cleaned_html + ' ...'
 
 

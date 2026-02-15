@@ -208,16 +208,23 @@ INOREADER_APP_KEY = env.get("INOREADER_APP_KEY", None)
 INOREADER_EMAIL = env.get("INOREADER_EMAIL", None)
 INOREADER_PASSWORD = env.get("INOREADER_PASSWORD", None)
 
-# Open AI API environment variables
+# Open AI API
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
 
-# Firecrawl API environment variables
-FIRECRAWL_ON = get_env_bool(env, "FIRECRAWL_ON", False)
+# General webpage scraping
+GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
+GENERAL_SCRAPING_API = env.get("GENERAL_SCRAPING_API", "FIRECRAWL")
+
+# Firecrawl API
 FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
-FIRECRAWL_TIMEOUT_SECONDS = env.get("FIRECRAWL_TIMEOUT_SECONDS", 60)
+FIRECRAWL_WAIT_FOR = int(env.get("FIRECRAWL_WAIT_FOR", 3000))  # milliseconds to wait for JS rendering
 
-# Locale environment variables
+
+# Zyte API
+ZYTE_API_KEY = env.get("ZYTE_API_KEY", None)
+
+# Locale directories environment variables
 localedir = os.path.join(os.path.dirname(__file__), "locale")
 translation = gettext.translation("messages", localedir=localedir, fallback=True)
 _ = translation.gettext

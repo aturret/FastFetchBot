@@ -38,14 +38,12 @@ markdown = "^3.8"
 asyncpraw = "^7.8.1"
 html-telegraph-poster-v2 = "^0.2.5"
 fastfetchbot-telegram-bot = "*"
-
 pytest = "^8.3.5"
 firecrawl-py = "^4.13.0"
+zyte-api = "^0.8.1"
 [tool.poetry.group.dev]
 optional = true
 [tool.poetry.group.dev.dependencies]
-#html-telegraph-poster-v2 = { path = "../html-telegraph-poster-v2/" }
-#fastfetchbot-telegram-bot = { path = "../FastFetchBot-Telegram-Bot/" }
 black = "^25.1.0"
 pytest = "^8.3.5"
 pytest-asyncio = "^0.26.0"
