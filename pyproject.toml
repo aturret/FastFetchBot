@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.14"
+python = ">=3.12,<3.14"
 loguru = "^0.7.2"
 fastapi = "^0.115.12"
 sentry-sdk = { extras = ["fastapi"], version = "^2.27.0" }
@@ -24,7 +24,8 @@ openai = "^2.15.0"
 gunicorn = "^23.0.0"
 uvicorn = "^0.34.2"
 aiofiles = "^24.1.0"
-twitter-api-client = "^0.10.22"
+#twitter-api-client = "^0.10.22"
+twitter-api-client-v2 = "^0.1.1"
 atproto = "^0.0.61"
 pillow = "^10.0.0"
 python-magic = "^0.4.27"
