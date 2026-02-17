@@ -156,7 +156,7 @@ class Twitter(MetadataItem):
         self.text = self.text[:-1]
         self.content += self.content_group
         self.message_type = (
-            MessageType.LONG if (get_html_text_length(self.text) > SHORT_LIMIT or self.article_tweet)else MessageType.SHORT
+            MessageType.LONG if (get_html_text_length(self.text) > SHORT_LIMIT or self.article_tweet) else MessageType.SHORT
         )
 
     def process_single_tweet_Twitter135(self, tweet: Dict, retweeted=False) -> None:
