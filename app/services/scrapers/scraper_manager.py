@@ -36,23 +36,27 @@ class ScraperManager:
                 scraper = await cls.init_general_scraper()
             if scraper:
                 cls.scrapers[category] = scraper
+                # general_scraper serves both "other" and "unknown" — keep both keys in sync
+                if category in ["other", "unknown"]:
+                    cls.scrapers["other"] = scraper
+                    cls.scrapers["unknown"] = scraper
         else:
             logger.error(f"Scraper {category} is not supported")
             raise ValueError(f"Scraper {category} is not supported")
 
     @classmethod
     async def init_bluesky_scraper(cls) -> BlueskyScraper:
-        bluesky_scraper = BlueskyScraper(username=BLUESKY_USERNAME, password=BLUESKY_PASSWORD)
-        await bluesky_scraper.init()
-        return bluesky_scraper
+        cls.bluesky_scraper = BlueskyScraper(username=BLUESKY_USERNAME, password=BLUESKY_PASSWORD)
+        await cls.bluesky_scraper.init()
+        return cls.bluesky_scraper
 
     @classmethod
     async def init_weibo_scraper(cls) -> WeiboScraper:
-        weibo_scraper = WeiboScraper()
-        return weibo_scraper
+        cls.weibo_scraper = WeiboScraper()
+        return cls.weibo_scraper
 
     @classmethod
     async def init_general_scraper(cls) -> GeneralScraper:
-        general_scraper = GeneralScraper()
-        return general_scraper
+        cls.general_scraper = GeneralScraper()
+        return cls.general_scraper
 

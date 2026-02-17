@@ -353,7 +353,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
             await send_item_message(
                 metadata_item, chat_id=message.chat_id, message=message
             )
-        if url_metadata.source == "unknown" or url_metadata.source == "banned":
+        elif url_metadata.source == "unknown" or url_metadata.source == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
         if url_metadata.to_dict().get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
@@ -614,11 +614,11 @@ async def send_item_message(
     except Exception as e:
         logger.error(e)
         traceback.print_exc()
-        await application.bot.send_message(
-            chat_id=discussion_chat_id,
-            text="Error occurred while sending the item to the target 😕",
-            reply_to_message_id=message.message_id if message else None,
-        )
+        # await application.bot.send_message(
+        #     chat_id=discussion_chat_id,
+        #     text="Error occurred while sending the item to the target 😕",
+        #     reply_to_message_id=message.message_id if message else None,
+        # )
         await send_debug_channel(traceback.format_exc())
 
 
