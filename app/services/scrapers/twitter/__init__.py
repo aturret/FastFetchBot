@@ -2,7 +2,7 @@
 import asyncio
 import traceback
 from urllib.parse import urlparse
-from typing import Dict, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 import httpx
 import jmespath
@@ -51,6 +51,8 @@ class Twitter(MetadataItem):
         self.host = ""
         self.headers = {}
         self.params = {}
+        self.include_comments: bool = kwargs.get("include_comments", False)
+        self.article_tweet: bool = False
 
     async def get_item(self) -> dict:
         await self.get_twitter()
@@ -100,10 +102,12 @@ class Twitter(MetadataItem):
 
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(
-            save=DEBUG_MODE,
+            save=False,
+            pbar=False,
+            debug=0,
             cookies=TWITTER_COOKIES
         )
-        tweet_data = await asyncio.to_thread(scraper.tweets_details, [int(self.tid)])
+        tweet_data = await asyncio.to_thread(scraper.tweets_details, [int(self.tid)], limit=1)
         logger.debug(tweet_data)
         return tweet_data[0]
 
@@ -125,12 +129,24 @@ class Twitter(MetadataItem):
         )
         entries = entries_instruction['entries']
         tweets = []
-        for i in entries:
-            if (
-                    i["content"]["entryType"] == "TimelineTimelineItem"
-                    and i["content"]["itemContent"]["itemType"] == "TimelineTweet"
-            ):
-                tweets.append(i["content"]["itemContent"]["tweet_results"]["result"])
+        for entry in entries:
+            content = entry["content"]
+            entry_type = content.get("entryType", "")
+
+            if entry_type == "TimelineTimelineItem":
+                item_content = content.get("itemContent", {})
+                if item_content.get("itemType") == "TimelineTweet":
+                    result = item_content.get("tweet_results", {}).get("result")
+                    if result:
+                        tweets.append(result)
+
+            elif entry_type == "TimelineTimelineModule" and self.include_comments:
+                for module_item in content.get("items", []):
+                    item_content = module_item.get("item", {}).get("itemContent", {})
+                    if item_content.get("itemType") == "TimelineTweet":
+                        result = item_content.get("tweet_results", {}).get("result")
+                        if result:
+                            tweets.append(result)
         for tweet in tweets:
             if tweet["__typename"] == "TweetWithVisibilityResults":
                 tweet = tweet["tweet"]
@@ -140,12 +156,16 @@ class Twitter(MetadataItem):
         self.text = self.text[:-1]
         self.content += self.content_group
         self.message_type = (
-            MessageType.LONG if get_html_text_length(self.text) > SHORT_LIMIT else MessageType.SHORT
+            MessageType.LONG if (get_html_text_length(self.text) > SHORT_LIMIT or self.article_tweet) else MessageType.SHORT
         )
 
     def process_single_tweet_Twitter135(self, tweet: Dict, retweeted=False) -> None:
         if tweet.get("tid") == self.tid:
-            self.title = f"{tweet['name']}'s Tweet"
+            if tweet.get("article") and tweet["article"].get("title"):
+                self.title = tweet["article"]["title"]
+                self.article_tweet = True
+            else:
+                self.title = f"{tweet['name']}'s Tweet"
             self.author = tweet["name"]
             self.author_url = f"https://twitter.com/{tweet['username']}"
             self.date = tweet["date"]
@@ -163,15 +183,29 @@ class Twitter(MetadataItem):
 
     @staticmethod
     def parse_single_tweet_Twitter135(tweet: Dict, retweeted=False) -> Dict:
-        text = tweet["full_text"] if tweet.get("full_text") else tweet["text"]
         tweet_info = {
             "media_files": [],
             "text_group": "",
             "content_group": "<hr>" if not retweeted else "<p>Quoted:</p>",
         }
         user_component = f"<a href='https://twitter.com/{tweet['username']}/status/{tweet['tid']}'>@{tweet['name']}</a>"
-        tweet_info["content_group"] += wrap_text_into_html(f"{user_component}: {text}")
-        tweet_info["text_group"] += f"{user_component}: {text}\n"
+
+        if tweet.get("article"):
+            article = tweet["article"]
+            article_title = article.get("title", "")
+            display_text = article_title if article_title else (
+                tweet["full_text"] if tweet.get("full_text") else tweet["text"]
+            )
+            tweet_info["content_group"] += wrap_text_into_html(f"{user_component}: {display_text}")
+            tweet_info["text_group"] += f"{user_component}: {display_text}\n"
+            article_html, article_media = Twitter.parse_article_content(article)
+            tweet_info["content_group"] += article_html
+            tweet_info["media_files"] += article_media
+        else:
+            text = tweet["full_text"] if tweet.get("full_text") else tweet["text"]
+            tweet_info["content_group"] += wrap_text_into_html(f"{user_component}: {text}")
+            tweet_info["text_group"] += f"{user_component}: {text}\n"
+
         if tweet["media"]:
             for media in tweet["media"]:
                 if media["type"] == "photo":
@@ -209,13 +243,14 @@ class Twitter(MetadataItem):
         result = jmespath.search(
             """{
             tid: rest_id,
-            name: core.user_results.result.legacy.name,
-            username: core.user_results.result.legacy.screen_name,
+            name: core.user_results.result.core.name || core.user_results.result.legacy.name,
+            username: core.user_results.result.core.screen_name || core.user_results.result.legacy.screen_name,
             date: legacy.created_at,
             full_text: note_tweet.note_tweet_results.result.text,
             text: legacy.full_text,
             media: legacy.extended_entities.media,
-            quoted_tweet: quoted_status_result.result
+            quoted_tweet: quoted_status_result.result,
+            article: article.article_results.result
             }""",
             data,
         )
@@ -223,6 +258,52 @@ class Twitter(MetadataItem):
 
     def _process_tweet_Twitter154(self, tweet_data: Dict):
         pass
+
+    @staticmethod
+    def parse_article_content(article: Dict) -> Tuple[str, List[MediaFile]]:
+        content_state = article.get("content_state", {})
+        blocks = content_state.get("blocks", [])
+        entity_map_list = content_state.get("entityMap", [])
+
+        entity_lookup = {}
+        for entry in entity_map_list:
+            entity_lookup[str(entry["key"])] = entry["value"]
+
+        html_parts = []
+        media_files = []
+
+        for block in blocks:
+            block_type = block.get("type", "unstyled")
+            text = block.get("text", "")
+            inline_style_ranges = block.get("inlineStyleRanges", [])
+            entity_ranges = block.get("entityRanges", [])
+
+            if block_type == "atomic":
+                for er in entity_ranges:
+                    entity = entity_lookup.get(str(er["key"]))
+                    if entity and entity.get("type") == "MEDIA":
+                        for media_item in entity.get("data", {}).get("mediaItems", []):
+                            media_id = media_item.get("mediaId", "")
+                            media_url = _find_article_media_url(article, media_id)
+                            if media_url:
+                                html_parts.append(f"<img src='{media_url}'/>")
+                                media_files.append(MediaFile(
+                                    media_type="image",
+                                    url=media_url,
+                                    caption="",
+                                ))
+                continue
+
+            styled_text = _apply_inline_formatting(
+                text, inline_style_ranges, entity_ranges, entity_lookup
+            )
+
+            if block_type == "header-two":
+                html_parts.append(f"<h2>{styled_text}</h2>")
+            else:
+                html_parts.append(f"<p>{styled_text}</p>")
+
+        return "".join(html_parts), media_files
 
     def _get_request_headers(self):
         self.host = SCRAPER_INFO[self.scraper]["host"]
@@ -235,3 +316,66 @@ class Twitter(MetadataItem):
         self.params = {
             SCRAPER_INFO[self.scraper]["params"]: self.tid,
         }
+
+
+def _find_article_media_url(article: Dict, media_id: str) -> str:
+    for entity in article.get("media_entities", []):
+        if str(entity.get("media_id")) == str(media_id):
+            media_info = entity.get("media_info", {})
+            url = media_info.get("original_img_url", "")
+            return url
+    return ""
+
+
+def _apply_inline_formatting(
+        text: str,
+        style_ranges: List[Dict],
+        entity_ranges: List[Dict],
+        entity_lookup: Dict,
+) -> str:
+    if not text or (not style_ranges and not entity_ranges):
+        return text
+
+    n = len(text)
+    bold = [False] * n
+    italic = [False] * n
+    link_url = [None] * n
+
+    for sr in style_ranges:
+        start = sr["offset"]
+        end = start + sr["length"]
+        for i in range(start, min(end, n)):
+            if sr["style"] == "Bold":
+                bold[i] = True
+            elif sr["style"] == "Italic":
+                italic[i] = True
+
+    for er in entity_ranges:
+        entity = entity_lookup.get(str(er["key"]))
+        if entity and entity.get("type") == "LINK":
+            url = entity.get("data", {}).get("url", "")
+            start = er["offset"]
+            end = start + er["length"]
+            for i in range(start, min(end, n)):
+                link_url[i] = url
+
+    result = []
+    i = 0
+    while i < n:
+        cur_bold = bold[i]
+        cur_italic = italic[i]
+        cur_link = link_url[i]
+        j = i
+        while j < n and bold[j] == cur_bold and italic[j] == cur_italic and link_url[j] == cur_link:
+            j += 1
+        segment = text[i:j]
+        if cur_bold:
+            segment = f"<b>{segment}</b>"
+        if cur_italic:
+            segment = f"<i>{segment}</i>"
+        if cur_link:
+            segment = f"<a href='{cur_link}'>{segment}</a>"
+        result.append(segment)
+        i = j
+
+    return "".join(result)
