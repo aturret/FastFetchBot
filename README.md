@@ -2,128 +2,191 @@ Demo: https://t.me/aturretrss_bot
 
 # FastFetchBot
 
-A social media fetch API based on [FastAPI](https://fastapi.tiangolo.com/), with Telegram Bot as the default client.
+A social media content fetching service with a Telegram Bot client, built as a monorepo with two microservices.
 
-Supported most mainstream social media platforms. You can get a permanent copy of the content by just sending the url to the bot.
+Send a social media URL to the bot, and it fetches and archives the content for you. Supports most mainstream social media platforms.
 
-Other separated microservices for this project:
+## Architecture
 
-- [FastFileExporter](https://github.com/aturret/FastFileExporter)
-- [FastFetchBot-Telegram-Bot](https://github.com/aturret/FastFetchBot-Telegram-Bot)
+FastFetchBot is organized as a UV workspace monorepo with three packages:
 
+```
+FastFetchBot/
+├── packages/shared/          # fastfetchbot-shared: common models, utilities, logger
+├── apps/api/                 # FastAPI server: scrapers, storage, routing
+├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
+├── app/                      # Legacy re-export wrappers (backward compatibility)
+├── pyproject.toml            # Root workspace configuration
+└── uv.lock                   # Lockfile for the entire workspace
+```
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **API Server** (`apps/api/`) | 10450 | FastAPI app with all platform scrapers, file export, and storage |
+| **Telegram Bot** (`apps/telegram-bot/`) | 10451 | Receives messages via webhook or long polling, calls the API server |
+
+The Telegram Bot communicates with the API server over HTTP. In Docker, this is `http://api:10450`.
 
 ## Installation
 
 ### Docker (Recommended)
 
-Download the docker-compose.yml file and set the environment variables as the following section.
-
-#### Env
-
-Create a `.env` file at the same directory and set the [environment variables](#envrionment-variables).
-
-#### Local Telegram API Sever
-
-If you want to send documents that larger than 50MB, you need to run a local telegram api server. The `docker-compose.yml` file has already give you an example. You just need to fill the `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the yml file. If you don't need it, just comment it out.
+1. Copy `docker-compose.template.yml` to `docker-compose.yml`.
+2. Create a `.env` file from `template.env` and fill in the [environment variables](#environment-variables).
+3. If you need large file support (>50 MB), fill in `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the compose file for the local Telegram Bot API server. Otherwise, comment out the `telegram-bot-api` service.
 
 ```bash
 docker-compose up -d
 ```
 
-### Python (Not Recommended)
+The compose file pulls pre-built images from GitHub Container Registry:
 
-Local Telegram API sever and video download function is not supported in this way. If you do really need these functions, you can run the telegram api server and [the file export server](https://github.com/aturret/FastFileExporter) manually.
+- `ghcr.io/aturret/fastfetchbot-api:latest`
+- `ghcr.io/aturret/fastfetchbot-telegram-bot:latest`
 
-We use [Poetry](https://python-poetry.org/) as the package manager for this project. You can install it by the following command.
+To build locally instead, uncomment the `build:` blocks and comment out the `image:` lines in `docker-compose.yml`.
 
-```bash
-pip install poetry
-```
+### Local Development
 
-Then, install the dependencies.
-
-```bash
-poetry install
-```
-
-Finally, run the server.
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-poetry run gunicorn -k uvicorn.workers.UvicornWorker app.main:app --preload
+# Install all dependencies (including dev)
+uv sync
+
+# Run the API server
+cd apps/api
+uv run gunicorn -k uvicorn.workers.UvicornWorker src.main:app --preload
+
+# Run the Telegram Bot (in a separate terminal)
+cd apps/telegram-bot
+uv run python -m core.main
 ```
+
+### Telegram Bot Modes
+
+The bot supports two modes, controlled by the `TELEGRAM_BOT_MODE` environment variable:
+
+| Mode | Value | Use Case |
+|------|-------|----------|
+| **Long Polling** | `polling` (default) | Local development, simple deployments without a reverse proxy |
+| **Webhook** | `webhook` | Production with a public HTTPS URL |
+
+In both modes, the bot runs an HTTP server on port 10451 for the `/send_message` callback endpoint (used by Inoreader integration) and `/health`.
+
+## Development
+
+### Commands
+
+```bash
+uv sync                    # Install all dependencies
+uv run pytest              # Run tests
+uv run pytest -v           # Run tests with verbose output
+uv run black .             # Format code
+```
+
+### Adding a New Platform Scraper
+
+1. Create a new scraper module in `apps/api/src/services/scrapers/<platform>/`
+2. Implement the scraper class following existing patterns
+3. Add a platform-specific router in `apps/api/src/routers/`
+4. Register the scraper in `ScraperManager`
+5. Add configuration variables in `apps/api/src/config.py`
+6. Create tests in `tests/cases/`
+
+### Docker Build
+
+```bash
+# Build both services locally
+docker-compose build
+
+# Or build individually
+docker build -f apps/api/Dockerfile -t fastfetchbot-api .
+docker build -f apps/telegram-bot/Dockerfile -t fastfetchbot-telegram-bot .
+```
+
+> **Note:** Both Dockerfiles use the repository root as the build context (`.`) because they need access to `pyproject.toml`, `uv.lock`, and `packages/shared/`.
 
 ## Environment Variables
 
-Note: Many of the services requires cookies to fetch content. You can get your cookies by browser extension [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) and set the cookies as environment variables.
+Many scrapers require authentication cookies. You can extract cookies using the browser extension [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc).
 
+See `template.env` for a complete reference with comments.
 
-### Required Variables
+### Required
 
-- `BASE_URL`: The base url of the server. example: `example.com`
-- `TELEGRAM_BOT_TOKEN`: The token of the telegram bot.
-- `TELEGRAM_CHAT_ID`: The chat id of the telegram bot.
+| Variable | Description |
+|----------|-------------|
+| `BASE_URL` | Public domain of the server (e.g. `example.com`). Used for webhook URL construction. |
+| `TELEGRAM_BOT_TOKEN` | Bot token from [@BotFather](https://t.me/BotFather) |
+| `TELEGRAM_CHAT_ID` | Default chat ID for the bot |
 
-### Optional Variables
+### Service Communication (Docker)
 
-#### FastAPI
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_SERVER_URL` | `http://localhost:10450` | URL the Telegram Bot uses to call the API server. Set to `http://api:10450` in Docker. |
+| `TELEGRAM_BOT_CALLBACK_URL` | `http://localhost:10451` | URL the API server uses to call the Telegram Bot. Set to `http://telegram-bot:10451` in Docker. |
+| `TELEGRAM_BOT_MODE` | `polling` | `polling` or `webhook` |
 
-- `PORT`: Default: `10450`
-- `API_KEY`: The api key for the FastAPI server. It would be generated automatically if not set.
+### Optional
+
+#### API Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `10450` | API server port |
+| `API_KEY` | auto-generated | API key for authentication |
 
 #### Telegram
 
-- `TELEBOT_API_SERVER_HOST`: The host of the telegram bot api server. Default: `telegram-bot-api`
-- `TELEBOT_API_SERVER_PORT`: The port of the telegram bot api server. Default: `8081`
-- `TELEGRAM_CHANNEL_ID`: The channel id of the telegram bot. Default: `None`
-- `TELEGRAM_CHANNEL_ADMIN_LIST`: The id list of the users who can send message to targeted telegram channel, divided by `,`. You cannot send message to the channel if you are not in the list. Default: `None`
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TELEBOT_API_SERVER_HOST` | `None` | Local Telegram Bot API server host |
+| `TELEBOT_API_SERVER_PORT` | `None` | Local Telegram Bot API server port |
+| `TELEGRAM_CHANNEL_ID` | `None` | Channel ID(s) for the bot, comma-separated |
+| `TELEGRAM_CHANNEL_ADMIN_LIST` | `None` | User IDs allowed to post to the channel, comma-separated |
 
-#### Twitter
+#### Platform Cookies & Credentials
 
-Must set cookies variables if you want to fetch twitter content.
+| Platform | Variables |
+|----------|-----------|
+| Twitter | `TWITTER_CT0`, `TWITTER_AUTH_TOKEN` |
+| Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `REDDIT_PASSWORD` |
+| Weibo | `WEIBO_COOKIES` |
+| Xiaohongshu | `XIAOHONGSHU_A1`, `XIAOHONGSHU_WEBID`, `XIAOHONGSHU_WEBSESSION` |
+| Instagram | `X_RAPIDAPI_KEY` |
+| Zhihu | Store cookies in `conf/zhihu_cookies.json` |
 
-- `TWITTER_CT0`: The ct0 cookie of twitter. Default: `None`
-- `TWITTER_AUTH_TOKEN`: The auth token of twitter. Default: `None`
+#### Cloud Services
 
-#### Reddit
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API key for audio transcription |
+| `AWS_ACCESS_KEY_ID` | Amazon S3 access key |
+| `AWS_SECRET_ACCESS_KEY` | Amazon S3 secret key |
+| `AWS_S3_BUCKET_NAME` | S3 bucket name |
+| `AWS_S3_REGION_NAME` | S3 region |
+| `AWS_DOMAIN_HOST` | Custom domain bound to the S3 bucket |
 
-We use `read_only` mode of `praw` to fetch reddit content. We still need to set the `client_id` , `client_secret` , `username` and `password` of your reddit api account.
+#### General Webpage Scraping
 
-- `REDDIT_CLIENT_ID`: The client id of reddit. Default: `None`
-- `REDDIT_CLIENT_SECRET`: The client secret of reddit. Default: `None`
-- `REDDIT_USERNAME`: The username of reddit. Default: `None`
-- `REDDIT_PASSWORD`: The password of reddit. Default: `None`
-
-#### Weibo
-
-- `WEIBO_COOKIES`: The cookie of weibo. For some unknown reasons, some weibo posts may be not accessible if you don't are not logged in. Just copy the cookie from your browser and set it. Default: `None`
-
-#### Xiaohongshu
-
-- `XIAOHONGSHU_A1`: The a1 cookie of xiaohongshu. Default: `None`
-- `XIAOHONGSHU_WEBID`: The webid cookie of xiaohongshu. Default: `None`
-- `XIAOHONGSHU_WEBSESSION`: The websession cookie of xiaohongshu. Default: `None`
-#### OpenAI
-
-You can set the api key of OpenAI to use the transcription function.
-
-- `OPENAI_API_KEY`: The api key of OpenAI. Default: `None`
-
-#### Amazon S3 Picture Storage
-
-- `AWS_ACCESS_KEY_ID`: The access key id of Amazon S3. Default: `None`
-- `AWS_SECRET_ACCESS_KEY`: The secret access key of Amazon S3. Default: `None`
-- `AWS_S3_BUCKET_NAME`: The bucket name of Amazon S3. Default: `None`
-- `AWS_S3_REGION_NAME`: The region name of Amazon S3. Default: `None`
-- `AWS_DOMAIN_HOST`: The domain bound to the bucket. The picture upload function would generate images url by bucket name if customized host not set. Default: `None`
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GENERAL_SCRAPING_ON` | `false` | Enable scraping for unrecognized URLs |
+| `GENERAL_SCRAPING_API` | `FIRECRAWL` | Backend: `FIRECRAWL` or `ZYTE` |
+| `FIRECRAWL_API_URL` | | Firecrawl API server URL |
+| `FIRECRAWL_API_KEY` | | Firecrawl API key |
+| `ZYTE_API_KEY` | | Zyte API key |
 
 ## Supported Content Types
 
-### Social Media Content
+### Social Media
 
 - [x] Twitter
 - [x] Bluesky (Beta, only supports part of posts)
 - [x] Instagram
-- [ ] Threads 
+- [ ] Threads
 - [x] Reddit (Beta, only supports part of posts)
 - [ ] Quora
 - [x] Weibo
@@ -132,10 +195,17 @@ You can set the api key of OpenAI to use the transcription function.
 - [x] Douban
 - [ ] Xiaohongshu
 
-### Video Content
+### Video
 
-- [x] Youtube
+- [x] YouTube
 - [x] Bilibili
+
+## CI/CD
+
+The GitHub Actions pipeline (`.github/workflows/ci.yml`) automatically builds and pushes both microservice images to GitHub Container Registry on every push to `main`:
+
+- `ghcr.io/aturret/fastfetchbot-api:latest`
+- `ghcr.io/aturret/fastfetchbot-telegram-bot:latest`
 
 ## Acknowledgements
 
