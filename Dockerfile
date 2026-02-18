@@ -21,7 +21,7 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 FROM python-base AS builder-base
 
 # install uv from the official image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /usr/local/bin/uv
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \

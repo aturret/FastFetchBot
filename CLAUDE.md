@@ -20,6 +20,9 @@ FastFetchBot is a social media content fetching API built with FastAPI, designed
 - `docker-compose up -d` - Start all services (FastFetchBot, Telegram Bot API, File Exporter)
 - `docker-compose build` - Build the FastFetchBot container
 
+> **uv version in Docker**: The Dockerfile pins uv to `0.8.18` via `COPY --from=ghcr.io/astral-sh/uv:0.8.18`.
+> To upgrade, update that tag in `Dockerfile` line 24 and verify the build with `docker build -t fastfetchbot-test .`.
+
 ### Testing
 - `uv run pytest` - Run all tests
 - `uv run pytest tests/test_bluesky.py` - Run specific test file
