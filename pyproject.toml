@@ -11,7 +11,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "loguru>=0.7.2,<0.8.0",
-    "fastapi>=0.115.12,<0.116.0",
+    "fastapi>=0.115.12,<0.130.0",
     "sentry-sdk[fastapi]>=2.27.0,<3.0.0",
     "beautifulsoup4>=4.13.4,<5.0.0",
     "lxml>=5.4.0,<6.0.0",
@@ -23,18 +23,18 @@ dependencies = [
     "jinja2>=3.1.6,<4.0.0",
     "babel>=2.17.0,<3.0.0",
     "openai>=2.15.0,<3.0.0",
-    "gunicorn>=23.0.0,<24.0.0",
-    "uvicorn>=0.34.2,<0.35.0",
+    "gunicorn>=23.0.0,<26.0.0",
+    "uvicorn>=0.34.2,<0.42.0",
     "aiofiles>=24.1.0,<25.0.0",
     #"twitter-api-client>=0.10.22,<0.11.0",
     "twitter-api-client-v2>=0.1.1,<0.2.0",
-    "atproto>=0.0.61,<0.0.62",
+    "atproto>=0.0.61,<0.0.66",
     "pillow>=10.0.0,<11.0.0",
     "python-magic>=0.4.27,<0.5.0",
     "pydub>=0.25.1,<0.26.0",
     "xhtml2pdf>=0.2.17,<0.3.0",
     "aioboto3>=13.4.0,<14.0.0",
-    "beanie>=1.29.0,<2.0.0",
+    "beanie>=1.29.0,<3.0.0",
     "tenacity>=9.1.2,<10.0.0",
     "markdown>=3.8,<4.0",
     "asyncpraw>=7.8.1,<8.0.0",
@@ -49,9 +49,9 @@ windows = ["python-magic-bin>=0.4.14,<0.5.0"]
 
 [dependency-groups]
 dev = [
-    "black>=25.1.0,<26.0.0",
+    "black>=25.1.0,<27.0.0",
     "pytest>=8.3.5,<9.0.0",
-    "pytest-asyncio>=0.26.0,<0.27.0",
+    "pytest-asyncio>=0.26.0,<1.4.0",
 ]
 
 [build-system]
