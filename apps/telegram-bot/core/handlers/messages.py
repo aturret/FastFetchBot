@@ -53,6 +53,15 @@ async def error_process(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     debug_chat_id = update.message.chat_id
     if TELEBOT_DEBUG_CHANNEL is not None:
         debug_chat_id = TELEBOT_DEBUG_CHANNEL
-    await context.bot.send_message(
-        chat_id=debug_chat_id, text=message, parse_mode=ParseMode.HTML
-    )
+    try:
+        await context.bot.send_message(
+            chat_id=debug_chat_id, text=message, parse_mode=ParseMode.HTML
+        )
+    except Exception:
+        logger.error("Failed to send error message to debug chat.")
+        error_message = f"""Failed to send error message to debug chat.
+        update: {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}
+        """
+        await context.bot.send_message(
+            chat_id=debug_chat_id, text=error_message, parse_mode=ParseMode.HTML
+        )

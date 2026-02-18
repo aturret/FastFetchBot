@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from starlette.applications import Starlette
@@ -29,7 +30,11 @@ async def lifespan(app):
     if TELEGRAM_BOT_TOKEN:
         await startup()
         if TELEGRAM_BOT_MODE == "webhook":
-            await set_webhook()
+            result = await set_webhook()
+            if result:
+                logger.info("Webhook registered successfully")
+            else:
+                logger.error("Failed to register webhook!")
         else:
             await start_polling()
         await show_bot_info()
@@ -49,7 +54,8 @@ async def telegram_webhook(request: Request):
     if secret != TELEGRAM_BOT_SECRET_TOKEN:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     data = await request.json()
-    await process_telegram_update(data)
+    logger.debug(f"Telegram webhook update received: {data.get('update_id', 'unknown')}")
+    asyncio.create_task(process_telegram_update(data))
     return JSONResponse({"status": "ok"})
 
 

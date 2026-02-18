@@ -72,6 +72,9 @@ TELEBOT_LOCAL_FILE_MODE = (
     False if TELEBOT_API_SERVER == "https://api.telegram.org/bot" else True
 )
 
+# Telegram Bot server port
+TELEGRAM_BOT_PORT = int(env.get("TELEGRAM_BOT_PORT", 10451)) or 10451
+
 # Telegram Bot timeouts
 TELEBOT_CONNECT_TIMEOUT = int(env.get("TELEGRAM_CONNECT_TIMEOUT", 15)) or 15
 TELEBOT_READ_TIMEOUT = int(env.get("TELEGRAM_READ_TIMEOUT", 60)) or 60
