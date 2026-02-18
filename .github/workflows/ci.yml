@@ -5,65 +5,74 @@ on:
     branches:
       - main
 
-env:
-  APP_NAME: fastfetchbot
-  DOCKERHUB_REPO: aturret/fastfetchbot
-#   APP_VERSION: latest
-
-concurrency: 
+concurrency:
   group: fastfetchbot
   cancel-in-progress: true
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - service: api
+            dockerfile: apps/api/Dockerfile
+            image_suffix: api
+          - service: telegram-bot
+            dockerfile: apps/telegram-bot/Dockerfile
+            image_suffix: telegram-bot
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Check commit message
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message
         id: check_message
         run: |
           MESSAGE=$(git log --format=%B -n 1 ${{ github.sha }})
           if [[ "$MESSAGE" == *"[github-action]"* ]]; then
-            echo "::set-output name=skip::true"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=skip::false"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Generate App Version
-        run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV
-      -
-        name: Build and push
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate App Version
+        run: echo "APP_VERSION=$(git describe --tags --always)" >> "$GITHUB_ENV"
+
+      - name: Build and push
         if: steps.check_message.outputs.skip == 'false'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: |
-            linux/amd64
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
           push: true
           build-args: |
-            APP_NAME=${{ env.APP_NAME }}
             APP_VERSION=${{ env.APP_VERSION }}
           tags: |
-            ${{ env.DOCKERHUB_REPO }}:latest
-#             ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
-      -
-        name: send curl request
-        run: |
-          curl -H 'Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}' ${{ secrets.WATCHTOWER_WEBHOOK_URL }}
+            ghcr.io/${{ github.repository }}-${{ matrix.image_suffix }}:latest
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Watchtower deployment
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" ${{ secrets.WATCHTOWER_WEBHOOK_URL }}

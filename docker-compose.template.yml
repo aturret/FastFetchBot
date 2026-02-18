@@ -1,8 +1,9 @@
 services:
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/aturret/fastfetchbot-api:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/api/Dockerfile
     container_name: fastfetchbot-api
     # restart: always
     volumes:
@@ -16,9 +17,10 @@ services:
       - telegram-bot-api
 
   telegram-bot:
-    build:
-      context: .
-      dockerfile: apps/telegram-bot/Dockerfile
+    image: ghcr.io/aturret/fastfetchbot-telegram-bot:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/telegram-bot/Dockerfile
     container_name: fastfetchbot-telegram-bot
     # restart: always
     env_file:
