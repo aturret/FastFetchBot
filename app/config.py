@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
-from app.utils.parse import get_env_bool
+from fastfetchbot_shared.utils.parse import get_env_bool
 
 env = os.environ
 current_directory = os.path.dirname(os.path.abspath(__file__))

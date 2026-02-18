@@ -2,7 +2,7 @@
 Tests for /scraper router endpoints.
 
 Endpoints:
-    POST /scraper/getItem      — Scrape content from a URL
+    POST /scraper/getItem — Scrape content from a URL
     POST /scraper/getUrlMetadata — Get URL metadata without scraping
 
 All downstream services (InfoExtractService, get_url_metadata) are mocked.
