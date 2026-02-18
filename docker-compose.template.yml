@@ -1,7 +1,9 @@
 services:
-  fastfetchbot:
-    image: aturret/fast-fetch-bot:latest
-    container_name: fastfetchbot
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: fastfetchbot-api
     # restart: always
     volumes:
       - ./conf:/app/conf
@@ -11,6 +13,22 @@ services:
     ports:
       - 10450:10450
     depends_on:
+      - telegram-bot-api
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: apps/telegram-bot/Dockerfile
+    container_name: fastfetchbot-telegram-bot
+    # restart: always
+    env_file:
+      - .env
+    environment:
+      - API_SERVER_URL=http://api:10450
+    ports:
+      - 10451:10451
+    depends_on:
+      - api
       - telegram-bot-api
 
   telegram-bot-api:
@@ -41,7 +59,7 @@ services:
     ports:
       - 4000:4000
     depends_on:
-      - fastfetchbot
+      - api
 
 
 volumes:

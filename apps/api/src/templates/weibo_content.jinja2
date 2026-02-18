@@ -1,0 +1,11 @@
+<p>发布于{{ data.date }}</p>
+{% if data.source %}
+<p>通过{{ data.source }}发布</p>
+{% endif %}
+<p>转发：{{ data.reposts_count }} 评论：{{ data.comments_count }} 点赞：{{ data.attitudes_count }}
+{% if data.region_name %}
+来自{{ data.region_name }}
+{% endif %}
+</p>
+<p><a href="{{ data.author_url }}">@{{ data.author }}</a>：</p>
+{{ data.raw_content }}

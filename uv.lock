@@ -2,6 +2,14 @@ version = 1
 revision = 3
 requires-python = "==3.12.*"
 
+[manifest]
+members = [
+    "fastfetchbot",
+    "fastfetchbot-api",
+    "fastfetchbot-shared",
+    "fastfetchbot-telegram-bot",
+]
+
 [[package]]
 name = "aioboto3"
 version = "13.4.0"
@@ -527,7 +535,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "fake-useragent" },
     { name = "fastapi" },
-    { name = "fastfetchbot-telegram-bot" },
+    { name = "fastfetchbot-shared" },
     { name = "firecrawl-py" },
     { name = "gunicorn" },
     { name = "html-telegraph-poster-v2" },
@@ -574,7 +582,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.13.4,<5.0.0" },
     { name = "fake-useragent", specifier = ">=1.5.1,<2.0.0" },
     { name = "fastapi", specifier = ">=0.115.12,<0.116.0" },
-    { name = "fastfetchbot-telegram-bot", specifier = ">=0" },
+    { name = "fastfetchbot-shared", editable = "packages/shared" },
     { name = "firecrawl-py", specifier = ">=4.13.0,<5.0.0" },
     { name = "gunicorn", specifier = ">=23.0.0,<24.0.0" },
     { name = "html-telegraph-poster-v2", specifier = ">=0.2.5,<0.3.0" },
@@ -608,21 +616,116 @@ dev = [
 ]
 
 [[package]]
-name = "fastfetchbot-telegram-bot"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
+name = "fastfetchbot-api"
+version = "0.1.0"
+source = { virtual = "apps/api" }
+dependencies = [
+    { name = "aioboto3" },
+    { name = "asyncpraw" },
+    { name = "atproto" },
+    { name = "babel" },
+    { name = "beanie" },
+    { name = "fastapi" },
+    { name = "fastfetchbot-shared" },
+    { name = "firecrawl-py" },
+    { name = "gunicorn" },
+    { name = "html-telegraph-poster-v2" },
+    { name = "jinja2" },
+    { name = "jmespath" },
+    { name = "markdown" },
+    { name = "openai" },
+    { name = "pillow" },
+    { name = "pydub" },
+    { name = "sentry-sdk", extra = ["fastapi"] },
+    { name = "tenacity" },
+    { name = "twitter-api-client-v2" },
+    { name = "uvicorn" },
+    { name = "xhtml2pdf" },
+    { name = "zyte-api" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aioboto3", specifier = ">=13.4.0" },
+    { name = "asyncpraw", specifier = ">=7.8.1" },
+    { name = "atproto", specifier = ">=0.0.61" },
+    { name = "babel", specifier = ">=2.17.0" },
+    { name = "beanie", specifier = ">=1.29.0" },
+    { name = "fastapi", specifier = ">=0.115.12" },
+    { name = "fastfetchbot-shared", editable = "packages/shared" },
+    { name = "firecrawl-py", specifier = ">=4.13.0" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "html-telegraph-poster-v2", specifier = ">=0.2.5" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "jmespath", specifier = ">=1.0.1" },
+    { name = "markdown", specifier = ">=3.8" },
+    { name = "openai", specifier = ">=2.15.0" },
+    { name = "pillow", specifier = ">=10.0.0" },
+    { name = "pydub", specifier = ">=0.25.1" },
+    { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.27.0" },
+    { name = "tenacity", specifier = ">=9.1.2" },
+    { name = "twitter-api-client-v2", specifier = ">=0.1.1" },
+    { name = "uvicorn", specifier = ">=0.34.2" },
+    { name = "xhtml2pdf", specifier = ">=0.2.17" },
+    { name = "zyte-api", specifier = ">=0.8.1" },
+]
+
+[[package]]
+name = "fastfetchbot-shared"
+version = "0.1.0"
+source = { editable = "packages/shared" }
 dependencies = [
     { name = "aiofiles" },
     { name = "beautifulsoup4" },
     { name = "fake-useragent" },
-    { name = "jinja2" },
+    { name = "httpx" },
+    { name = "loguru" },
+    { name = "lxml" },
     { name = "pillow" },
+    { name = "playwright" },
+    { name = "pydantic" },
     { name = "python-magic" },
-    { name = "python-telegram-bot", extra = ["callback-data", "rate-limiter"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cb/e9/3dbb60f7059dae59f72078c03ffe3fd4849b99c4448ffefc77bb9b0da804/fastfetchbot_telegram_bot-0.1.1.tar.gz", hash = "sha256:a3b0ee8e792837d351b235e4b9e36525738f030174c5f71a8d4d0cd3f60d8498", size = 25696, upload-time = "2024-11-15T20:02:50.576Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/ba/786dc223f50a56817a1c0a5bb96c822991a5ca3fca84660425a45aed1448/fastfetchbot_telegram_bot-0.1.1-py3-none-any.whl", hash = "sha256:559f48cb3f2cbcb7a1838b6b7d3fb1f3bed325e25124bc885da9ad0cb399bb30", size = 29804, upload-time = "2024-11-15T20:02:49.034Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "aiofiles", specifier = ">=24.1.0" },
+    { name = "beautifulsoup4", specifier = ">=4.13.4" },
+    { name = "fake-useragent", specifier = ">=1.5.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "loguru", specifier = ">=0.7.2" },
+    { name = "lxml", specifier = ">=5.4.0" },
+    { name = "pillow", specifier = ">=10.0.0" },
+    { name = "playwright", specifier = ">=1.52.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "python-magic", specifier = ">=0.4.27" },
+]
+
+[[package]]
+name = "fastfetchbot-telegram-bot"
+version = "0.1.0"
+source = { virtual = "apps/telegram-bot" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "beanie" },
+    { name = "fastfetchbot-shared" },
+    { name = "httpx" },
+    { name = "jinja2" },
+    { name = "python-telegram-bot", extra = ["callback-data", "rate-limiter"] },
+    { name = "starlette" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiofiles", specifier = ">=24.1.0" },
+    { name = "beanie", specifier = ">=1.29.0" },
+    { name = "fastfetchbot-shared", editable = "packages/shared" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "python-telegram-bot", extras = ["callback-data", "rate-limiter"], specifier = ">=21.11" },
+    { name = "starlette", specifier = ">=0.45.0" },
+    { name = "uvicorn", specifier = ">=0.34.2" },
 ]
 
 [[package]]

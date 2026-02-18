@@ -1,0 +1,20 @@
+[project]
+name = "fastfetchbot-shared"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "loguru>=0.7.2",
+    "beautifulsoup4>=4.13.4",
+    "httpx>=0.28.1",
+    "lxml>=5.4.0",
+    "pydantic>=2.0.0",
+    "pillow>=10.0.0",
+    "python-magic>=0.4.27",
+    "aiofiles>=24.1.0",
+    "fake-useragent>=1.5.1",
+    "playwright>=1.52.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
