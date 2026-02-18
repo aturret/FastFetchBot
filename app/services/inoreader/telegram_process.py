@@ -1,14 +1,22 @@
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Callable, Awaitable
 
 from app.config import TELEGRAM_CHANNEL_ID
 from app.models.url_metadata import UrlMetadata
 from app.services.inoreader import Inoreader
 from app.services.scrapers.common import InfoExtractService
-from app.services.telegram_bot import send_item_message
 from app.utils.logger import logger
 from app.utils.parse import get_url_metadata, get_bool
 
 default_telegram_channel_id = TELEGRAM_CHANNEL_ID[0] if TELEGRAM_CHANNEL_ID else None
+
+# Type alias for the message callback
+MessageCallback = Callable[[dict, Union[int, str]], Awaitable[None]]
+
+
+async def _default_message_callback(metadata_item: dict, chat_id: Union[int, str]) -> None:
+    """Default callback that sends via Telegram bot. Used when no callback is provided."""
+    from app.services.telegram_bot import send_item_message
+    await send_item_message(metadata_item, chat_id=chat_id)
 
 
 async def process_inoreader_data(
@@ -16,7 +24,11 @@ async def process_inoreader_data(
         use_inoreader_content: bool,
         telegram_channel_id: Union[int, str] = default_telegram_channel_id,
         stream_id: str = None,
+        message_callback: MessageCallback = None,
 ):
+    if message_callback is None:
+        message_callback = _default_message_callback
+
     for item in data:
         url_type_item = await get_url_metadata(item["aurl"])
         url_type_dict = url_type_item.to_dict()
@@ -46,7 +58,7 @@ async def process_inoreader_data(
                 store_document=True,
             )
         message_metadata_item = await metadata_item.get_item()
-        await send_item_message(message_metadata_item, chat_id=telegram_channel_id)
+        await message_callback(message_metadata_item, telegram_channel_id)
         if stream_id:
             await Inoreader.mark_all_as_read(
                 stream_id=stream_id, timestamp=item["timestamp"] - 1
@@ -57,7 +69,7 @@ async def get_inoreader_item_async(
         data: Optional[Dict] = None,
         trigger: bool = False,
         params: Optional[Dict] = None,
-        # filters: Optional[Dict] = None,
+        message_callback: MessageCallback = None,
 ) -> None:
     stream_id = None
     use_inoreader_content = True
@@ -83,7 +95,8 @@ async def get_inoreader_item_async(
     if type(data) is dict:
         data = [data]
     await process_inoreader_data(
-        data, use_inoreader_content, telegram_channel_id, stream_id
+        data, use_inoreader_content, telegram_channel_id, stream_id,
+        message_callback=message_callback,
     )
     if stream_id:
         await Inoreader.mark_all_as_read(stream_id=stream_id)
