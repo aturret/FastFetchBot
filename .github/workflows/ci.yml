@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches:
-      - main
+      - legacy
 
 env:
   APP_NAME: fastfetchbot
