@@ -67,7 +67,7 @@ jobs:
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
           tags: |
-            ghcr.io/fastfetchbot-${{ matrix.image_suffix }}:latest
+            ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:latest
 
   deploy:
     needs: build
