@@ -23,7 +23,7 @@ jobs:
             image_suffix: api
           - service: telegram-bot
             dockerfile: apps/telegram-bot/Dockerfile
-            image_suffix: telegram-bot
+            image_suffix: tgbot
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
           tags: |
-            ghcr.io/${{ github.repository }}-${{ matrix.image_suffix }}:latest
+            ghcr.io/fastfetchbot-${{ matrix.image_suffix }}:latest
 
   deploy:
     needs: build
