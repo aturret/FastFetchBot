@@ -1,0 +1,90 @@
+@page {
+    size: A4;
+    margin: 1.5cm 1.5cm 3cm;
+    font-family: 'Noto Serif CJK SC', 'Noto Serif CJK', 'Source Han Serif SC', 'Source Han Serif CN', 'Source Han Serif',
+    "WenQuanYi Micro Hei", 'simsun', serif;
+    /*-pdf-word-wrap: CJK;*/
+}
+
+/* Reset some default margins and paddings */
+body, h1, h2, h3, h4, h5, h6, p, ul, ol {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Noto Serif CJK SC', 'Noto Serif CJK', 'Source Han Serif SC', 'Source Han Serif CN', 'Source Han Serif',
+    "WenQuanYi Micro Hei", 'simsun', serif;/* or any other font you'd like to use */
+    font-size: 22px;
+    line-height: 1.5;
+    color: #333;
+    padding: 20px;
+    background-color: #fff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+h2 {
+    font-size: 22px;
+}
+
+/* ... and so on for other headings */
+
+p, ul, ol {
+    margin-bottom: 15px;
+}
+
+ul, ol {
+    margin-left: 20px;
+}
+
+a {
+    color: #0077cc;
+    text-decoration: none;
+    border-bottom: 1px solid #0077cc;
+    padding-bottom: 1px;
+}
+
+a:hover {
+    color: #005599;
+}
+
+/* Handle images */
+img {
+    max-width: 100%;
+    max-height: 260mm;
+    height: auto;
+    display: block;
+    page-break-inside: avoid;
+}
+
+/* Page breaks */
+.break-before {
+    page-break-before: always;
+}
+
+.break-after {
+    page-break-after: always;
+}
+
+/* Adjust tables if you're scraping those */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+th {
+    background-color: #f5f5f5;
+}

@@ -1,0 +1,15 @@
+[project]
+name = "fastfetchbot-file-export"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "yt-dlp[default]>=2026.02.04",
+    "weasyprint>=65.1",
+    "pydub>=0.25.1",
+    "openai>=2.15.0",
+    "loguru>=0.7.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
