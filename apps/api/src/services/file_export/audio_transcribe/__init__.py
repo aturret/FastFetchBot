@@ -18,5 +18,12 @@ class AudioTranscribe:
         result = celery_app.send_task("file_export.transcribe", kwargs={
             "audio_file": audio_file,
         })
-        response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
-        return response["transcript"]
+        try:
+            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
+            return response["transcript"]
+        except Exception:
+            logger.exception(
+                f"file_export.transcribe task failed: audio_file={audio_file}, "
+                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
+            )
+            raise
