@@ -25,6 +25,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /usr/local/bin/uv
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
+        curl \
+        ca-certificates \
         ffmpeg \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
@@ -53,6 +55,7 @@ FROM python-base AS production
 ENV PYTHONPATH=/app/apps/worker:$PYTHONPATH
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
+        ca-certificates \
         ffmpeg \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
@@ -63,7 +66,8 @@ RUN apt-get update \
         fonts-wqy-zenhei \
         fonts-noto-cjk \
         fonts-noto-cjk-extra \
-    && curl -fsSL https://deno.land/install.sh | sh
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder-base /root/.deno /root/.deno
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY packages/ /app/packages/
 COPY apps/worker/ /app/apps/worker/
