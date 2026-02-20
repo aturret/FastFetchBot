@@ -76,29 +76,18 @@ def init_yt_downloader(
         }
     else:
         if video_format is None:
-            if extractor is None:
-                raise ValueError("extractor cannot be None")
-            elif extractor == "youtube":
-                video_format = (
-                    "bv[ext=mp4]+(258/256/140)/best"
-                    if hd
-                    else "bv+ba/b"
-                )
-            elif extractor == "bilibili":
-                if hd and bilibili_cookie:
-                    video_format = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-                else:
-                    video_format = "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
-            else:
-                raise ValueError("no available extractor found")
+            video_format = get_format_for_orientation(
+                extractor, "horizontal", hd, bilibili_cookie
+            )
 
         ydl_opts = {
             **base_opts,
             "paths": {"home": download_dir},
             "outtmpl": {"default": "%(title).10s-%(id)s.%(ext)s"},
             "format": video_format,
-            "referer": "https://www.bilibili.com/",
         }
+        if extractor == "bilibili":
+            ydl_opts["referer"] = "https://www.bilibili.com/"
 
     if youtube_cookie and extractor == "youtube" and cookie_file_path:
         logger.info("Using cookies for youtube")
