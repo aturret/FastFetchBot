@@ -2,143 +2,162 @@
 
 ## Project Overview
 
-FastFetchBot is a social media content fetching API built with FastAPI, designed to scrape and archive content from various social media platforms. It includes a Telegram Bot as the default client interface and supports multiple social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
+FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with three microservices: a FastAPI server (API), a Telegram Bot client, and a Celery worker for file operations. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
+
+## Architecture
+
+```
+FastFetchBot/
+├── packages/shared/          # fastfetchbot-shared: common models, utilities, logger
+├── packages/file-export/     # fastfetchbot-file-export: video download, PDF export, transcription
+├── apps/api/                 # FastAPI server: scrapers, storage, routing
+├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
+├── apps/worker/              # Celery worker: async file operations (video, PDF, audio)
+├── app/                      # Legacy re-export wrappers (backward compatibility)
+├── pyproject.toml            # Root workspace configuration
+└── uv.lock                   # Lockfile for the entire workspace
+```
+
+| Service | Package Name | Port | Entry Point |
+|---------|-------------|------|-------------|
+| **API Server** (`apps/api/src/`) | `fastfetchbot-api` | 10450 | `gunicorn -k uvicorn.workers.UvicornWorker src.main:app --preload` |
+| **Telegram Bot** (`apps/telegram-bot/core/`) | `fastfetchbot-telegram-bot` | 10451 | `python -m core.main` |
+| **Worker** (`apps/worker/worker_core/`) | `fastfetchbot-worker` | — | `celery -A worker_core.main:app worker --loglevel=info --concurrency=2` |
+| **Shared Library** (`packages/shared/fastfetchbot_shared/`) | `fastfetchbot-shared` | — | — |
+| **File Export Library** (`packages/file-export/fastfetchbot_file_export/`) | `fastfetchbot-file-export` | — | — |
+
+The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). In Docker, this is `http://api:10450`.
+
+### API Server (`apps/api/src/`)
+
+- **`main.py`** — FastAPI app setup, Sentry integration, lifecycle management
+- **`config.py`** — Environment variable handling, platform credentials
+- **`routers/`** — `scraper.py` (generic endpoint), `scraper_routers.py` (platform-specific), `inoreader.py`, `wechat.py`
+- **`services/scrapers/`** — `scraper_manager.py` orchestrates platform scrapers (twitter, weibo, bluesky, xiaohongshu, reddit, instagram, zhihu, douban, threads, wechat, general)
+- **`services/file_export/`** — PDF generation, audio transcription (OpenAI), video download
+- **`services/amazon/s3.py`** — S3 storage integration
+- **`services/telegraph/`** — Telegraph content publishing
+- **`templates/`** — Jinja2 templates for platform-specific output formatting
+
+### Telegram Bot (`apps/telegram-bot/core/`)
+
+- **`main.py`** — Entry point
+- **`api_client.py`** — HTTP client calling the API server
+- **`handlers/`** — `messages.py`, `buttons.py`, `url_process.py`
+- **`services/`** — `bot_app.py`, `message_sender.py`, `constants.py`
+- **`webhook/server.py`** — Webhook/polling server
+- **`templates/`** — Jinja2 templates for bot messages
+
+### Shared Library (`packages/shared/fastfetchbot_shared/`)
+
+- **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS)
+- **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py`, `telegraph_item.py`, `url_metadata.py`
+- **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`
+
+### Legacy `app/` Directory
+
+Re-export wrappers providing backward compatibility. Actual code lives in `apps/api/src/` and `packages/shared/`. For example, `app/config.py` imports `get_env_bool` from `fastfetchbot_shared.utils.parse`.
 
 ## Development Commands
 
 ### Package Management
-- `uv sync` - Install all dependencies (including dev)
-- `uv sync --no-dev` - Install production dependencies only
-- `uv sync --extra windows` - Install with Windows extras
-- `uv lock` - Regenerate the lock file after pyproject.toml changes
+- `uv sync` — Install all dependencies (including dev)
+- `uv lock` — Regenerate the lock file after pyproject.toml changes
 
-### Running the Application
-- **Production**: `uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app --preload`
-- **Development**: `uv run gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:10450 wsgi:app`
+### Running Locally
 
-### Docker Commands
-- `docker-compose up -d` - Start all services (FastFetchBot, Telegram Bot API, File Exporter)
-- `docker-compose build` - Build the FastFetchBot container
+```bash
+# API server
+cd apps/api
+uv run gunicorn -k uvicorn.workers.UvicornWorker src.main:app --preload
 
-> **uv version in Docker**: The Dockerfile pins uv to `0.8.18` via `COPY --from=ghcr.io/astral-sh/uv:0.8.18`.
-> To upgrade, update that tag in `Dockerfile` line 24 and verify the build with `docker build -t fastfetchbot-test .`.
+# Telegram Bot (separate terminal)
+cd apps/telegram-bot
+uv run python -m core.main
+```
 
 ### Testing
-- `uv run pytest` - Run all tests
-- `uv run pytest tests/test_bluesky.py` - Run specific test file
-- `uv run pytest -v` - Run tests with verbose output
+- `uv run pytest` — Run all tests
+- `uv run pytest tests/test_bluesky.py` — Run specific test file
+- `uv run pytest -v` — Verbose output
 
 ### Code Formatting
-- `uv run black .` - Format all Python code using Black formatter
+- `uv run black .` — Format all Python code
 
-## Architecture Overview
+### Docker
 
-### Core Components
+```bash
+# Start all services (uses pre-built images from GHCR)
+docker-compose up -d
 
-**FastAPI Application (`app/main.py`)**
-- Main application entry point with FastAPI instance
-- Configures routers, middleware, and lifecycle management
-- Integrates Sentry for error monitoring
-- Handles Telegram bot webhook setup on startup
+# Build locally
+docker build -f apps/api/Dockerfile -t fastfetchbot-api .
+docker build -f apps/telegram-bot/Dockerfile -t fastfetchbot-telegram-bot .
+docker build -f apps/worker/Dockerfile -t fastfetchbot-worker .
+```
 
-**Scraper Architecture (`app/services/scrapers/`)**
-- `ScraperManager`: Centralized manager for all platform scrapers
-- Individual scraper modules for each platform (twitter, weibo, bluesky, etc.)
-- Each scraper implements platform-specific content extraction logic
-- Common scraping utilities in `common.py`
+> **uv version in Docker**: All three Dockerfiles pin uv to `0.10.4` via `COPY --from=ghcr.io/astral-sh/uv:0.10.4`.
+> To upgrade, update that tag in `apps/api/Dockerfile`, `apps/telegram-bot/Dockerfile`, and `apps/worker/Dockerfile`.
 
-**Router Structure (`app/routers/`)**
-- Platform-specific routers (twitter.py, weibo.py, etc.)
-- Generic scraper router for unified API endpoints
-- Telegram bot webhook handler
-- Feed processing and Inoreader integration
-
-**Data Models (`app/models/`)**
-- `classes.py`: Core data structures (NamedBytesIO)
-- `database_model.py`: MongoDB/Beanie models
-- Platform-specific metadata models
-- Telegram chat and Telegraph item models
-
-**Configuration (`app/config.py`)**
-- Comprehensive environment variable handling
-- Platform-specific API credentials and cookies
-- Database, storage, and service configurations
-- Template and localization settings
-
-### Key Services
-
-**Telegram Bot Service (`app/services/telegram_bot/`)**
-- Handles webhook setup and message processing
-- Integrates with local Telegram Bot API server for large file support
-- Channel and admin management
-
-**File Export Service (`app/services/file_export/`)**
-- Document export (PDF generation)
-- Audio transcription (OpenAI integration)
-- Video download capabilities
-
-**Storage Services**
-- Amazon S3 integration for media storage
-- Local file system management
-- Telegraph integration for content publishing
-
-### Platform Support
-
-**Supported Social Media Platforms:**
-- Twitter (requires ct0 and auth_token cookies)
-- Weibo (requires cookies)
-- Xiaohongshu (requires a1, webid, websession cookies)
-- Bluesky (requires username/password)
-- Reddit (requires API credentials)
-- Instagram (requires X-RapidAPI key)
-- Zhihu (requires cookies in conf/zhihu_cookies.json)
-- Douban
-- YouTube, Bilibili (video content)
+Docker Compose services (see `docker-compose.template.yml`):
+- **api** — API server (port 10450)
+- **telegram-bot** — Telegram Bot (port 10451)
+- **telegram-bot-api** — Local Telegram Bot API for large file support (ports 8081-8082)
+- **redis** — Message broker and result backend for Celery (port 6379)
+- **worker** — Celery worker for file operations (video download, PDF export, audio transcription)
 
 ## Environment Configuration
 
-### Required Variables
-- `BASE_URL`: Server base URL
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token
-- `TELEGRAM_CHAT_ID`: Default chat ID for bot
+See `template.env` for a complete reference. Key variables:
 
-### Critical Setup Notes
-- Most social media scrapers require authentication cookies/tokens
+### Required
+| Variable | Description |
+|----------|-------------|
+| `BASE_URL` | Public server domain (used for webhook URL construction) |
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather |
+| `TELEGRAM_CHAT_ID` | Default chat ID for the bot |
+
+### Service Communication (Docker)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_SERVER_URL` | `http://localhost:10450` | URL the Telegram Bot uses to call the API. `http://api:10450` in Docker. |
+| `TELEGRAM_BOT_CALLBACK_URL` | `http://localhost:10451` | URL the API uses to call the Telegram Bot. `http://telegram-bot:10451` in Docker. |
+| `TELEGRAM_BOT_MODE` | `polling` | `polling` (dev) or `webhook` (production with HTTPS) |
+
+### Platform Credentials
+- Most scrapers require authentication cookies/tokens
 - Use browser extension "Get cookies.txt LOCALLY" to extract cookies
 - Store Zhihu cookies in `conf/zhihu_cookies.json`
-- Template environment file available at `template.env`
+- See `template.env` for all platform-specific variables (Twitter, Weibo, Xiaohongshu, Reddit, Instagram, Bluesky, etc.)
 
-### Database Integration
-- Optional MongoDB integration (set `DATABASE_ON=true`)
-- Uses Beanie ODM for async MongoDB operations
-- Database initialization handled in app lifecycle
+### Database
+- Optional MongoDB integration (`DATABASE_ON=true`)
+- Uses Beanie ODM for async operations
 
-### Docker Services
-- **fastfetchbot**: Main application container
-- **telegram-bot-api**: Local Telegram Bot API for large file support
-- **fast-yt-downloader**: Separate service for video downloads
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images on push to `main`:
+- `ghcr.io/aturret/fastfetchbot-api:latest`
+- `ghcr.io/aturret/fastfetchbot-tgbot:latest`
+- `ghcr.io/aturret/fastfetchbot-worker:latest`
+
+Deployment is triggered via Watchtower webhook after builds complete. Include `[github-action]` in a commit message to skip the build.
 
 ## Development Guidelines
 
-### Cookie Management
-- Platform scrapers depend on valid authentication cookies
-- Store sensitive cookies in environment variables, never in code
-- Test scraper functionality after cookie updates
-
-### Adding New Platform Support
-1. Create new scraper module in `app/services/scrapers/[platform]/`
+### Adding a New Platform Scraper
+1. Create scraper module in `apps/api/src/services/scrapers/<platform>/`
 2. Implement scraper class following existing patterns
-3. Add platform-specific router in `app/routers/`
-4. Update ScraperManager to include new scraper
-5. Add configuration variables in `app/config.py`
+3. Add platform-specific router in `apps/api/src/routers/`
+4. Register the scraper in `ScraperManager`
+5. Add configuration variables in `apps/api/src/config.py`
 6. Create tests in `tests/cases/`
 
-### Template System
-- Jinja2 templates in `app/templates/` for content formatting
-- Platform-specific templates for different output formats
-- Supports internationalization via gettext
-
-### Error Handling and Logging
-- Loguru for comprehensive logging
-- Sentry integration for production error monitoring
-- Platform-specific error handling in scrapers
+### Key Conventions
+- Shared models and utilities go in `packages/shared/fastfetchbot_shared/`
+- API-specific code goes in `apps/api/src/`
+- Telegram bot code goes in `apps/telegram-bot/core/`
+- The bot communicates with the API only via HTTP — no direct imports of API code
+- Jinja2 templates for output formatting, with i18n support via Babel
+- Loguru for logging, Sentry for production error monitoring
+- Store sensitive cookies/tokens in environment variables, never in code

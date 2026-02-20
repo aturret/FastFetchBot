@@ -1,23 +1,14 @@
 import asyncio
-import functools
-
-# import gc
-import os
 import uuid
 from pathlib import Path
 
-import aiofiles
 import aiofiles.os
-import httpx
 from bs4 import BeautifulSoup
 
-from src.config import DOWNLOAD_DIR, FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT, TEMP_DIR, AWS_STORAGE_ON
+from src.config import DOWNLOAD_VIDEO_TIMEOUT, AWS_STORAGE_ON
+from src.services.celery_client import celery_app
 from src.services.amazon.s3 import upload as upload_to_s3
 from fastfetchbot_shared.utils.logger import logger
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
-
-PDF_STYLESHEET = os.path.join(current_directory, "pdf_export.css")
 
 
 async def upload_file_to_s3(output_filename):
@@ -33,40 +24,26 @@ class PdfExport:
         self.title = title
         self.html_string = html_string
 
-    async def export(self, method: str = "file") -> str:
-        body = {
-            "method": method
-        }
+    async def export(self) -> str:
         html_string = self.wrap_html_string(self.html_string)
-        if method == "string":
-            body["html_string"] = html_string,
-            logger.debug(
-                f"""
-                    html_string: {html_string}
-                    """
-            )
-        elif method == "file":
-            filename = f"{self.title}-{uuid.uuid4()}.html"
-            filename = os.path.join(TEMP_DIR, filename)
-            async with aiofiles.open(
-                filename, "w", encoding="utf-8"
-            ) as f:
-                await f.write(html_string)
-                html_file = filename
-                logger.debug(html_file)
-            body["html_file"] = html_file
         output_filename = f"{self.title}-{uuid.uuid4()}.pdf"
-        body["output_filename"] = output_filename
 
-        async with httpx.AsyncClient() as client:
-            request_url = FILE_EXPORTER_URL + "/pdfExport"
-            logger.info(f"requesting pdf export from pdf server: {body}")
-            resp = await client.post(
-                request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
+        logger.info(f"submitting pdf export task: {output_filename}")
+        result = celery_app.send_task("file_export.pdf_export", kwargs={
+            "html_string": html_string,
+            "output_filename": output_filename,
+        })
+        try:
+            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
+            output_filename = response["output_filename"]
+        except Exception:
+            logger.exception(
+                f"file_export.pdf_export task failed: output_filename={output_filename}, "
+                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
             )
-        output_filename = resp.json().get("output_filename")
+            raise
         logger.info(f"pdf export success: {output_filename}")
-        await aiofiles.os.remove(html_file)
+
         if AWS_STORAGE_ON:
             local_filename = output_filename
             output_filename = await upload_file_to_s3(Path(output_filename))

@@ -97,7 +97,7 @@ class InfoExtractService(object):
                 pdf_document = document_export.pdf_export.PdfExport(
                     title=metadata_item["title"], html_string=metadata_item["content"]
                 )
-                output_filename = await pdf_document.export(method="file")
+                output_filename = await pdf_document.export()
                 metadata_item["media_files"].append(
                     {
                         "media_type": "document",

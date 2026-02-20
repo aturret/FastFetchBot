@@ -258,3 +258,4 @@ conf/*
 /.run/
 .DS_Store
 /.claude/
+/apps/worker/conf/

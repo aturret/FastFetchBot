@@ -37,12 +37,13 @@ MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
 telegraph_token_list = env.get("TELEGRAPH_TOKEN_LIST", "")
 TELEGRAPH_TOKEN_LIST = telegraph_token_list.split(",") if telegraph_token_list else None
 
-# Youtube-dl environment variables
+# File exporter toggle (used by telegram bot to show/hide buttons)
 FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
-FILE_EXPORTER_HOST = env.get("FILE_EXPORTER_HOST", "fast-yt-downloader")
-FILE_EXPORTER_PORT = env.get("FILE_EXPORTER_PORT", "4000")
-FILE_EXPORTER_URL = f"http://{FILE_EXPORTER_HOST}:{FILE_EXPORTER_PORT}"
 DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
+
+# Celery configuration
+CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 
 # Services environment variables
 templates_directory = os.path.join(current_directory, "templates")

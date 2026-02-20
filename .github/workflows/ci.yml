@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 concurrency:
   group: fastfetchbot
@@ -24,6 +26,9 @@ jobs:
           - service: telegram-bot
             dockerfile: apps/telegram-bot/Dockerfile
             image_suffix: tgbot
+          - service: worker
+            dockerfile: apps/worker/Dockerfile
+            image_suffix: worker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,11 +38,27 @@ jobs:
       - name: Check commit message
         id: check_message
         run: |
-          MESSAGE=$(git log --format=%B -n 1 ${{ github.sha }})
+          MESSAGE=$(git log --format=%B -n 1 "$GITHUB_SHA")
           if [[ "$MESSAGE" == *"[github-action]"* ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine Environment Tags
+        id: env_vars
+        run: |
+          # Check if the workflow was triggered by a tag or a branch push
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Production Environment (Tag Trigger)
+            VERSION_TAG=${GITHUB_REF#refs/tags/}
+            echo "docker_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          else
+            # Staging Environment (Main Branch Trigger)
+            echo "docker_tag=stage" >> "$GITHUB_OUTPUT"
+            # Use the short commit SHA as a secondary tag for tracking
+            echo "version_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up QEMU
@@ -67,12 +88,24 @@ jobs:
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:latest
+            ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:${{ steps.env_vars.outputs.docker_tag }}
+            ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:${{ steps.env_vars.outputs.version_tag }}
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Watchtower deployment
-        run: |
-          curl -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" ${{ secrets.WATCHTOWER_WEBHOOK_URL }}
+#  deploy:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Trigger Watchtower deployment
+#        run: |
+#          # Route the webhook to the appropriate server based on the trigger
+#          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+#            echo "Deploying to Production..."
+#            TOKEN="${{ secrets.PROD_WATCHTOWER_TOKEN }}"
+#            WEBHOOK_URL="${{ secrets.PROD_WATCHTOWER_WEBHOOK_URL }}"
+#          else
+#            echo "Deploying to Staging..."
+#            TOKEN="${{ secrets.STAGE_WATCHTOWER_TOKEN }}"
+#            WEBHOOK_URL="${{ secrets.STAGE_WATCHTOWER_WEBHOOK_URL }}"
+#          fi
+#
+#          curl -H "Authorization: Bearer $TOKEN" "$WEBHOOK_URL"

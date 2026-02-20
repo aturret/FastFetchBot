@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Optional
 
 import httpx
@@ -5,7 +6,8 @@ from urllib.parse import urlparse, parse_qs
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MessageType, MediaFile
 from src.services.file_export.audio_transcribe import AudioTranscribe
-from src.config import FILE_EXPORTER_URL, DOWNLOAD_VIDEO_TIMEOUT
+from src.services.celery_client import celery_app
+from src.config import DOWNLOAD_VIDEO_TIMEOUT
 from fastfetchbot_shared.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
 from fastfetchbot_shared.utils.logger import logger
 from src.config import JINJA2_ENV
@@ -136,7 +138,7 @@ class VideoDownloader(MetadataItem):
             hd: bool = None,
     ) -> dict:
         """
-        make a request to youtube-dl server to get video info
+        Submit a Celery task to download/extract video info.
         :return: video info dict
         """
         if url is None:
@@ -149,30 +151,33 @@ class VideoDownloader(MetadataItem):
             audio_only = self.audio_only
         if hd is None:
             hd = self.hd
-        async with httpx.AsyncClient() as client:
-            body = {
-                "url": url,
-                "download": download,
-                "extractor": extractor,
-                "audio_only": audio_only,
-                "hd": hd,
-            }
-            request_url = FILE_EXPORTER_URL + "/videoDownload"
-            logger.info(f"requesting video info from youtube-dl server: {body}")
-            if download is True:
-                logger.info(f"video downloading... it may take a while")
-                if hd is True:
-                    logger.info(f"downloading HD video, it may take longer")
-                elif audio_only is True:
-                    logger.info(f"downloading audio only")
-            logger.debug(f"downloading video timeout: {DOWNLOAD_VIDEO_TIMEOUT}")
-            resp = await client.post(
-                request_url, json=body, timeout=DOWNLOAD_VIDEO_TIMEOUT
-            )
-            content_info = resp.json().get("content_info")
-            file_path = resp.json().get("file_path")
-            content_info["file_path"] = file_path
+        body = {
+            "url": url,
+            "download": download,
+            "extractor": extractor,
+            "audio_only": audio_only,
+            "hd": hd,
+        }
+        logger.info(f"submitting video download task: {body}")
+        if download is True:
+            logger.info("video downloading... it may take a while")
+            if hd is True:
+                logger.info("downloading HD video, it may take longer")
+            elif audio_only is True:
+                logger.info("downloading audio only")
+        logger.debug(f"downloading video timeout: {DOWNLOAD_VIDEO_TIMEOUT}")
+        result = celery_app.send_task("file_export.video_download", kwargs=body)
+        try:
+            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
+            content_info = response["content_info"]
+            content_info["file_path"] = response["file_path"]
             return content_info
+        except Exception:
+            logger.exception(
+                f"file_export.video_download task failed: url={url}, extractor={extractor}, "
+                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
+            )
+            raise
 
     def _video_info_formatting(self, meta_info: dict):
         self.title = meta_info["title"]
