@@ -24,6 +24,9 @@ jobs:
           - service: telegram-bot
             dockerfile: apps/telegram-bot/Dockerfile
             image_suffix: tgbot
+          - service: worker
+            dockerfile: apps/worker/Dockerfile
+            image_suffix: worker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
