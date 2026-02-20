@@ -184,8 +184,11 @@ def download_video(
                 )
 
             with downloader:
-                downloader.download([url])
-                file_path = downloader.prepare_filename(content_info)
+                download_info = downloader.extract_info(url, download=True)
+                file_path = (
+                    download_info.get("filepath")
+                    or downloader.prepare_filename(download_info)
+                )
                 file_path_output = (
                     file_path
                     if local_mode
