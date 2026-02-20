@@ -6,7 +6,7 @@ import pytest
 try:
     from fastfetchbot_file_export.pdf_export import convert_html_to_pdf
     HAS_WEASYPRINT = True
-except OSError:
+except (OSError, ImportError):
     HAS_WEASYPRINT = False
 
 
