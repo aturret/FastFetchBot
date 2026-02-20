@@ -38,7 +38,7 @@ jobs:
       - name: Check commit message
         id: check_message
         run: |
-          MESSAGE=$(git log --format=%B -n 1 ${{ github.sha }})
+          MESSAGE=$(git log --format=%B -n 1 "$GITHUB_SHA")
           if [[ "$MESSAGE" == *"[github-action]"* ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -49,7 +49,7 @@ jobs:
         id: env_vars
         run: |
           # Check if the workflow was triggered by a tag or a branch push
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # Production Environment (Tag Trigger)
             VERSION_TAG=${GITHUB_REF#refs/tags/}
             echo "docker_tag=latest" >> "$GITHUB_OUTPUT"
@@ -98,7 +98,7 @@ jobs:
 #      - name: Trigger Watchtower deployment
 #        run: |
 #          # Route the webhook to the appropriate server based on the trigger
-#          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+#          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
 #            echo "Deploying to Production..."
 #            TOKEN="${{ secrets.PROD_WATCHTOWER_TOKEN }}"
 #            WEBHOOK_URL="${{ secrets.PROD_WATCHTOWER_WEBHOOK_URL }}"
