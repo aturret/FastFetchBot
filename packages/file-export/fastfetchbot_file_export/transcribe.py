@@ -14,7 +14,7 @@ PUNCTUATION_SYSTEM_PROMPT = (
     "2. The response should be presented in the language of the original text.\n"
     "3. I need you to convert the original text into a new context. During "
     "this process, please preserve the original words of the given original text and only insert "
-    "necessary punctuation such as periods, commas, capialization, symbols like dollar signs or "
+    "necessary punctuation such as periods, commas, capitalization, symbols like dollar signs or "
     "percentage signs, and formatting according to the language of the provided original text. And I "
     "hope you to separate the original text into several paragraphs based on the meaning. Please "
     "use only the provided original text. \n"
