@@ -77,7 +77,9 @@ def get_audio_text(audio_file: str, openai_api_key: str) -> str:
     client = OpenAI(api_key=openai_api_key)
     transcript = ""
     AudioSegment.converter = "ffmpeg"
-    audio_item = AudioSegment.from_file(audio_file, "m4a")
+    audio_file_non_ext, audio_file_ext = os.path.splitext(audio_file)
+    ext = audio_file_ext.lstrip(".")
+    audio_item = AudioSegment.from_file(audio_file, ext)
     start_trim = milliseconds_until_sound(audio_item)
     audio_item = audio_item[start_trim:]
     audio_length = int(audio_item.duration_seconds) + 1
@@ -90,10 +92,7 @@ def get_audio_text(audio_file: str, openai_api_key: str) -> str:
         else:
             audio_segment = audio_item[start_time:end_time]
 
-        audio_file_list = audio_file.split(".")
-        audio_file_ext = audio_file_list[-1]
-        audio_file_non_ext = ".".join(audio_file_list[:-1])
-        segment_path = f"{audio_file_non_ext}-{index + 1}.{audio_file_ext}"
+        segment_path = f"{audio_file_non_ext}-{index + 1}{audio_file_ext}"
         audio_segment.export(segment_path)
         logger.info(f"audio_segment_path: {segment_path}")
 
