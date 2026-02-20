@@ -82,10 +82,10 @@ def get_audio_text(audio_file: str, openai_api_key: str) -> str:
     audio_item = audio_item[start_trim:]
     audio_length = int(audio_item.duration_seconds) + 1
 
-    for index, i in enumerate(range(0, SEGMENT_LENGTH * 1000, audio_length * 1000)):
+    for index, i in enumerate(range(0, audio_length * 1000, SEGMENT_LENGTH * 1000)):
         start_time = i
-        end_time = (i + SEGMENT_LENGTH) * 1000
-        if end_time < audio_length * 1000:
+        end_time = i + SEGMENT_LENGTH * 1000
+        if end_time >= audio_length * 1000:
             audio_segment = audio_item[start_time:]
         else:
             audio_segment = audio_item[start_time:end_time]
