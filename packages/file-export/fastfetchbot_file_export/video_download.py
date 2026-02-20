@@ -198,6 +198,6 @@ def download_video(
             "orientation": orientation,
             "file_path": file_path_output,
         }
-    except Exception as e:
-        traceback.print_exc()
+    except Exception:
+        logger.exception(f"download_video failed: url={url}\n{traceback.format_exc()}")
         raise
