@@ -10,10 +10,11 @@ ENV PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     # paths
     PYSETUP_PATH="/opt/pysetup" \
-    VENV_PATH="/opt/pysetup/.venv"
+    VENV_PATH="/opt/pysetup/.venv" \
+    DENO_INSTALL="/root/.deno"
 
 # prepend venv to path
-ENV PATH="$VENV_PATH/bin:$PATH"
+ENV PATH="$DENO_INSTALL/bin:$VENV_PATH/bin:$PATH"
 
 
 # `builder-base` stage is used to build deps + create our virtual environment
@@ -34,7 +35,8 @@ RUN apt-get update \
         fonts-wqy-microhei \
         fonts-wqy-zenhei \
         fonts-noto-cjk \
-        fonts-noto-cjk-extra
+        fonts-noto-cjk-extra \
+    && curl -fsSL https://deno.land/install.sh | sh
 
 # copy workspace files for dependency resolution
 WORKDIR $PYSETUP_PATH
@@ -60,7 +62,8 @@ RUN apt-get update \
         fonts-wqy-microhei \
         fonts-wqy-zenhei \
         fonts-noto-cjk \
-        fonts-noto-cjk-extra
+        fonts-noto-cjk-extra \
+    && curl -fsSL https://deno.land/install.sh | sh
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY packages/ /app/packages/
 COPY apps/worker/ /app/apps/worker/
