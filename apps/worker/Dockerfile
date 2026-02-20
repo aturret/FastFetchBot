@@ -27,6 +27,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         curl \
         ca-certificates \
+        unzip \
         ffmpeg \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
