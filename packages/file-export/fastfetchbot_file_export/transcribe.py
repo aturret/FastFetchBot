@@ -105,10 +105,10 @@ def get_audio_text(audio_file: str, openai_api_key: str) -> str:
 
         os.remove(segment_path)
 
-    os.remove(audio_file)
     transcript = punctuation_assistant(client, transcript)
     transcript = (
         f"全文总结：\n{summary_assistant(client, transcript)}\n原文：\n{transcript}"
     )
     logger.info(f"transcript: {transcript}")
+    os.remove(audio_file)
     return transcript
