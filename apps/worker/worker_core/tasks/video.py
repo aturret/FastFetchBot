@@ -22,16 +22,18 @@ def _sanitize_content_info(content_info: dict) -> dict:
     """Extract only the fields the API consumer needs from the full yt-dlp dict.
 
     The raw yt-dlp content_info contains 100+ fields (including a formats array
-    with 20-50+ objects). The API only uses ~15 metadata fields plus
-    formats[0].aspect_ratio for orientation detection.
+    with 20-50+ objects). The API only uses ~15 metadata fields plus the first
+    video format's aspect_ratio for orientation detection.
     """
     sanitized = {k: content_info.get(k) for k in _CONTENT_INFO_FIELDS}
-    # Preserve only the first format's aspect_ratio (used by get_video_orientation)
-    formats = content_info.get("formats")
-    if formats and len(formats) > 0:
-        sanitized["formats"] = [{"aspect_ratio": formats[0].get("aspect_ratio")}]
-    else:
-        sanitized["formats"] = []
+    # Find the first video format (has aspect_ratio) — mirrors get_video_orientation logic
+    formats = content_info.get("formats") or []
+    video_aspect_ratio = None
+    for fmt in formats:
+        if "aspect_ratio" in fmt and fmt["aspect_ratio"] is not None:
+            video_aspect_ratio = fmt["aspect_ratio"]
+            break
+    sanitized["formats"] = [{"aspect_ratio": video_aspect_ratio}] if video_aspect_ratio is not None else []
     return sanitized
 
 

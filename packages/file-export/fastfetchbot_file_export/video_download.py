@@ -10,11 +10,15 @@ def get_video_orientation(content_info: dict, extractor: str) -> str:
     if extractor != "youtube":
         return "horizontal"
 
-    if not content_info.get("formats"):
-        return "vertical"
-    one_video_info = content_info["formats"][0]
-    if one_video_info.get("aspect_ratio", 0.56) < 1:
-        return "vertical"
+    formats = content_info.get("formats")
+    if not formats:
+        return "horizontal"
+
+    # Find the first video format (has aspect_ratio), skipping audio-only entries
+    for fmt in formats:
+        if "aspect_ratio" in fmt and fmt["aspect_ratio"] is not None:
+            return "vertical" if fmt["aspect_ratio"] < 1 else "horizontal"
+
     return "horizontal"
 
 
