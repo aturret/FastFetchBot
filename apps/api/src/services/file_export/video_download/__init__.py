@@ -167,10 +167,17 @@ class VideoDownloader(MetadataItem):
                 logger.info("downloading audio only")
         logger.debug(f"downloading video timeout: {DOWNLOAD_VIDEO_TIMEOUT}")
         result = celery_app.send_task("file_export.video_download", kwargs=body)
-        response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
-        content_info = response["content_info"]
-        content_info["file_path"] = response["file_path"]
-        return content_info
+        try:
+            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
+            content_info = response["content_info"]
+            content_info["file_path"] = response["file_path"]
+            return content_info
+        except Exception:
+            logger.exception(
+                f"file_export.video_download task failed: url={url}, extractor={extractor}, "
+                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
+            )
+            raise
 
     def _video_info_formatting(self, meta_info: dict):
         self.title = meta_info["title"]

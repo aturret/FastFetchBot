@@ -33,8 +33,15 @@ class PdfExport:
             "html_string": html_string,
             "output_filename": output_filename,
         })
-        response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
-        output_filename = response["output_filename"]
+        try:
+            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
+            output_filename = response["output_filename"]
+        except Exception:
+            logger.exception(
+                f"file_export.pdf_export task failed: output_filename={output_filename}, "
+                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
+            )
+            raise
         logger.info(f"pdf export success: {output_filename}")
 
         if AWS_STORAGE_ON:
