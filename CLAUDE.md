@@ -2,15 +2,17 @@
 
 ## Project Overview
 
-FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with two microservices: a FastAPI server (API) and a Telegram Bot client. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
+FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with three microservices: a FastAPI server (API), a Telegram Bot client, and a Celery worker for file operations. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
 
 ## Architecture
 
 ```
 FastFetchBot/
 ├── packages/shared/          # fastfetchbot-shared: common models, utilities, logger
+├── packages/file-export/     # fastfetchbot-file-export: video download, PDF export, transcription
 ├── apps/api/                 # FastAPI server: scrapers, storage, routing
 ├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
+├── apps/worker/              # Celery worker: async file operations (video, PDF, audio)
 ├── app/                      # Legacy re-export wrappers (backward compatibility)
 ├── pyproject.toml            # Root workspace configuration
 └── uv.lock                   # Lockfile for the entire workspace
@@ -20,7 +22,9 @@ FastFetchBot/
 |---------|-------------|------|-------------|
 | **API Server** (`apps/api/src/`) | `fastfetchbot-api` | 10450 | `gunicorn -k uvicorn.workers.UvicornWorker src.main:app --preload` |
 | **Telegram Bot** (`apps/telegram-bot/core/`) | `fastfetchbot-telegram-bot` | 10451 | `python -m core.main` |
+| **Worker** (`apps/worker/worker_core/`) | `fastfetchbot-worker` | — | `celery -A worker_core.main:app worker --loglevel=info --concurrency=2` |
 | **Shared Library** (`packages/shared/fastfetchbot_shared/`) | `fastfetchbot-shared` | — | — |
+| **File Export Library** (`packages/file-export/fastfetchbot_file_export/`) | `fastfetchbot-file-export` | — | — |
 
 The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). In Docker, this is `http://api:10450`.
 
@@ -89,16 +93,18 @@ docker-compose up -d
 # Build locally
 docker build -f apps/api/Dockerfile -t fastfetchbot-api .
 docker build -f apps/telegram-bot/Dockerfile -t fastfetchbot-telegram-bot .
+docker build -f apps/worker/Dockerfile -t fastfetchbot-worker .
 ```
 
-> **uv version in Docker**: Both Dockerfiles pin uv to `0.10.4` via `COPY --from=ghcr.io/astral-sh/uv:0.10.4`.
-> To upgrade, update that tag in both `apps/api/Dockerfile` and `apps/telegram-bot/Dockerfile`.
+> **uv version in Docker**: All three Dockerfiles pin uv to `0.10.4` via `COPY --from=ghcr.io/astral-sh/uv:0.10.4`.
+> To upgrade, update that tag in `apps/api/Dockerfile`, `apps/telegram-bot/Dockerfile`, and `apps/worker/Dockerfile`.
 
 Docker Compose services (see `docker-compose.template.yml`):
 - **api** — API server (port 10450)
 - **telegram-bot** — Telegram Bot (port 10451)
 - **telegram-bot-api** — Local Telegram Bot API for large file support (ports 8081-8082)
-- **fast-yt-downloader** — Video download service (port 4000)
+- **redis** — Message broker and result backend for Celery (port 6379)
+- **worker** — Celery worker for file operations (video download, PDF export, audio transcription)
 
 ## Environment Configuration
 
@@ -130,9 +136,10 @@ See `template.env` for a complete reference. Key variables:
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`) builds and pushes both images on push to `main`:
+GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images on push to `main`:
 - `ghcr.io/aturret/fastfetchbot-api:latest`
 - `ghcr.io/aturret/fastfetchbot-tgbot:latest`
+- `ghcr.io/aturret/fastfetchbot-worker:latest`
 
 Deployment is triggered via Watchtower webhook after builds complete. Include `[github-action]` in a commit message to skip the build.
 
@@ -154,17 +161,3 @@ Deployment is triggered via Watchtower webhook after builds complete. Include `[
 - Jinja2 templates for output formatting, with i18n support via Babel
 - Loguru for logging, Sentry for production error monitoring
 - Store sensitive cookies/tokens in environment variables, never in code
-
-## New Features
-
-### Migrate FastFileExporter to Shared Packages
-
-This app needs to download videos from YouTube and Bilibili, and generate PDFs from the downloaded content. These features are implemented by yt-dlp and WeasyPrint, which are synchronous packages. However, FastAPI supports asynchronous requests only. In case of async hobble, I designed a new Flask app called FastFileExporter to download videos and generate PDFs.
-
-I realized this is cumbersome – this is definitely an "HTTP over HTTP" bad design. So I decided to migrate FastFileExporter to a shared package for both API and Telegram Bot to invoke.
-
-The design plan is to add a new independent process to run a celery worker, as the service for invoking these synchronous tasks. The API server and Telegram Bot will send tasks to the worker via a message broker (e.g., Redis). The worker will execute the tasks and return results asynchronously.
-
-I just copied the source code of FastFileExporter to packages/shared. Please analyze the code and make the think about how to migrate the functionality code to shared packages and how to create a new celery worker app in /apps (the path should be `apps/worker/`, it should has its own Dockerfile and pyproject.toml).
-
-Please investigate and make a plan of how to migrate FastFileExporter to shared packages with the newly added celery worker process.
