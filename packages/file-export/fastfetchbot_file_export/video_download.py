@@ -206,5 +206,5 @@ def download_video(
             "file_path": file_path_output,
         }
     except Exception as e:
-        traceback.print_exc()
+        logger.exception("Video download failed")
         raise
