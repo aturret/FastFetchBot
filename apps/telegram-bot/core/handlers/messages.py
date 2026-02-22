@@ -27,7 +27,12 @@ async def all_messages_process(update: Update, context: CallbackContext) -> None
 
     # Ensure every private-chat user has a settings row from their first interaction.
     if message and message.chat.type == "private" and message.from_user:
-        await ensure_user_settings(message.from_user.id)
+        try:
+            await ensure_user_settings(message.from_user.id)
+        except Exception:
+            logger.warning(
+                "Failed to ensure user settings for user {}", message.from_user.id
+            )
 
     if message and ITEM_DATABASE_ON:
         telegram_chat = TelegramChat.construct(**message.chat.to_dict())
