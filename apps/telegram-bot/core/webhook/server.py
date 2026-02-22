@@ -21,12 +21,14 @@ async def lifespan(app):
     update_queue all share one event loop.
     """
     from core.services.bot_app import startup, shutdown, set_webhook, start_polling, show_bot_info
-    from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_MODE, DATABASE_ON
+    from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_MODE, ITEM_DATABASE_ON
+    from fastfetchbot_shared.database import init_db, close_db
 
     # -- startup --
-    if DATABASE_ON:
+    if ITEM_DATABASE_ON:
         from core import database
         await database.startup()
+    await init_db()
     if TELEGRAM_BOT_TOKEN:
         await startup()
         if TELEGRAM_BOT_MODE == "webhook":
@@ -44,7 +46,8 @@ async def lifespan(app):
     # -- shutdown --
     if TELEGRAM_BOT_TOKEN:
         await shutdown()
-    if DATABASE_ON:
+    await close_db()
+    if ITEM_DATABASE_ON:
         from core import database
         await database.shutdown()
 

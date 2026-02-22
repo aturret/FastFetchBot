@@ -3,7 +3,7 @@ name = "fastfetchbot-telegram-bot"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastfetchbot-shared",
+    "fastfetchbot-shared[postgres]",
     "python-telegram-bot[callback-data,rate-limiter]>=21.11",
     "starlette>=0.45.0",
     "uvicorn>=0.34.2",

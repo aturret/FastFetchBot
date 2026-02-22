@@ -13,17 +13,23 @@ from telegram.ext import (
 
 from core.database import save_instances
 from core.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
+from core.services.user_settings import ensure_user_settings
 from fastfetchbot_shared.utils.logger import logger
 from core.config import (
     TELEBOT_DEBUG_CHANNEL,
-    DATABASE_ON,
+    ITEM_DATABASE_ON,
 )
 
 
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
     message = update.message
     logger.debug(message)
-    if message and DATABASE_ON:
+
+    # Ensure every private-chat user has a settings row from their first interaction.
+    if message and message.chat.type == "private" and message.from_user:
+        await ensure_user_settings(message.from_user.id)
+
+    if message and ITEM_DATABASE_ON:
         telegram_chat = TelegramChat.construct(**message.chat.to_dict())
         telegram_user = TelegramUser.construct(**message.from_user.to_dict())
         telegram_message = TelegramMessage(

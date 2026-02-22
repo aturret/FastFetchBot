@@ -1,0 +1,33 @@
+from sqlalchemy import select
+
+from fastfetchbot_shared.database.session import get_session
+from fastfetchbot_shared.database.models.user_setting import UserSetting
+
+# In-memory cache of user IDs known to have a settings row.
+# Resets on process restart — cheap way to avoid a DB query on every message.
+_known_user_ids: set[int] = set()
+
+
+async def ensure_user_settings(user_id: int) -> None:
+    """Create a UserSetting row with defaults if one doesn't exist yet."""
+    if user_id in _known_user_ids:
+        return
+    async with get_session() as session:
+        result = await session.execute(
+            select(UserSetting).where(UserSetting.telegram_user_id == user_id)
+        )
+        if result.scalar_one_or_none() is None:
+            session.add(UserSetting(telegram_user_id=user_id))
+    _known_user_ids.add(user_id)
+
+
+async def get_auto_fetch_in_dm(user_id: int) -> bool:
+    """Return the user's auto_fetch_in_dm preference. Defaults to True."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(UserSetting.auto_fetch_in_dm).where(
+                UserSetting.telegram_user_id == user_id
+            )
+        )
+        value = result.scalar_one_or_none()
+    return value if value is not None else True

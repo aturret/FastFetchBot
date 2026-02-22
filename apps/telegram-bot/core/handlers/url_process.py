@@ -9,6 +9,7 @@ from telegram.ext import (
 
 from core import api_client
 from core.services.message_sender import send_item_message
+from core.services.user_settings import get_auto_fetch_in_dm
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 from fastfetchbot_shared.utils.logger import logger
 from core.config import (
@@ -24,6 +25,13 @@ from core.config import (
 
 async def https_url_process(update: Update, context: CallbackContext) -> None:
     message = update.message
+
+    # Check user's auto-fetch preference
+    auto_fetch = await get_auto_fetch_in_dm(message.from_user.id)
+    if auto_fetch:
+        await _auto_fetch_urls(message)
+        return
+
     welcome_message = await message.reply_text(
         text="Processing...",
     )
@@ -196,6 +204,33 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                 reply_markup=reply_markup,
             )
             await process_message.delete()
+
+
+async def _auto_fetch_urls(message) -> None:
+    """Auto-fetch all URLs in a DM message without showing action buttons."""
+    url_dict = message.parse_entities(types=["url"])
+    for i, url in enumerate(url_dict.values()):
+        url_metadata = await api_client.get_url_metadata(
+            url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST
+        )
+        if url_metadata["source"] == "unknown" and GENERAL_SCRAPING_ON:
+            metadata_item = await api_client.get_item(url=url_metadata["url"])
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id
+            )
+        elif url_metadata["source"] == "unknown" or url_metadata["source"] == "banned":
+            logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
+            continue
+        if url_metadata.get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
+            metadata_item = await api_client.get_item(url=url_metadata["url"])
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id
+            )
+        if url_metadata.get("source") in VIDEO_WEBSITE_PATTERNS.keys():
+            metadata_item = await api_client.get_item(url=url_metadata["url"])
+            await send_item_message(
+                metadata_item, chat_id=message.chat_id
+            )
 
 
 async def https_url_auto_process(update: Update, context: CallbackContext) -> None:

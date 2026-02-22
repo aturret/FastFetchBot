@@ -3,11 +3,13 @@ import mimetypes
 mimetypes.init()
 
 from telegram import (
+    BotCommand,
     Update,
     MessageEntity,
 )
 from telegram.ext import (
     Application,
+    CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
     filters,
@@ -32,6 +34,7 @@ from core.config import (
 
 from core.handlers.url_process import https_url_process, https_url_auto_process
 from core.handlers.buttons import buttons_process, invalid_buttons
+from core.handlers.commands import start_command, settings_command, settings_callback
 from core.handlers.messages import all_messages_process, error_process
 
 # Re-export for external consumers
@@ -94,6 +97,11 @@ async def startup() -> None:
                 & filters.USER,
         callback=https_url_auto_process,
     )
+    start_command_handler = CommandHandler("start", start_command)
+    settings_command_handler = CommandHandler("settings", settings_command)
+    settings_callback_handler = CallbackQueryHandler(
+        callback=settings_callback, pattern=r"^settings:"
+    )
     invalid_buttons_handler = CallbackQueryHandler(
         callback=invalid_buttons,
         pattern=InvalidCallbackData,
@@ -104,14 +112,24 @@ async def startup() -> None:
     # add handlers
     application.add_handlers(
         [
+            start_command_handler,
+            settings_command_handler,
             https_url_process_handler,
             https_url_auto_process_handler,
             all_messages_handler,
+            settings_callback_handler,
             invalid_buttons_handler,
             buttons_process_handler,
         ]
     )
     application.add_error_handler(error_process)
+    # Register bot menu commands
+    await application.bot.set_my_commands(
+        [
+            BotCommand("start", "Start the bot"),
+            BotCommand("settings", "Customize bot behavior"),
+        ]
+    )
     if application.post_init:
         await application.post_init()
     await application.start()

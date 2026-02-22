@@ -122,10 +122,15 @@ OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
 GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
 
 # Database configuration
-DATABASE_ON = get_env_bool(env, "DATABASE_ON", False)
+ITEM_DATABASE_ON = get_env_bool(env, "DATABASE_ON", False)
 MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
 MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
 MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
+
+# User settings database (SQLAlchemy async)
+SETTINGS_DATABASE_URL = env.get(
+    "SETTINGS_DATABASE_URL", "sqlite+aiosqlite:///data/fastfetchbot.db"
+)
 
 # Jinja2 template configuration
 templates_directory = os.path.join(current_directory, "templates")

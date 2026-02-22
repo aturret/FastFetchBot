@@ -27,6 +27,8 @@ services:
     #   dockerfile: apps/telegram-bot/Dockerfile
     container_name: fastfetchbot-telegram-bot
     # restart: always
+    volumes:
+      - telegram_bot_data:/app/apps/telegram-bot/data
     env_file:
       - .env
     environment:
@@ -36,6 +38,7 @@ services:
     depends_on:
       - api
       - telegram-bot-api
+      # - postgres  # Uncomment when using PostgreSQL for user settings
 
   telegram-bot-api:
     image: aiogram/telegram-bot-api:latest
@@ -53,6 +56,22 @@ services:
       - TELEGRAM_LOG_FILE=tglog.log
       - TELEGRAM_STAT=1
       - TELEBOT_API_SERVER_PORT=8081
+
+  # Uncomment to use PostgreSQL for user settings instead of SQLite.
+  # Set SETTINGS_DATABASE_URL=postgresql+asyncpg://fastfetchbot:fastfetchbot@postgres:5432/fastfetchbot
+  # in your .env file, and uncomment the depends_on entry in the telegram-bot service.
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: fastfetchbot-postgres
+  #   restart: always
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=fastfetchbot
+  #     - POSTGRES_PASSWORD=fastfetchbot
+  #     - POSTGRES_DB=fastfetchbot
+  #   ports:
+  #     - 5432:5432
 
   redis:
     image: redis:7-alpine
@@ -85,5 +104,7 @@ services:
 
 volumes:
   telegram-bot-api-data-cache:
+  telegram_bot_data:
+  # postgres_data:  # Uncomment when using PostgreSQL
   redis_data:
   shared_files:

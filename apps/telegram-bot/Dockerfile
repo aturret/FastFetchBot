@@ -47,4 +47,5 @@ COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY packages/ /app/packages/
 COPY apps/telegram-bot/ /app/apps/telegram-bot/
 WORKDIR /app/apps/telegram-bot
+RUN mkdir -p /app/apps/telegram-bot/data
 CMD ["python", "-m", "core.main"]
