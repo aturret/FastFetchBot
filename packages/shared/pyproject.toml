@@ -13,7 +13,13 @@ dependencies = [
     "aiofiles>=24.1.0",
     "fake-useragent>=1.5.1",
     "playwright>=1.52.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "aiosqlite>=0.17.0",
 ]
+
+[project.optional-dependencies]
+postgres = ["asyncpg>=0.30.0"]
+migrate = ["alembic>=1.15.0"]
 
 [build-system]
 requires = ["hatchling"]
