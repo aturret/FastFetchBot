@@ -1,11 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
-from sqlalchemy import select
 
-from fastfetchbot_shared.database.session import get_session
-from fastfetchbot_shared.database.models.user_setting import UserSetting
-from fastfetchbot_shared.utils.logger import logger
-from core.services.user_settings import ensure_user_settings
+from core.services.user_settings import (
+    ensure_user_settings,
+    get_auto_fetch_in_dm,
+    toggle_auto_fetch_in_dm,
+)
 
 
 async def start_command(update: Update, context: CallbackContext) -> None:
@@ -25,14 +25,7 @@ async def settings_command(update: Update, context: CallbackContext) -> None:
     """Handle /settings command: show current user settings with toggle buttons."""
     user_id = update.effective_user.id
     await ensure_user_settings(user_id)
-
-    async with get_session() as session:
-        result = await session.execute(
-            select(UserSetting).where(UserSetting.telegram_user_id == user_id)
-        )
-        user_setting = result.scalar_one_or_none()
-
-    auto_fetch = user_setting.auto_fetch_in_dm if user_setting else True
+    auto_fetch = await get_auto_fetch_in_dm(user_id)
 
     keyboard = _build_settings_keyboard(auto_fetch)
     await update.message.reply_text(
@@ -56,25 +49,7 @@ async def settings_callback(update: Update, context: CallbackContext) -> None:
         return
 
     user_id = update.effective_user.id
-
-    async with get_session() as session:
-        result = await session.execute(
-            select(UserSetting).where(UserSetting.telegram_user_id == user_id)
-        )
-        user_setting = result.scalar_one_or_none()
-
-        if user_setting is None:
-            # Safety fallback — should not happen since settings_command
-            # already called ensure_user_settings, but handle gracefully.
-            user_setting = UserSetting(
-                telegram_user_id=user_id,
-                auto_fetch_in_dm=False,
-            )
-            session.add(user_setting)
-        else:
-            user_setting.auto_fetch_in_dm = not user_setting.auto_fetch_in_dm
-
-        new_value = user_setting.auto_fetch_in_dm
+    new_value = await toggle_auto_fetch_in_dm(user_id)
 
     keyboard = _build_settings_keyboard(new_value)
     await query.edit_message_text(

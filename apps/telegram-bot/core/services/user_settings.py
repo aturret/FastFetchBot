@@ -31,3 +31,22 @@ async def get_auto_fetch_in_dm(user_id: int) -> bool:
         )
         value = result.scalar_one_or_none()
     return value if value is not None else True
+
+
+async def toggle_auto_fetch_in_dm(user_id: int) -> bool:
+    """Toggle auto_fetch_in_dm for the given user. Returns the new value."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(UserSetting).where(UserSetting.telegram_user_id == user_id)
+        )
+        user_setting = result.scalar_one_or_none()
+        if user_setting is None:
+            # Safety fallback — ensure_user_settings should have been called,
+            # but handle gracefully.
+            user_setting = UserSetting(
+                telegram_user_id=user_id, auto_fetch_in_dm=False
+            )
+            session.add(user_setting)
+        else:
+            user_setting.auto_fetch_in_dm = not user_setting.auto_fetch_in_dm
+        return user_setting.auto_fetch_in_dm
