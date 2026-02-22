@@ -48,4 +48,5 @@ COPY packages/ /app/packages/
 COPY apps/telegram-bot/ /app/apps/telegram-bot/
 WORKDIR /app/apps/telegram-bot
 RUN mkdir -p /app/apps/telegram-bot/data
+ENTRYPOINT ["/app/apps/telegram-bot/entrypoint.sh"]
 CMD ["python", "-m", "core.main"]
