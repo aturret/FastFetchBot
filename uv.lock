@@ -895,7 +895,7 @@ source = { virtual = "apps/telegram-bot" }
 dependencies = [
     { name = "aiofiles" },
     { name = "beanie" },
-    { name = "fastfetchbot-shared", extra = ["postgres"] },
+    { name = "fastfetchbot-shared", extra = ["migrate", "postgres"] },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "python-telegram-bot", extra = ["callback-data", "rate-limiter"] },
@@ -907,7 +907,7 @@ dependencies = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "beanie", specifier = ">=1.29.0" },
-    { name = "fastfetchbot-shared", extras = ["postgres"], editable = "packages/shared" },
+    { name = "fastfetchbot-shared", extras = ["postgres", "migrate"], editable = "packages/shared" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "python-telegram-bot", extras = ["callback-data", "rate-limiter"], specifier = ">=21.11" },
