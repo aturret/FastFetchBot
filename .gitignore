@@ -272,3 +272,4 @@ conf/*
 .DS_Store
 /.claude/
 /apps/worker/conf/
+apps/worker/celerybeat-schedule.db
