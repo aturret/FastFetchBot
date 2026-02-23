@@ -273,3 +273,4 @@ conf/*
 /.claude/
 /apps/worker/conf/
 apps/worker/celerybeat-schedule.db
+apps/worker/celerybeat-schedule.db
