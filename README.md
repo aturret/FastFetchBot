@@ -154,9 +154,45 @@ See `template.env` for a complete reference with comments.
 | Twitter | `TWITTER_CT0`, `TWITTER_AUTH_TOKEN` |
 | Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `REDDIT_PASSWORD` |
 | Weibo | `WEIBO_COOKIES` |
-| Xiaohongshu | `XIAOHONGSHU_A1`, `XIAOHONGSHU_WEBID`, `XIAOHONGSHU_WEBSESSION` |
+| Xiaohongshu | See [Xiaohongshu Setup](#xiaohongshu-setup) below |
 | Instagram | `X_RAPIDAPI_KEY` |
 | Zhihu | Store cookies in `conf/zhihu_cookies.json` |
+
+#### Xiaohongshu Setup
+
+Xiaohongshu (XHS) API requests require a cryptographic signature (`x-s`, `x-t`, etc.) that must be computed by a dedicated signing proxy. FastFetchBot delegates this to an external **sign server**.
+
+> **Note:** We currently use a closed-source sign server. You will need to run your own compatible signing proxy and point `SIGN_SERVER_URL` at it.
+
+The sign server must accept `POST /signsrv/v1/xhs/sign` with a JSON body:
+
+```json
+{"uri": "/api/sns/web/v1/feed", "data": {...}, "cookies": "a1=..."}
+```
+
+and return:
+
+```json
+{"isok": true, "data": {"x_s": "...", "x_t": "...", "x_s_common": "...", "x_b3_traceid": "..."}}
+```
+
+**Cookie configuration** (two options; file takes priority):
+
+- **File (recommended):** Create `apps/api/conf/xhs_cookies.txt` containing your XHS cookies as a single line:
+  ```
+  a1=xxxxxxxx; web_id=xxxxxxxx; web_session=xxxxxxxx
+  ```
+  Log in to [xiaohongshu.com](https://www.xiaohongshu.com) in your browser, then copy the cookie values from DevTools → Application → Cookies, or use the [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) extension.
+
+- **Environment variables (legacy fallback):** Set `XIAOHONGSHU_A1`, `XIAOHONGSHU_WEBID`, and `XIAOHONGSHU_WEBSESSION` individually. Used only when the cookie file is absent.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SIGN_SERVER_URL` | `http://localhost:8989` | URL of the XHS signing proxy |
+| `XHS_COOKIE_PATH` | `conf/xhs_cookies.txt` | Path to cookie file (overrides default location) |
+| `XIAOHONGSHU_A1` | `None` | `a1` cookie value (legacy fallback) |
+| `XIAOHONGSHU_WEBID` | `None` | `web_id` cookie value (legacy fallback) |
+| `XIAOHONGSHU_WEBSESSION` | `None` | `web_session` cookie value (legacy fallback) |
 
 #### Cloud Services
 
@@ -193,7 +229,7 @@ See `template.env` for a complete reference with comments.
 - [x] WeChat Public Account Articles
 - [x] Zhihu
 - [x] Douban
-- [ ] Xiaohongshu
+- [x] Xiaohongshu
 
 ### Video
 
@@ -211,7 +247,7 @@ The GitHub Actions pipeline (`.github/workflows/ci.yml`) automatically builds an
 
 The HTML to Telegra.ph converter function is based on [html-telegraph-poster](https://github.com/mercuree/html-telegraph-poster). I separated it from this project as an independent Python package: [html-telegraph-poster-v2](https://github.com/aturret/html-telegraph-poster-v2).
 
-The Xiaohongshu scraper is based on [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler).
+The original Xiaohongshu scraper was based on [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler). The current implementation uses a custom httpx-based adapter with an external signing proxy.
 
 The Weibo scraper is based on [weiboSpider](https://github.com/dataabc/weiboSpider).
 

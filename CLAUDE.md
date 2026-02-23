@@ -33,7 +33,7 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 - **`main.py`** — FastAPI app setup, Sentry integration, lifecycle management
 - **`config.py`** — Environment variable handling, platform credentials
 - **`routers/`** — `scraper.py` (generic endpoint), `scraper_routers.py` (platform-specific), `inoreader.py`, `wechat.py`
-- **`services/scrapers/`** — `scraper_manager.py` orchestrates platform scrapers (twitter, weibo, bluesky, xiaohongshu, reddit, instagram, zhihu, douban, threads, wechat, general)
+- **`services/scrapers/`** — `scraper_manager.py` orchestrates platform scrapers (twitter, weibo, bluesky, xiaohongshu, reddit, instagram, zhihu, douban, threads, wechat, general); the Xiaohongshu scraper uses `xiaohongshu/adaptar.py` (`XhsSinglePostAdapter`) with an external sign server instead of the old Playwright-based crawler
 - **`services/file_export/`** — PDF generation, audio transcription (OpenAI), video download
 - **`services/amazon/s3.py`** — S3 storage integration
 - **`services/telegraph/`** — Telegraph content publishing
@@ -50,7 +50,7 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 
 ### Shared Library (`packages/shared/fastfetchbot_shared/`)
 
-- **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS)
+- **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
 - **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py`, `telegraph_item.py`, `url_metadata.py`
 - **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`
 
@@ -128,6 +128,8 @@ See `template.env` for a complete reference. Key variables:
 - Most scrapers require authentication cookies/tokens
 - Use browser extension "Get cookies.txt LOCALLY" to extract cookies
 - Store Zhihu cookies in `conf/zhihu_cookies.json`
+- Store Xiaohongshu cookies in `conf/xhs_cookies.txt` (single-line cookie string, e.g. `a1=x; web_id=x; web_session=x`)
+- Xiaohongshu also requires an external **sign server** reachable at `SIGN_SERVER_URL` (default `http://localhost:8989`); the sign server is currently closed-source — you must supply your own compatible implementation
 - See `template.env` for all platform-specific variables (Twitter, Weibo, Xiaohongshu, Reddit, Instagram, Bluesky, etc.)
 
 ### Database
