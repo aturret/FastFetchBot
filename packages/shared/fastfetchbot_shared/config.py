@@ -17,3 +17,7 @@ LOG_LEVEL = env.get("LOG_LEVEL", "DEBUG")
 
 # Utils environment variables
 HTTP_REQUEST_TIMEOUT = env.get("HTTP_REQUEST_TIMEOUT", 30)
+
+# XHS (Xiaohongshu) shared configuration
+SIGN_SERVER_URL = env.get("SIGN_SERVER_URL", "http://localhost:8989")
+XHS_COOKIE_PATH = env.get("XHS_COOKIE_PATH", "")
