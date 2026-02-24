@@ -24,7 +24,7 @@ Send a social media URL to the bot, and it fetches and archives the content for 
 - [ ] More general content scraping and enhanced features
   - [x] General Webpage scraping (with more third-party platforms...)
   - [ ] Video scraping
-  - [ ] RSS Feeds
+  - [ ] Podcast Feeds
   - [ ] Audio transcription
   - [ ] Image OCR
 - [ ] Support for more integrations
@@ -37,7 +37,7 @@ Send a social media URL to the bot, and it fetches and archives the content for 
 - [ ] Database Support
   - [ ] Persistent storage for scraped content
   - [x] Persistent storage for user settings
-- [ ] Enhance the user interface and experience
+- [ ] More user interface options
   - [ ] Web UI
   - [ ] Discord Bot Integration
 
