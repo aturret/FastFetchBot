@@ -33,6 +33,9 @@ def parse_xhs_note_url(note_url: str) -> Dict[str, str]:
     }
 
 def get_pure_url(url: str) -> str:
+    """
+    Get the pure URL without query parameters or fragment.
+    """
     parsed = urlparse(url)
     return parsed.scheme + "://" + parsed.netloc + parsed.path
 
@@ -48,6 +51,11 @@ class XhsSinglePostAdapter:
     ):
         self.cookies = cookies.strip()
         self.sign_server_endpoint = (sign_server_endpoint or SIGN_SERVER_URL).rstrip("/")
+        if not self.sign_server_endpoint:
+            raise ValueError(
+                "XhsSinglePostAdapter requires a sign server URL. "
+                "Set SIGN_SERVER_URL in the environment or pass sign_server_endpoint explicitly."
+            )
         self.timeout = timeout
         self._http = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
 
@@ -371,17 +379,19 @@ class XhsSinglePostAdapter:
             except (TypeError, ValueError):
                 return 0
 
+        note_type = str(_pick(note_item, "type", default=""))
         user = _pick(note_item, "user", default={}) or {}
         interact = _pick(note_item, "interact_info", "interactInfo", default={}) or {}
         image_list = []
-        for item in _pick(note_item, "image_list", "imageList", default=[]) or []:
-            url = (
-                _pick(item, "url_default", "urlDefault", "url")
-                if isinstance(item, dict)
-                else None
-            )
-            if url:
-                image_list.append(str(url))
+        if note_type != "video":
+            for item in _pick(note_item, "image_list", "imageList", default=[]) or []:
+                url = (
+                    _pick(item, "url_default", "urlDefault", "url")
+                    if isinstance(item, dict)
+                    else None
+                )
+                if url:
+                    image_list.append(str(url))
 
         tag_list = []
         for tag in _pick(note_item, "tag_list", "tagList", default=[]) or []:
@@ -391,6 +401,9 @@ class XhsSinglePostAdapter:
                 tag_list.append(str(tag["name"]))
 
         video_urls: List[str] = self._extract_video_urls(note_item)
+        if not video_urls and isinstance(note_item.get("note"), dict):
+            # Some payloads wrap the note body under `note`.
+            video_urls = self._extract_video_urls(note_item["note"])
         note_id = str(_pick(note_item, "note_id", "noteId", default=""))
         xsec_token = str(_pick(note_item, "xsec_token", "xsecToken", default=""))
         xsec_source = str(
@@ -404,7 +417,7 @@ class XhsSinglePostAdapter:
 
         return {
             "note_id": note_id,
-            "type": str(_pick(note_item, "type", default="")),
+            "type": note_type,
             "title": str(
                 _pick(note_item, "title", default="")
                 or str(_pick(note_item, "desc", default=""))[:255]
@@ -437,26 +450,38 @@ class XhsSinglePostAdapter:
 
     @staticmethod
     def _extract_video_urls(note_item: Dict[str, Any]) -> List[str]:
-        if note_item.get("type") != "video":
-            return []
+        note_type = str(note_item.get("type", "") or "")
         video = note_item.get("video", {}) or {}
+        if note_type != "video" and not isinstance(video, dict):
+            return []
+
         consumer = video.get("consumer", {}) or {}
         origin_video_key = consumer.get("origin_video_key") or consumer.get("originVideoKey")
         if origin_video_key:
             return [f"http://sns-video-bd.xhscdn.com/{origin_video_key}"]
 
-        urls = []
-        h264_list = (
-                (video.get("media", {}) or {})
-                .get("stream", {})
-                .get("h264", [])
-                or []
-        )
-        for item in h264_list:
-            master_url = item.get("master_url")
-            if master_url:
-                urls.append(master_url)
-        return urls
+        urls: List[str] = []
+        stream = (video.get("media", {}) or {}).get("stream", {}) or {}
+        # Prefer broadly compatible streams first, then fallback to newer codecs.
+        for stream_key in ("h264", "h265", "av1", "h266"):
+            for item in stream.get(stream_key, []) or []:
+                if not isinstance(item, dict):
+                    continue
+                master_url = item.get("master_url") or item.get("masterUrl")
+                if master_url:
+                    urls.append(str(master_url))
+                for backup_url in item.get("backup_urls", []) or item.get("backupUrls", []) or []:
+                    if backup_url:
+                        urls.append(str(backup_url))
+
+        # Keep ordering while deduplicating.
+        seen = set()
+        deduped: List[str] = []
+        for url in urls:
+            if url not in seen:
+                seen.add(url)
+                deduped.append(url)
+        return deduped
 
     def _normalize_comment(
             self,

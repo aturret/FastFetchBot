@@ -6,6 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
+from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_env_bool
 
 env = os.environ
@@ -102,7 +103,7 @@ if os.path.exists(xhs_cookie_path):
         with open(xhs_cookie_path, "r", encoding="utf-8") as f:
             XHS_COOKIE_STRING = f.read().strip()
     except (IOError, OSError) as e:
-        print(f"Error reading XHS cookie file: {e}")
+        logger.error(f"Error reading XHS cookie file: {e}")
         XHS_COOKIE_STRING = ""
 else:
     # Fallback: build cookie string from individual env vars (backward compat)
