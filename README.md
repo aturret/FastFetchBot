@@ -6,6 +6,41 @@ A social media content fetching service with a Telegram Bot client, built as a m
 
 Send a social media URL to the bot, and it fetches and archives the content for you. Supports most mainstream social media platforms.
 
+## Roadmap
+
+### Before v1.0.0
+
+- [ ] Support more social media platforms
+  - [ ] Douyin
+  - [ ] TikTok
+  - [ ] Threads
+  - [ ] Bluesky
+- [ ] Enhance the scraping for existing platforms
+  - [ ] Instagram
+  - [ ] Reddit
+  - [ ] Weibo
+  - [ ] WeChat Public Account Articles
+  - [ ] Douban
+- [ ] More general content scraping and enhanced features
+  - [x] General Webpage scraping (with more third-party platforms...)
+  - [ ] Video scraping
+  - [ ] RSS Feeds
+  - [ ] Audio transcription
+  - [ ] Image OCR
+- [ ] Support for more integrations
+  - [x] Inoreader
+  - [ ] Notion
+- [ ] Code Refactoring
+  - [ ] Unified API response format
+  - [ ] Better error handling
+  - [ ] Better logging
+- [ ] Database Support
+  - [ ] Persistent storage for scraped content
+  - [x] Persistent storage for user settings
+- [ ] Enhance the user interface and experience
+  - [ ] Web UI
+  - [ ] Discord Bot Integration
+
 ## Architecture
 
 FastFetchBot is organized as a UV workspace monorepo with three packages:
@@ -220,12 +255,11 @@ and return:
 ### Social Media
 
 - [x] Twitter
-- [x] Bluesky (Beta, only supports part of posts)
-- [x] Instagram
+- [ ] Bluesky 
+- [ ] Instagram
 - [ ] Threads
 - [x] Reddit (Beta, only supports part of posts)
-- [ ] Quora
-- [x] Weibo
+- [ ] Weibo
 - [x] WeChat Public Account Articles
 - [x] Zhihu
 - [x] Douban
