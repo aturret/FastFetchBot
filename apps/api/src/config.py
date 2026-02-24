@@ -6,6 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
+from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_env_bool
 
 env = os.environ
@@ -88,6 +89,32 @@ XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
 XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
 XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
 XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
+
+# XHS sign server and cookie file
+from fastfetchbot_shared.config import SIGN_SERVER_URL as XHS_SIGN_SERVER_URL
+from fastfetchbot_shared.config import XHS_COOKIE_PATH as _XHS_COOKIE_PATH
+
+xhs_cookie_path = _XHS_COOKIE_PATH or os.path.join(conf_dir, "xhs_cookies.txt")
+
+# Load XHS cookies from file (similar to Zhihu cookie loading)
+XHS_COOKIE_STRING = ""
+if os.path.exists(xhs_cookie_path):
+    try:
+        with open(xhs_cookie_path, "r", encoding="utf-8") as f:
+            XHS_COOKIE_STRING = f.read().strip()
+    except (IOError, OSError) as e:
+        logger.error(f"Error reading XHS cookie file: {e}")
+        XHS_COOKIE_STRING = ""
+else:
+    # Fallback: build cookie string from individual env vars (backward compat)
+    cookie_parts = []
+    if XIAOHONGSHU_A1:
+        cookie_parts.append(f"a1={XIAOHONGSHU_A1}")
+    if XIAOHONGSHU_WEBID:
+        cookie_parts.append(f"web_id={XIAOHONGSHU_WEBID}")
+    if XIAOHONGSHU_WEBSESSION:
+        cookie_parts.append(f"web_session={XIAOHONGSHU_WEBSESSION}")
+    XHS_COOKIE_STRING = "; ".join(cookie_parts)
 
 # Zhihu
 FXZHIHU_HOST = env.get("FXZHIHU_HOST", "fxzhihu.com")
