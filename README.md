@@ -23,13 +23,16 @@ Send a social media URL to the bot, and it fetches and archives the content for 
   - [ ] Douban
 - [ ] More general content scraping and enhanced features
   - [x] General Webpage scraping (with more third-party platforms...)
-  - [ ] Video scraping
+  - [ ] LLM Content Translation
+  - [ ] LLM Content Summarization
   - [ ] Podcast Feeds
   - [ ] Audio transcription
   - [ ] Image OCR
 - [ ] Support for more integrations
   - [x] Inoreader
   - [ ] Notion
+- [ ] Architecture Refactoring
+  - [ ] Apply message queue to tgbot <-> API communication 
 - [ ] Code Refactoring
   - [ ] Unified API response format
   - [ ] Better error handling
