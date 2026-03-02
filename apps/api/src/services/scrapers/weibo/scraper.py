@@ -193,6 +193,7 @@ class WeiboDataProcessor(DataProcessor):
                 raw_content += f'<video src="{i.url}" controls="controls"></video>'
             elif i.media_type == "image":
                 raw_content += f'<img src="{i.url}">'
+        weibo_item_data["raw_content"] = raw_content
         content = content_template.render(data=weibo_item_data)
         content = wrap_text_into_html(
             wrap_text_into_html(content, is_html=True), is_html=False
