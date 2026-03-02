@@ -275,3 +275,4 @@ conf/*
 apps/worker/celerybeat-schedule.db
 /apps/api/conf/*
 !/apps/api/conf/
+!/apps/api/conf/.gitkeep
