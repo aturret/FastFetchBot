@@ -6,6 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
+from fastfetchbot_shared.utils.cookie import read_json_cookies_to_string
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_env_bool
 
@@ -74,7 +75,11 @@ BLUESKY_USERNAME = env.get("BLUESKY_USERNAME", None)
 BLUESKY_PASSWORD = env.get("BLUESKY_PASSWORD", None)
 
 # Weibo
-WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
+weibo_cookies_path = os.path.join(conf_dir, "weibo_cookies.json")
+if os.path.exists(weibo_cookies_path):
+    WEIBO_COOKIES = read_json_cookies_to_string(weibo_cookies_path)
+else:
+    WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
 
 # Xiaohongshu
 XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)

@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="fullstack-polling" type="CompoundRunConfigurationType">
+    <toRun name="Enqueue Celery task" type="Python.Celery" />
+    <toRun name="api" type="PythonConfigurationType" />
+    <toRun name="bot-polling" type="PythonConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
