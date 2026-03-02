@@ -463,9 +463,13 @@ class WeiboDataProcessor(DataProcessor):
             if image.get("src") == "https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_web_default.png":
                 image.replace_with("")
         for a in soup.find_all("a"):
+            href = a.get("href", "")
+            if href.startswith("https://m.weibo.cn/search"):
+                a.unwrap()
+                continue
             if a.text == "查看图片":
                 fw_pics.append(a.attrs.get("href"))
-            if "/n/" in a.get("href") and a.get("usercard"):
+            if "/n/" in href and a.get("usercard"):
                 a["href"] = "https://weibo.com" + a.attrs.get("href")
         for i in soup.find_all("span"):
             i.unwrap()
