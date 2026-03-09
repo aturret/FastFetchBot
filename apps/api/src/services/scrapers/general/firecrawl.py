@@ -70,7 +70,7 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
         }
         result = await self._client.scrape_url(
             url=self.url,
-            formats=["html", json_format],
+            formats=["markdown", "html", json_format],
             only_main_content=True,
             exclude_tags=FIRECRAWL_EXCLUDE_TAGS,
             wait_for=FIRECRAWL_WAIT_FOR,
