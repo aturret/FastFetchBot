@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from firecrawl import AsyncFirecrawl
 
@@ -65,7 +65,7 @@ class FirecrawlClient:
     async def scrape_url(
             self,
             url: str,
-            formats: Optional[List[str]] = None,
+            formats: Optional[List[Union[str, Dict[str, Any]]]] = None,
             only_main_content: bool = True,
             timeout: Optional[int] = None,
             exclude_tags: Optional[List[str]] = None,
@@ -74,7 +74,9 @@ class FirecrawlClient:
         """
         Args:
             url: The URL to scrape.
-            formats: Output formats (e.g. ["markdown", "html"]).
+            formats: Output formats. Can be format strings (e.g. "markdown", "html")
+                     or format dicts for JSON extraction
+                     (e.g. {"type": "json", "schema": PydanticModel, "prompt": "..."}).
             only_main_content: If True, extract only the main content.
             timeout: Request timeout in milliseconds.
             exclude_tags: HTML tag names to exclude from output (e.g. ["nav", "footer"]).
