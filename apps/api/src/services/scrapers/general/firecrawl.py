@@ -20,6 +20,26 @@ FIRECRAWL_EXCLUDE_TAGS = [
 
 GENERAL_TEXT_LIMIT = 800
 
+# If extracted text length is below this ratio of the raw HTML text length,
+# the LLM likely truncated/summarized the content.
+_TRUNCATION_RATIO_THRESHOLD = 0.4
+
+
+def _is_content_truncated(extracted_html: str, raw_html: str) -> bool:
+    """Detect truncation by comparing text lengths (tags stripped) of extracted vs raw content."""
+    raw_text_len = get_html_text_length(raw_html)
+    if raw_text_len == 0:
+        return False
+    extracted_text_len = get_html_text_length(extracted_html)
+    ratio = extracted_text_len / raw_text_len
+    if ratio < _TRUNCATION_RATIO_THRESHOLD:
+        logger.info(
+            f"Content truncation detected: extracted={extracted_text_len}, "
+            f"raw={raw_text_len}, ratio={ratio:.2f}"
+        )
+        return True
+    return False
+
 
 class FirecrawlDataProcessor(BaseGeneralDataProcessor):
     """
@@ -118,13 +138,19 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
             if og_image:
                 media_files.append(MediaFile(url=og_image, media_type="image"))
 
-        # Sanitize and wrap content HTML
-        if content_html:
-            content_html = self.sanitize_html(content_html)
+        # Sanitize and wrap content HTML, with truncation detection fallback
+        raw_html = full_result.get("html", "")
+        if not content_html or (raw_html and _is_content_truncated(content_html, raw_html)):
+            if content_html:
+                logger.warning(
+                    "Firecrawl JSON extraction appears truncated, "
+                    "falling back to raw HTML"
+                )
+            content_html = self.sanitize_html(raw_html) if raw_html else ""
             content = wrap_text_into_html(content_html, is_html=True)
         else:
-            markdown_content = full_result.get("markdown", "")
-            content = wrap_text_into_html(markdown_content, is_html=False)
+            content_html = self.sanitize_html(content_html)
+            content = wrap_text_into_html(content_html, is_html=True)
 
         self._data = {
             "id": self.id,
@@ -137,11 +163,13 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
             "content": content,
             "raw_content": full_result.get("markdown", ""),
             "media_files": [m.to_dict() for m in media_files],
-            "message_type": (
-                MessageType.LONG
-                if get_html_text_length(content) > GENERAL_TEXT_LIMIT
-                else MessageType.SHORT
-            ),
+            "message_type": MessageType.LONG,
+            #     (
+            #     MessageType.LONG
+            #     if get_html_text_length(content) > GENERAL_TEXT_LIMIT
+            #     else MessageType.SHORT
+            # ),
+            # TODO: For now, we classify all JSON-extracted content as LONG to improve Telegram users' reading experience.
             "scraper_type": self.scraper_type,
         }
 
