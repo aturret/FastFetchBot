@@ -50,9 +50,10 @@ VIDEO_WEBSITE_PATTERNS = {
 }
 BANNED_PATTERNS = [
     r"chatgpt\.com\/share\/[A-Za-z0-9]+",
-    r"gemini\/share\/[A-Za-z0-9]+",
+    r"gemini\.google\.com\/share\/[A-Za-z0-9]+",
     r"t\.me\/[A-Za-z0-9]+",
     r"github\.com\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+",
-    r"discord\.gg",
+    r"discord\.gg\/[A-Za-z0-9]+",
     r"linkin\.com\/in\/[A-Za-z0-9]+",
+    r"telegra\.ph"
 ]
