@@ -67,8 +67,9 @@ class ExtractedArticle(BaseModel):
     content: str = Field(
         default="",
         description=(
-            "The main body content of the article as clean HTML. "
-            "Include headings, paragraphs, lists, links, and images. "
+            "The COMPLETE main body content of the article as clean HTML. "
+            "Include ALL text, headings, paragraphs, lists, links, and images. "
+            "Never truncate, shorten, or summarize the content. "
             "Exclude navigation, ads, sidebars, and comments."
         ),
     )
@@ -80,8 +81,11 @@ class ExtractedArticle(BaseModel):
 
 FIRECRAWL_EXTRACTION_PROMPT = (
     "Extract the main article or post content from this page. "
-    "For 'content', return the article body as clean HTML preserving "
-    "headings, paragraphs, lists, links, and embedded images. "
+    "For 'content', return the COMPLETE and FULL article body as clean HTML "
+    "preserving headings, paragraphs, lists, links, and embedded images. "
+    "Do NOT skip, truncate, summarize, or omit any part of the original content. "
+    "Do NOT add editorial notes like 'content continues' or 'text has been shortened'. "
+    "Include every paragraph and section of the article in full. "
     "For 'text', provide a brief plain-text summary (under 500 chars). "
     "For 'media_files', list all images and videos found in the "
     "article body with their direct URLs and any captions. "
