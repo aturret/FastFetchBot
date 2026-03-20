@@ -26,8 +26,10 @@ from .config import (
     ZHIHU_HOST,
     ALL_METHODS,
     ZHIHU_COOKIES,
-    ZHIHU_API_ANSWER_PARAMS
+    ZHIHU_API_COOKIE,
+    ZHIHU_API_ANSWER_PARAMS,
 )
+from .content_processing import fix_images_and_links, extract_references, unmask_zhihu_links
 from fastfetchbot_shared.utils.logger import logger
 
 environment = JINJA2_ENV
@@ -115,16 +117,19 @@ class Zhihu(MetadataItem):
         self.retweeted: bool = False
         # reqeust fields
         self.httpx_client = zhihu_client
-        self.headers = {"User-Agent": get_random_user_agent(),
-                        "Accept": "*/*",
-                        "Referer": self.url,
-                        "Connection": "keep-alive",
-                        }
+        self.headers = {
+            "User-Agent": "node",
+            "Accept": "*/*",
+            "Referer": self.url,
+            "Connection": "keep-alive",
+        }
+        if ZHIHU_API_COOKIE:
+            self.headers["Cookie"] = ZHIHU_API_COOKIE
         if kwargs.get("cookie"):
             self.headers["Cookie"] = kwargs.get("cookie")
-        if ZHIHU_COOKIES:
+        elif ZHIHU_COOKIES:
             self.headers["Cookie"] = ZHIHU_COOKIES
-        self.method = kwargs.get("method", "fxzhihu")
+        self.method = kwargs.get("method", "api")
         self.urlparser = urlparse(self.url)
         self.api_url = ""
         self.status_id = ""
@@ -163,7 +168,7 @@ class Zhihu(MetadataItem):
         for method in ALL_METHODS:
             try:
                 if self.method not in ALL_METHODS:
-                    self.method = "json"
+                    self.method = "api"
                 else:
                     self.method = method
                 await self._get_request_url()
@@ -265,17 +270,11 @@ class Zhihu(MetadataItem):
         elif self.zhihu_type == "article":
             if self.method == "api":
                 self.request_url = (
-                        ZHIHU_COLUMNS_API_HOST
+                        ZHIHU_API_HOST
                         + "/articles/"
                         + self.article_id
-                        + "?"
-                        + ZHIHU_API_ANSWER_PARAMS
                 )
                 return
-                # TODO: There are two api url to get a single article. The first one may fail in the future.
-                # Therefore, I remain the second one.
-                # self.request_url = (
-                #    ZHIHU_COLUMNS_API_HOST_V2 + self.article_id + "?" + ZHIHU_API_ANSWER_PARAMS)
         elif self.zhihu_type == "status":
             if self.method == "api":
                 self.request_url = (
@@ -322,6 +321,10 @@ class Zhihu(MetadataItem):
             if answer_data == {}:
                 raise Exception("Cannot get the answer")
             self._resolve_answer_json_data(answer_data)
+            # Apply FxZhihu-style content processing for api method
+            if self.method == "api":
+                self.raw_content = fix_images_and_links(self.raw_content)
+                self.raw_content = unmask_zhihu_links(self.raw_content)
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
@@ -360,11 +363,15 @@ class Zhihu(MetadataItem):
         """
         if self.method in ["api", "fxzhihu"]:
             json_data = await get_response_json(self.request_url, headers=self.headers, client=self.httpx_client)
-            data = self._resolve_status_api_data(json_data)  # TODO: separate the function to resolve the api data
+            data = self._resolve_status_api_data(json_data)
             self.author = data["author"]
             self.author_url = data["author_url"]
             self.title = data["author"] + "的想法"
-            self.raw_content = json_data["content_html"]
+            self.raw_content = json_data.get("content_html", "")
+            # Apply FxZhihu-style content processing for api method
+            if self.method == "api":
+                self.raw_content = fix_images_and_links(self.raw_content)
+                self.raw_content = unmask_zhihu_links(self.raw_content)
             self.media_files.extend(data["media_files"])
             self.date = unix_timestamp_to_utc(data["created"])
             self.updated = unix_timestamp_to_utc(data["updated"])
@@ -540,6 +547,17 @@ class Zhihu(MetadataItem):
                 self.author = json_data["author"]["name"]
                 self.author_url = json_data["author"]["url"]
                 self.upvote = json_data["voteup_count"]
+                self.comment_count = json_data.get("comment_count", 0)
+                self.date = unix_timestamp_to_utc(json_data.get("created", 0))
+                self.updated = unix_timestamp_to_utc(json_data.get("updated", 0))
+                if json_data.get("column"):
+                    self.column = json_data["column"].get("title", "")
+                    self.column_url = json_data["column"].get("url", "")
+                    self.column_intro = json_data["column"].get("intro", "")
+                # Apply FxZhihu-style content processing for api method
+                if self.method == "api":
+                    self.raw_content = fix_images_and_links(self.raw_content)
+                    self.raw_content = unmask_zhihu_links(self.raw_content)
             except Exception as e:
                 raise Exception("zhihu request failed")
         else:
@@ -717,21 +735,29 @@ class Zhihu(MetadataItem):
 
     @staticmethod
     def _resolve_status_api_data(data: Dict) -> Dict:
+        # Handle both API response formats (reaction.statistics vs direct fields)
+        if "reaction" in data:
+            like_count = data["reaction"]["statistics"]["up_vote_count"]
+            comment_count = data["reaction"]["statistics"]["comment_count"]
+        else:
+            like_count = data.get("like_count", 0)
+            comment_count = data.get("comment_count", 0)
+
         result = {
             "author": data["author"]["name"],
-            "author_url": ZHIHU_HOST + "/people/" + data["author"]["url_token"],
+            "author_url": ZHIHU_HOST + "/people/" + data["author"].get("url_token", ""),
             "created": data["created"],
             "updated": data["updated"],
             "text": None,
-            "raw_content": data["content_html"],
-            "like_count": data["like_count"],
-            "comment_count": data["comment_count"],
+            "raw_content": data.get("content_html", ""),
+            "like_count": like_count,
+            "comment_count": comment_count,
             "media_files": [],
             "origin_pin_id": None,
         }
-        for content in data["content"]:
+        for content in data.get("content", []):
             if content["type"] == "text":
-                result["text"] = content["content"]
+                result["text"] = content.get("content", "")
             elif content["type"] == "image":
                 media_item = MediaFile.from_dict(
                     {
@@ -742,16 +768,33 @@ class Zhihu(MetadataItem):
                 )
                 result["media_files"].append(media_item)
             elif content["type"] == "video":
-                media_item = MediaFile.from_dict(
-                    {
-                        "media_type": "video",
-                        "url": content["video_info"]["playlist"]["hd"]["play_url"],
-                        "caption": "",
-                    }
-                )
-                result["media_files"].append(media_item)
-        if "origin_pin" in data:
-            result["origin_pin_id"] = data["origin_pin"]["id"]
+                # Try HD quality first, fallback to any available
+                video_url = None
+                if "video_info" in content:
+                    playlist = content["video_info"].get("playlist", {})
+                    if "hd" in playlist:
+                        video_url = playlist["hd"].get("play_url")
+                    elif playlist:
+                        first_quality = next(iter(playlist.values()), {})
+                        video_url = first_quality.get("play_url")
+                elif "playlist" in content:
+                    for item in content["playlist"]:
+                        if item.get("quality") == "hd":
+                            video_url = item.get("url")
+                            break
+                    if not video_url and content["playlist"]:
+                        video_url = content["playlist"][0].get("url")
+                if video_url:
+                    media_item = MediaFile.from_dict(
+                        {
+                            "media_type": "video",
+                            "url": video_url,
+                            "caption": "",
+                        }
+                    )
+                    result["media_files"].append(media_item)
+        if "origin_pin" in data and data["origin_pin"]:
+            result["origin_pin_id"] = str(data["origin_pin"]["id"])
             result["origin_pin_data"] = Zhihu._resolve_status_api_data(data["origin_pin"])
         return result
 
