@@ -31,7 +31,7 @@ class WeiboDataProcessor(DataProcessor):
     def __init__(
             self,
             url: str,
-            method: str = "webpage",
+            method: str = "api",
             user_agent: dict = None,
             cookies: str = WEIBO_COOKIES
     ):
@@ -57,13 +57,19 @@ class WeiboDataProcessor(DataProcessor):
         await self._get_weibo()
 
     async def _get_weibo(self) -> None:
+        weibo_info = None
+        # Priority 1: API with SUB cookie and isGetLongText=true
         try:
-            weibo_info = await self._get_weibo_info()
+            weibo_info = await self._get_weibo_info(method="api")
         except ConnectionError as e:
-            self.method = "webpage"
-            weibo_info = await self._get_weibo_info()
-            logger.error(f"Failed to get weibo info by api: {e}")
-            # TODO: a better exception handling
+            logger.warning(f"Failed to get weibo info by api: {e}")
+        # Priority 2: webpage scraping
+        if weibo_info is None:
+            try:
+                weibo_info = await self._get_weibo_info(method="webpage")
+            except ConnectionError as e:
+                logger.error(f"All weibo fetch methods failed. Last error: {e}")
+                raise
         try:
             await self._process_weibo_item(weibo_info)
         except Exception as e:
@@ -99,7 +105,7 @@ class WeiboDataProcessor(DataProcessor):
         html_string = "{" + html_string
         try:
             js = json.loads(html_string, strict=False)
-            print(js)
+            logger.debug(f"weibo webpage info: {js}")
             weibo_info = js.get("status")
         except Exception as e:
             logger.error(f"Failed to get weibo info by webpage scraping: {e}")
@@ -107,11 +113,20 @@ class WeiboDataProcessor(DataProcessor):
         return weibo_info
 
     async def _get_weibo_info_api(self) -> dict:
+        """Fetch weibo info using the API with SUB cookie and isGetLongText=true."""
+        url = self.ajax_url + "&isGetLongText=true"
+        headers = {"referer": WEIBO_HOST}
+        cookies = {
+            "SUB": "_2AkMR47Mlf8NxqwFRmfocxG_lbox2wg7EieKnv0L-JRMxHRl-yT9yqhFdtRB6OmOdyoia9pKPkqoHRRmSBA_WNPaHuybH",
+        }
         try:
-            ajax_json = await get_response_json(self.ajax_url, headers=self.headers)
-            logger.debug(f"weibo ajax_json info by api: {ajax_json}")
-            if not ajax_json or ajax_json["ok"] == 0:
-                raise ConnectionError(f"Failed to get weibo info by api")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, cookies=cookies)
+                response.raise_for_status()
+                ajax_json = response.json()
+            if not ajax_json or ajax_json.get("ok") == 0:
+                raise ConnectionError("API returned ok=0 or empty response")
+            logger.debug(f"weibo info by api: {ajax_json}")
             return ajax_json
         except Exception as e:
             raise ConnectionError(f"Failed to get weibo info by api: {e}")
@@ -141,14 +156,14 @@ class WeiboDataProcessor(DataProcessor):
             "reposts_count": self._string_to_int(weibo_info.get("reposts_count", 0)),
         }
         # resolve text
-        # check if the weibo is longtext weibo (which means >140 characters so has an excerpt) or not
+        # check if the weibo text is still truncated and needs a longtext re-fetch
         text = weibo_info.get("text", "")
-        if (
-                weibo_info["is_long_text"]
-                or text.endswith('<span class="expand">展开</span>')
-                or text.endswith("展开")
-                or not text
-        ):
+        text_is_truncated = (
+            not text
+            or text.endswith('<span class="expand">展开</span>')
+            or text.endswith("展开")
+        )
+        if weibo_info["is_long_text"] and text_is_truncated:
             # if a weibo has more than 9 pictures, the isLongText will be True even if it is not a longtext weibo
             # however, we cannot get the full text of such kind of weibo from longtext api (it will return None)
             # so, it is necessary to check if a weibo is a real longtext weibo or not for getting the full text
