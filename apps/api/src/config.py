@@ -123,6 +123,7 @@ else:
 
 # Zhihu
 FXZHIHU_HOST = env.get("FXZHIHU_HOST", "fxzhihu.com")
+ZHIHU_Z_C0 = env.get("ZHIHU_Z_C0", None)
 
 zhihu_cookie_path = os.path.join(conf_dir, "zhihu_cookies.json")
 if os.path.exists(zhihu_cookie_path):
