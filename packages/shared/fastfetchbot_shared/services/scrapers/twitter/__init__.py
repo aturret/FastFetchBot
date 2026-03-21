@@ -17,7 +17,7 @@ from .config import (
     SCRAPER_INFO,
     SHORT_LIMIT,
 )
-from src.config import X_RAPIDAPI_KEY, TWITTER_COOKIES, DEBUG_MODE
+from fastfetchbot_shared.services.scrapers.config import X_RAPIDAPI_KEY, TWITTER_COOKIES, DEBUG_MODE
 from fastfetchbot_shared.utils.logger import logger
 
 

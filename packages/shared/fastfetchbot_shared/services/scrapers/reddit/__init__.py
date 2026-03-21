@@ -5,7 +5,7 @@ import asyncpraw
 from bs4 import BeautifulSoup
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MessageType, MediaFile
-from src.config import (
+from fastfetchbot_shared.services.scrapers.config import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
     REDDIT_PASSWORD,

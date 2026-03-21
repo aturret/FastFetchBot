@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 from lxml import html
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
-from src.services.scrapers.scraper import Scraper, DataProcessor
-from src.services.scrapers.weibo import Weibo
+from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
+from fastfetchbot_shared.services.scrapers.weibo import Weibo
 from fastfetchbot_shared.utils.network import get_response_json, get_random_user_agent
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
 from .config import (
@@ -19,7 +19,7 @@ from .config import (
     WEIBO_HOST,
     WEIBO_TEXT_LIMIT,
 )
-from src.config import JINJA2_ENV, WEIBO_COOKIES
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, WEIBO_COOKIES
 from fastfetchbot_shared.utils.logger import logger
 
 short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")

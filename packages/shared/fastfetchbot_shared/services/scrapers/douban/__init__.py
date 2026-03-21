@@ -9,7 +9,7 @@ from lxml import etree
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
 from fastfetchbot_shared.utils.network import get_selector, HEADERS
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
-from src.config import JINJA2_ENV
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
 
 SHORT_LIMIT = 600
 

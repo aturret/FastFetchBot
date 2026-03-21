@@ -1,4 +1,4 @@
-from src.config import ZHIHU_COOKIES_JSON, ZHIHU_Z_C0
+from fastfetchbot_shared.services.scrapers.config import ZHIHU_COOKIES_JSON, ZHIHU_Z_C0
 
 SHORT_LIMIT = 600
 ZHIHU_COLUMNS_API_HOST = "https://zhuanlan.zhihu.com/api"

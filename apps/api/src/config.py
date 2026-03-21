@@ -1,13 +1,8 @@
-import json
 import os
 import tempfile
-
-from jinja2 import Environment, FileSystemLoader
 import gettext
 import secrets
 
-from fastfetchbot_shared.utils.cookie import read_json_cookies_to_string
-from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_env_bool
 
 env = os.environ
@@ -35,10 +30,6 @@ MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
 MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
 MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
 
-# Telegraph
-telegraph_token_list = env.get("TELEGRAPH_TOKEN_LIST", "")
-TELEGRAPH_TOKEN_LIST = telegraph_token_list.split(",") if telegraph_token_list else None
-
 # File exporter toggle (used by telegram bot to show/hide buttons)
 FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
 DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
@@ -46,105 +37,6 @@ DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
 # Celery configuration
 CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
-
-# Services environment variables
-templates_directory = os.path.join(current_directory, "templates")
-JINJA2_ENV = Environment(
-    loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
-)
-TEMPLATE_LANGUAGE = env.get(
-    "TEMPLATE_LANGUAGE", "zh_CN"
-)  # It is a workaround for translation system
-
-# X-RapidAPI (for instagram)
-X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
-
-# Twitter
-TWITTER_EMAIL = env.get("TWITTER_EMAIL", None)
-TWITTER_PASSWORD = env.get("TWITTER_PASSWORD", None)
-TWITTER_USERNAME = env.get("TWITTER_USERNAME", None)
-TWITTER_CT0 = env.get("TWITTER_CT0", None)
-TWITTER_AUTH_TOKEN = env.get("TWITTER_AUTH_TOKEN", None)
-TWITTER_COOKIES = {
-    "ct0": TWITTER_CT0,
-    "auth_token": TWITTER_AUTH_TOKEN,
-}
-
-# Bluesky
-BLUESKY_USERNAME = env.get("BLUESKY_USERNAME", None)
-BLUESKY_PASSWORD = env.get("BLUESKY_PASSWORD", None)
-
-# Weibo
-weibo_cookies_path = os.path.join(conf_dir, "weibo_cookies.json")
-if os.path.exists(weibo_cookies_path):
-    WEIBO_COOKIES = read_json_cookies_to_string(weibo_cookies_path)
-else:
-    WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
-
-# Xiaohongshu
-XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)
-XIAOHONGSHU_WEBID = env.get("XIAOHONGSHU_WEBID", None)
-XIAOHONGSHU_WEBSESSION = env.get("XIAOHONGSHU_WEBSESSION", None)
-XIAOHONGSHU_COOKIES = {
-    "a1": XIAOHONGSHU_A1,
-    "web_id": XIAOHONGSHU_WEBID,
-    "web_session": XIAOHONGSHU_WEBSESSION,
-}
-XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
-XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
-XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
-XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
-
-# XHS sign server and cookie file
-from fastfetchbot_shared.config import SIGN_SERVER_URL as XHS_SIGN_SERVER_URL
-from fastfetchbot_shared.config import XHS_COOKIE_PATH as _XHS_COOKIE_PATH
-
-xhs_cookie_path = _XHS_COOKIE_PATH or os.path.join(conf_dir, "xhs_cookies.txt")
-
-# Load XHS cookies from file (similar to Zhihu cookie loading)
-XHS_COOKIE_STRING = ""
-if os.path.exists(xhs_cookie_path):
-    try:
-        with open(xhs_cookie_path, "r", encoding="utf-8") as f:
-            XHS_COOKIE_STRING = f.read().strip()
-    except (IOError, OSError) as e:
-        logger.error(f"Error reading XHS cookie file: {e}")
-        XHS_COOKIE_STRING = ""
-else:
-    # Fallback: build cookie string from individual env vars (backward compat)
-    cookie_parts = []
-    if XIAOHONGSHU_A1:
-        cookie_parts.append(f"a1={XIAOHONGSHU_A1}")
-    if XIAOHONGSHU_WEBID:
-        cookie_parts.append(f"web_id={XIAOHONGSHU_WEBID}")
-    if XIAOHONGSHU_WEBSESSION:
-        cookie_parts.append(f"web_session={XIAOHONGSHU_WEBSESSION}")
-    XHS_COOKIE_STRING = "; ".join(cookie_parts)
-
-# Zhihu
-FXZHIHU_HOST = env.get("FXZHIHU_HOST", "fxzhihu.com")
-ZHIHU_Z_C0 = env.get("ZHIHU_Z_C0", None)
-
-zhihu_cookie_path = os.path.join(conf_dir, "zhihu_cookies.json")
-if os.path.exists(zhihu_cookie_path):
-    try:
-        with open(zhihu_cookie_path, "r") as f:
-            ZHIHU_COOKIES_JSON = json.load(f)
-    except json.JSONDecodeError:
-        print("Error: The file is not in a valid JSON format.")
-        ZHIHU_COOKIES_JSON = None
-    except FileNotFoundError:
-        print("Error: The file does not exist.")
-        ZHIHU_COOKIES_JSON = None
-else:
-    print("Error: We cannot find it.")
-    ZHIHU_COOKIES_JSON = None
-
-# Reddit
-REDDIT_CLIENT_ID = env.get("REDDIT_CLIENT_ID", None)
-REDDIT_CLIENT_SECRET = env.get("REDDIT_CLIENT_SECRET", None)
-REDDIT_PASSWORD = env.get("REDDIT_PASSWORD", None)
-REDDIT_USERNAME = env.get("REDDIT_USERNAME", None)
 
 # AWS storage
 AWS_STORAGE_ON = get_env_bool(env, "AWS_STORAGE_ON", False)
@@ -155,27 +47,12 @@ AWS_REGION_NAME = env.get("AWS_REGION_NAME", "")
 AWS_DOMAIN_HOST = env.get("AWS_DOMAIN_HOST", None)
 if not (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME):
     AWS_STORAGE_ON = False
+
+# Inoreader
 INOREADER_APP_ID = env.get("INOREADER_APP_ID", None)
 INOREADER_APP_KEY = env.get("INOREADER_APP_KEY", None)
 INOREADER_EMAIL = env.get("INOREADER_EMAIL", None)
 INOREADER_PASSWORD = env.get("INOREADER_PASSWORD", None)
-
-# Open AI API
-OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
-
-# General webpage scraping
-GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
-GENERAL_SCRAPING_API = env.get("GENERAL_SCRAPING_API", "FIRECRAWL")
-
-# Firecrawl API
-FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
-FIRECRAWL_WAIT_FOR = int(env.get("FIRECRAWL_WAIT_FOR", 3000))  # milliseconds to wait for JS rendering
-FIRECRAWL_USE_JSON_EXTRACTION = get_env_bool(env, "FIRECRAWL_USE_JSON_EXTRACTION", False)
-
-
-# Zyte API
-ZYTE_API_KEY = env.get("ZYTE_API_KEY", None)
 
 # Locale directories environment variables
 localedir = os.path.join(os.path.dirname(__file__), "locale")

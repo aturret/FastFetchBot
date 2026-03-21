@@ -20,6 +20,19 @@ dependencies = [
 [project.optional-dependencies]
 postgres = ["asyncpg>=0.30.0"]
 migrate = ["alembic>=1.15.0"]
+scrapers = [
+    "jinja2>=3.1.6",
+    "jmespath>=1.0.1",
+    "twitter-api-client-v2>=0.1.1",
+    "atproto>=0.0.61",
+    "asyncpraw>=7.8.1",
+    "openai>=2.15.0",
+    "html-telegraph-poster-v2>=0.2.5",
+    "firecrawl-py>=4.13.0",
+    "zyte-api>=0.8.1",
+    "tenacity>=9.1.2",
+    "markdown>=3.8",
+]
 
 [build-system]
 requires = ["hatchling"]

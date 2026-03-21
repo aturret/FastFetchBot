@@ -5,11 +5,11 @@ from atproto import AsyncClient, IdResolver, AtUri
 from atproto_client.models.app.bsky.embed.record import ViewRecord
 from atproto_client.models.app.bsky.feed.defs import ThreadViewPost, PostView
 
-from src.config import JINJA2_ENV
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
-from src.services.scrapers.scraper import Scraper, DataProcessor
-from src.services.scrapers.bluesky import Bluesky
-from src.services.scrapers.bluesky.config import BLUESKY_HOST, BLUESKY_MAX_LENGTH
+from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
+from fastfetchbot_shared.services.scrapers.bluesky import Bluesky
+from fastfetchbot_shared.services.scrapers.bluesky.config import BLUESKY_HOST, BLUESKY_MAX_LENGTH
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import wrap_text_into_html
 

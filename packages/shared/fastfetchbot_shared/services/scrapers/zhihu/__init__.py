@@ -18,7 +18,7 @@ from fastfetchbot_shared.utils.parse import (
 from fastfetchbot_shared.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
     get_content_async, get_response
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
-from src.config import JINJA2_ENV, FXZHIHU_HOST
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, FXZHIHU_HOST
 from .config import (
     SHORT_LIMIT,
     ZHIHU_COLUMNS_API_HOST,

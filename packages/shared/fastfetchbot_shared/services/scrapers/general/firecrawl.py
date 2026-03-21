@@ -1,13 +1,13 @@
 from typing import Optional
 
-from src.config import FIRECRAWL_WAIT_FOR, FIRECRAWL_USE_JSON_EXTRACTION
-from src.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
-from src.services.scrapers.general.firecrawl_client import FirecrawlClient
-from src.services.scrapers.general.firecrawl_schema import (
+from fastfetchbot_shared.services.scrapers.config import FIRECRAWL_WAIT_FOR, FIRECRAWL_USE_JSON_EXTRACTION
+from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
+from fastfetchbot_shared.services.scrapers.general.firecrawl_client import FirecrawlClient
+from fastfetchbot_shared.services.scrapers.general.firecrawl_schema import (
     ExtractedArticle,
     FIRECRAWL_EXTRACTION_PROMPT,
 )
-from src.services.scrapers.scraper import DataProcessor
+from fastfetchbot_shared.services.scrapers.scraper import DataProcessor
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html

@@ -3,32 +3,21 @@ from typing import Optional, Any
 from src.models.database_model import Metadata
 from fastfetchbot_shared.models.url_metadata import UrlMetadata
 from fastfetchbot_shared.models.metadata_item import MessageType
-from src.services import (
-    telegraph,
-    inoreader
-)
+from fastfetchbot_shared.services.scrapers.common import InfoExtractService as CoreInfoExtractService
+from fastfetchbot_shared.services.telegraph import Telegraph
 from src.services.file_export import video_download, document_export
-from src.services.scrapers import twitter, wechat, reddit, weibo, zhihu, douban, instagram, xiaohongshu, threads
-from src.services.scrapers.scraper_manager import ScraperManager
 from src.database import save_instances
 from fastfetchbot_shared.utils.logger import logger
 from src.config import DATABASE_ON
 
 
-class InfoExtractService(object):
+class InfoExtractService(CoreInfoExtractService):
+    """API-layer service that adds Telegraph, PDF export, DB storage, and video download."""
+
     service_classes: dict = {
-        "twitter": twitter.Twitter,
-        "threads": threads.Threads,
-        "reddit": reddit.Reddit,
-        "weibo": weibo.Weibo,
-        "wechat": wechat.Wechat,
-        "instagram": instagram.Instagram,
-        "douban": douban.Douban,
-        "zhihu": zhihu.Zhihu,
-        "xiaohongshu": xiaohongshu.Xiaohongshu,
+        **CoreInfoExtractService.service_classes,
         "youtube": video_download.VideoDownloader,
         "bilibili": video_download.VideoDownloader,
-        "inoreader": inoreader.Inoreader,
     }
 
     def __init__(
@@ -40,49 +29,21 @@ class InfoExtractService(object):
             store_document: Optional[bool] = False,
             **kwargs,
     ):
-        url_metadata = url_metadata.to_dict()
-        self.url = url_metadata["url"]
-        self.content_type = url_metadata["content_type"]
-        self.source = url_metadata["source"]
-        self.data = data
-        self.kwargs = kwargs
-        self.store_database = store_database
-        self.store_telegraph = store_telegraph
-        self.store_document = store_document
-
-    @property
-    def category(self) -> str:
-        return self.source
-
-    async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
-        if self.content_type == "video":
-            if not self.kwargs.get("category"):
-                self.kwargs["category"] = self.category
-        if not metadata_item:
-            try:
-                if self.category in ["bluesky", "weibo", "other", "unknown"]:  # it is a workaround before the code refactor
-                    await ScraperManager.init_scraper(self.category)
-                    item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
-                    metadata_item = await item_data_processor.get_item()
-                else:
-                    scraper_item = InfoExtractService.service_classes[self.category](
-                        url=self.url, data=self.data, **self.kwargs
-                    )
-                    metadata_item = await scraper_item.get_item()
-            except Exception as e:
-                logger.error(f"Error while getting item: {e}")
-                raise e
-        logger.info(f"Got metadata item")
-        logger.debug(metadata_item)
-        metadata_item = await self.process_item(metadata_item)
-        return metadata_item
+        super().__init__(
+            url_metadata,
+            data=data,
+            store_database=store_database,
+            store_telegraph=store_telegraph,
+            store_document=store_document,
+            **kwargs,
+        )
 
     async def process_item(self, metadata_item: dict) -> dict:
         if metadata_item.get("message_type") == MessageType.LONG:
             self.store_telegraph = True
             logger.info("message type is long, store in telegraph")
         if self.store_telegraph:
-            telegraph_item = telegraph.Telegraph.from_dict(metadata_item)
+            telegraph_item = Telegraph.from_dict(metadata_item)
             try:
                 telegraph_url = await telegraph_item.get_telegraph()
             except Exception as e:

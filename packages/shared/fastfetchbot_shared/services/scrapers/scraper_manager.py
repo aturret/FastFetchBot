@@ -1,10 +1,10 @@
 from typing import Optional
 
 from fastfetchbot_shared.utils.logger import logger
-from src.services.scrapers.bluesky.scraper import BlueskyScraper
-from src.services.scrapers.weibo.scraper import WeiboScraper
-from src.services.scrapers.general.scraper import GeneralScraper
-from src.config import (
+from fastfetchbot_shared.services.scrapers.bluesky.scraper import BlueskyScraper
+from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboScraper
+from fastfetchbot_shared.services.scrapers.general.scraper import GeneralScraper
+from fastfetchbot_shared.services.scrapers.config import (
     BLUESKY_USERNAME, BLUESKY_PASSWORD
 )
 

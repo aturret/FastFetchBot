@@ -10,7 +10,7 @@ from src.services.celery_client import celery_app
 from src.config import DOWNLOAD_VIDEO_TIMEOUT
 from fastfetchbot_shared.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
 from fastfetchbot_shared.utils.logger import logger
-from src.config import JINJA2_ENV
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
 
 video_info_template = JINJA2_ENV.get_template("video_info.jinja2")
 
