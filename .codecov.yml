@@ -1,0 +1,24 @@
+coverage:
+  status:
+    # 1. Project Coverage: Enforces rules on the entire codebase
+    project:
+      default:
+        target: auto     # 'auto' means the PR cannot decrease the overall coverage
+        threshold: 1%    # Allows a 1% drop margin for acceptable fluctuations
+
+    # 2. Patch Coverage: Enforces rules ONLY on the lines of code modified in the PR
+    patch:
+      default:
+        target: 80%      # The specific requirement you asked for: 80% on new code
+
+# 3. Ignore paths: Exclude test files and configs from coverage calculations
+ignore:
+  - "tests/**/*"
+  - ".github/**/*"
+  - "**/__init__.py"
+
+# Optional: Configure the Codecov PR comment bot
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false # Always post a comment, even if coverage didn't change
