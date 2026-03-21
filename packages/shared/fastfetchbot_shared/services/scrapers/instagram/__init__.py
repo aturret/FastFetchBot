@@ -10,7 +10,7 @@ from fastfetchbot_shared.utils.network import get_response
 from fastfetchbot_shared.utils.parse import get_html_text_length
 from fastfetchbot_shared.utils.logger import logger
 from .config import API_HEADERS_LIST, ALL_SCRAPERS
-from src.config import X_RAPIDAPI_KEY
+from fastfetchbot_shared.services.scrapers.config import X_RAPIDAPI_KEY
 
 
 class Instagram(MetadataItem):

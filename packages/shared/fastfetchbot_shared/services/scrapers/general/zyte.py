@@ -1,8 +1,8 @@
 from zyte_api import AsyncZyteAPI
 
-from src.config import ZYTE_API_KEY
-from src.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
-from src.services.scrapers.scraper import DataProcessor
+from fastfetchbot_shared.services.scrapers.config import ZYTE_API_KEY
+from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
+from fastfetchbot_shared.services.scrapers.scraper import DataProcessor
 from fastfetchbot_shared.utils.logger import logger
 
 

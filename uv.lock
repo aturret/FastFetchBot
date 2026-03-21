@@ -770,55 +770,33 @@ version = "0.1.0"
 source = { virtual = "apps/api" }
 dependencies = [
     { name = "aioboto3" },
-    { name = "asyncpraw" },
-    { name = "atproto" },
     { name = "babel" },
     { name = "beanie" },
     { name = "celery", extra = ["redis"] },
     { name = "fastapi" },
-    { name = "fastfetchbot-shared" },
-    { name = "firecrawl-py" },
+    { name = "fastfetchbot-shared", extra = ["scrapers"] },
     { name = "gunicorn" },
-    { name = "html-telegraph-poster-v2" },
-    { name = "jinja2" },
-    { name = "jmespath" },
-    { name = "markdown" },
-    { name = "openai" },
     { name = "pillow" },
     { name = "pydub" },
     { name = "sentry-sdk", extra = ["fastapi"] },
-    { name = "tenacity" },
-    { name = "twitter-api-client-v2" },
     { name = "uvicorn" },
     { name = "xhtml2pdf" },
-    { name = "zyte-api" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.4.0" },
-    { name = "asyncpraw", specifier = ">=7.8.1" },
-    { name = "atproto", specifier = ">=0.0.61" },
     { name = "babel", specifier = ">=2.17.0" },
     { name = "beanie", specifier = ">=1.29.0" },
     { name = "celery", extras = ["redis"], specifier = ">=5.4.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
-    { name = "fastfetchbot-shared", editable = "packages/shared" },
-    { name = "firecrawl-py", specifier = ">=4.13.0" },
+    { name = "fastfetchbot-shared", extras = ["scrapers"], editable = "packages/shared" },
     { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "html-telegraph-poster-v2", specifier = ">=0.2.5" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "jmespath", specifier = ">=1.0.1" },
-    { name = "markdown", specifier = ">=3.8" },
-    { name = "openai", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.27.0" },
-    { name = "tenacity", specifier = ">=9.1.2" },
-    { name = "twitter-api-client-v2", specifier = ">=0.1.1" },
     { name = "uvicorn", specifier = ">=0.34.2" },
     { name = "xhtml2pdf", specifier = ">=0.2.17" },
-    { name = "zyte-api", specifier = ">=0.8.1" },
 ]
 
 [[package]]
@@ -868,6 +846,19 @@ migrate = [
 postgres = [
     { name = "asyncpg" },
 ]
+scrapers = [
+    { name = "asyncpraw" },
+    { name = "atproto" },
+    { name = "firecrawl-py" },
+    { name = "html-telegraph-poster-v2" },
+    { name = "jinja2" },
+    { name = "jmespath" },
+    { name = "markdown" },
+    { name = "openai" },
+    { name = "tenacity" },
+    { name = "twitter-api-client-v2" },
+    { name = "zyte-api" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -875,18 +866,29 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.17.0" },
     { name = "alembic", marker = "extra == 'migrate'", specifier = ">=1.15.0" },
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.30.0" },
+    { name = "asyncpraw", marker = "extra == 'scrapers'", specifier = ">=7.8.1" },
+    { name = "atproto", marker = "extra == 'scrapers'", specifier = ">=0.0.61" },
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "fake-useragent", specifier = ">=1.5.1" },
+    { name = "firecrawl-py", marker = "extra == 'scrapers'", specifier = ">=4.13.0" },
+    { name = "html-telegraph-poster-v2", marker = "extra == 'scrapers'", specifier = ">=0.2.5" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "jinja2", marker = "extra == 'scrapers'", specifier = ">=3.1.6" },
+    { name = "jmespath", marker = "extra == 'scrapers'", specifier = ">=1.0.1" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "lxml", specifier = ">=5.4.0" },
+    { name = "markdown", marker = "extra == 'scrapers'", specifier = ">=3.8" },
+    { name = "openai", marker = "extra == 'scrapers'", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "playwright", specifier = ">=1.52.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
+    { name = "tenacity", marker = "extra == 'scrapers'", specifier = ">=9.1.2" },
+    { name = "twitter-api-client-v2", marker = "extra == 'scrapers'", specifier = ">=0.1.1" },
+    { name = "zyte-api", marker = "extra == 'scrapers'", specifier = ">=0.8.1" },
 ]
-provides-extras = ["postgres", "migrate"]
+provides-extras = ["postgres", "migrate", "scrapers"]
 
 [[package]]
 name = "fastfetchbot-telegram-bot"

@@ -1,10 +1,10 @@
 from typing import Optional
 
-from src.config import GENERAL_SCRAPING_API
-from src.services.scrapers.scraper import Scraper, DataProcessor
-from src.services.scrapers.general.base import BaseGeneralScraper
-from src.services.scrapers.general.firecrawl import FirecrawlScraper
-from src.services.scrapers.general.zyte import ZyteScraper
+from fastfetchbot_shared.services.scrapers.config import GENERAL_SCRAPING_API
+from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
+from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralScraper
+from fastfetchbot_shared.services.scrapers.general.firecrawl import FirecrawlScraper
+from fastfetchbot_shared.services.scrapers.general.zyte import ZyteScraper
 from fastfetchbot_shared.utils.logger import logger
 
 

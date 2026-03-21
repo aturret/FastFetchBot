@@ -13,7 +13,6 @@ FastFetchBot/
 ├── apps/api/                 # FastAPI server: scrapers, storage, routing
 ├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
 ├── apps/worker/              # Celery worker: async file operations (video, PDF, audio)
-├── app/                      # Legacy re-export wrappers (backward compatibility)
 ├── pyproject.toml            # Root workspace configuration
 └── uv.lock                   # Lockfile for the entire workspace
 ```
@@ -53,10 +52,6 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 - **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
 - **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py`, `telegraph_item.py`, `url_metadata.py`
 - **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`
-
-### Legacy `app/` Directory
-
-Re-export wrappers providing backward compatibility. Actual code lives in `apps/api/src/` and `packages/shared/`. For example, `app/config.py` imports `get_env_bool` from `fastfetchbot_shared.utils.parse`.
 
 ## Development Commands
 
@@ -142,8 +137,6 @@ GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images o
 - `ghcr.io/aturret/fastfetchbot-api:latest`
 - `ghcr.io/aturret/fastfetchbot-tgbot:latest`
 - `ghcr.io/aturret/fastfetchbot-worker:latest`
-
-Deployment is triggered via Watchtower webhook after builds complete. Include `[github-action]` in a commit message to skip the build.
 
 ## Development Guidelines
 

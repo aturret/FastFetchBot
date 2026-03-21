@@ -7,7 +7,7 @@ from fastfetchbot_shared.utils.parse import (
     get_html_text_length,
     wrap_text_into_html,
 )
-from src.config import JINJA2_ENV, XHS_COOKIE_STRING, XHS_SIGN_SERVER_URL
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, XHS_COOKIE_STRING, XHS_SIGN_SERVER_URL
 from .adaptar import XhsSinglePostAdapter
 
 environment = JINJA2_ENV

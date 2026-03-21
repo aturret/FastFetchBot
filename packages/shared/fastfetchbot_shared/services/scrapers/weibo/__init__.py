@@ -18,7 +18,7 @@ from .config import (
     WEIBO_HOST,
     WEIBO_TEXT_LIMIT,
 )
-from src.config import JINJA2_ENV, WEIBO_COOKIES
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, WEIBO_COOKIES
 from fastfetchbot_shared.utils.logger import logger
 
 short_text_template = JINJA2_ENV.get_template("weibo_short_text.jinja2")

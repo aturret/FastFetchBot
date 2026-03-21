@@ -7,10 +7,10 @@ from bs4 import BeautifulSoup, Doctype
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 
-from src.config import OPENAI_API_KEY
+from fastfetchbot_shared.services.scrapers.config import OPENAI_API_KEY
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
-from src.services.scrapers.scraper import Scraper, DataProcessor
-from src.services.scrapers.general import GeneralItem
+from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
+from fastfetchbot_shared.services.scrapers.general import GeneralItem
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
 from fastfetchbot_shared.utils.logger import logger
 

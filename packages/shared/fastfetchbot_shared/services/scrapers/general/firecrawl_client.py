@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from firecrawl import AsyncFirecrawl
 
-from src.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY
+from fastfetchbot_shared.services.scrapers.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY
 
 
 @dataclass(frozen=True)
