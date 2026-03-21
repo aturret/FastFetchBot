@@ -8,9 +8,24 @@ FastFetchBot is a social media content fetching service built as a **UV workspac
 
 ```
 FastFetchBot/
-├── packages/shared/          # fastfetchbot-shared: common models, utilities, logger
+├── packages/shared/          # fastfetchbot-shared: scrapers, telegraph, models, utilities
+│   └── fastfetchbot_shared/
+│       ├── config.py         # URL patterns, shared env vars
+│       ├── models/           # UrlMetadata, MetadataItem, NamedBytesIO, etc.
+│       ├── utils/            # parse, image, logger, network, cookie
+│       └── services/
+│           ├── scrapers/     # All platform scrapers + ScraperManager + InfoExtractService
+│           │   ├── config.py # ALL scraper env vars (platform creds, Firecrawl, Zyte, Telegraph tokens)
+│           │   ├── common.py # Core InfoExtractService (scraping only, no API dependencies)
+│           │   ├── scraper_manager.py
+│           │   ├── scraper.py          # Base Scraper + DataProcessor ABCs
+│           │   ├── templates/          # 13 Jinja2 templates for platform output formatting
+│           │   ├── twitter/  bluesky/  weibo/  xiaohongshu/  reddit/
+│           │   ├── instagram/  zhihu/  douban/  threads/  wechat/
+│           │   └── general/            # Firecrawl + Zyte generic scraping
+│           └── telegraph/    # Telegraph content publishing
 ├── packages/file-export/     # fastfetchbot-file-export: video download, PDF export, transcription
-├── apps/api/                 # FastAPI server: scrapers, storage, routing
+├── apps/api/                 # FastAPI server: enriched service, routing, storage
 ├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
 ├── apps/worker/              # Celery worker: async file operations (video, PDF, audio)
 ├── pyproject.toml            # Root workspace configuration
@@ -30,13 +45,12 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 ### API Server (`apps/api/src/`)
 
 - **`main.py`** — FastAPI app setup, Sentry integration, lifecycle management
-- **`config.py`** — Environment variable handling, platform credentials
+- **`config.py`** — API-only env vars: BASE_URL, API_KEY, DATABASE_ON, MongoDB, Celery, AWS S3, Inoreader, locale/i18n. **No scraper credentials** (those live in `fastfetchbot_shared.services.scrapers.config`)
 - **`routers/`** — `scraper.py` (generic endpoint), `scraper_routers.py` (platform-specific), `inoreader.py`, `wechat.py`
-- **`services/scrapers/`** — `scraper_manager.py` orchestrates platform scrapers (twitter, weibo, bluesky, xiaohongshu, reddit, instagram, zhihu, douban, threads, wechat, general); the Xiaohongshu scraper uses `xiaohongshu/adaptar.py` (`XhsSinglePostAdapter`) with an external sign server instead of the old Playwright-based crawler
+- **`services/scrapers/common.py`** — `InfoExtractService` (enriched): extends core `InfoExtractService` from shared with Telegraph publishing, PDF export, DB storage, and video download (youtube/bilibili)
 - **`services/file_export/`** — PDF generation, audio transcription (OpenAI), video download
 - **`services/amazon/s3.py`** — S3 storage integration
-- **`services/telegraph/`** — Telegraph content publishing
-- **`templates/`** — Jinja2 templates for platform-specific output formatting
+- **`services/telegraph/`** — Re-export wrapper: `from fastfetchbot_shared.services.telegraph import Telegraph`
 
 ### Telegram Bot (`apps/telegram-bot/core/`)
 
@@ -51,7 +65,22 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 
 - **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
 - **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py`, `telegraph_item.py`, `url_metadata.py`
-- **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`
+- **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`, `cookie.py`
+- **`services/scrapers/`** — All platform scrapers, fully decoupled from FastAPI:
+  - **`config.py`** — All scraper env vars: platform credentials (Twitter, Bluesky, Weibo, XHS, Zhihu, Reddit, Instagram), Firecrawl/Zyte config, OpenAI key, Telegraph tokens, `JINJA2_ENV`, cookie file loading. Configurable `CONF_DIR` for cookie/config files
+  - **`common.py`** — Core `InfoExtractService`: routes URLs to the correct scraper, returns raw metadata. No Telegraph/PDF/DB dependencies
+  - **`scraper.py`** — Base `Scraper` and `DataProcessor` abstract classes
+  - **`scraper_manager.py`** — `ScraperManager` with lazy initialization for bluesky, weibo, and general scrapers
+  - **`templates/`** — 13 Jinja2 templates for platform-specific output formatting (bundled via `__file__`-relative paths)
+  - **Platform modules**: `twitter/`, `bluesky/`, `weibo/`, `xiaohongshu/`, `reddit/`, `instagram/`, `zhihu/`, `douban/`, `threads/`, `wechat/`, `general/` (Firecrawl + Zyte)
+- **`services/telegraph/`** — Telegraph content publishing (creates telegra.ph pages from scraped content)
+
+The shared scrapers library can be used standalone without the API server:
+```python
+from fastfetchbot_shared.services.scrapers import InfoExtractService, ScraperManager
+```
+
+Optional dependencies are grouped under `fastfetchbot-shared[scrapers]` (Jinja2, atproto, asyncpraw, firecrawl-py, etc.).
 
 ## Development Commands
 
@@ -141,16 +170,20 @@ GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images o
 ## Development Guidelines
 
 ### Adding a New Platform Scraper
-1. Create scraper module in `apps/api/src/services/scrapers/<platform>/`
-2. Implement scraper class following existing patterns
-3. Add platform-specific router in `apps/api/src/routers/`
-4. Register the scraper in `ScraperManager`
-5. Add configuration variables in `apps/api/src/config.py`
-6. Create tests in `tests/cases/`
+1. Create scraper module in `packages/shared/fastfetchbot_shared/services/scrapers/<platform>/`
+2. Implement scraper class following existing patterns (extend `Scraper`/`DataProcessor` from `scraper.py`)
+3. Add platform credentials to `packages/shared/fastfetchbot_shared/services/scrapers/config.py`
+4. Register the scraper in `InfoExtractService.service_classes` (in `common.py`) or `ScraperManager` (for scrapers needing lazy init)
+5. Add Jinja2 templates to `packages/shared/fastfetchbot_shared/services/scrapers/templates/`
+6. Add platform-specific router in `apps/api/src/routers/` (if API endpoints are needed)
+7. Add any new pip dependencies to `packages/shared/pyproject.toml` under `[project.optional-dependencies] scrapers`
 
 ### Key Conventions
-- Shared models and utilities go in `packages/shared/fastfetchbot_shared/`
-- API-specific code goes in `apps/api/src/`
+- **Scrapers, templates, and Telegraph live in `packages/shared/`** — they are framework-agnostic and reusable
+- Scraper config (platform credentials, Firecrawl/Zyte settings) lives in `fastfetchbot_shared.services.scrapers.config`, **not** in `apps/api/src/config.py`
+- API-only config (BASE_URL, MongoDB, Celery, AWS, Inoreader) stays in `apps/api/src/config.py`
+- The API's `InfoExtractService` (in `apps/api/src/services/scrapers/common.py`) extends the shared core to add Telegraph, PDF, DB, and video enrichment
+- API `services/telegraph/` is a re-export wrapper — the real implementation is in shared
 - Telegram bot code goes in `apps/telegram-bot/core/`
 - The bot communicates with the API only via HTTP — no direct imports of API code
 - Jinja2 templates for output formatting, with i18n support via Babel
