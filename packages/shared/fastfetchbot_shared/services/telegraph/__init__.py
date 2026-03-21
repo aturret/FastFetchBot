@@ -70,5 +70,5 @@ class Telegraph(TelegraphItem):
             telegraph_url = telegraph_post["url"]
             return telegraph_url
         except Exception as e:
-            traceback.print_exc()
+            logger.error("Telegraph upload failed", exc_info=e)
             return ""
