@@ -28,6 +28,7 @@ RUN apt-get update \
         ca-certificates \
         build-essential \
         libffi-dev \
+        libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # copy workspace files for dependency resolution
