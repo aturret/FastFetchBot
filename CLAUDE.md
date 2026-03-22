@@ -162,10 +162,11 @@ See `template.env` for a complete reference. Key variables:
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images on push to `main`:
+GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all four images on push to `main`:
 - `ghcr.io/aturret/fastfetchbot-api:latest`
 - `ghcr.io/aturret/fastfetchbot-tgbot:latest`
 - `ghcr.io/aturret/fastfetchbot-worker:latest`
+- `ghcr.io/aturret/fastfetchbot-async-worker:latest`
 
 ## Development Guidelines
 

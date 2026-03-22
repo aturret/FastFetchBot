@@ -29,6 +29,9 @@ jobs:
           - service: worker
             dockerfile: apps/worker/Dockerfile
             image_suffix: worker
+          - service: async-worker
+            dockerfile: apps/async-worker/Dockerfile
+            image_suffix: async-worker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
