@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with three microservices: a FastAPI server (API), a Telegram Bot client, and a Celery worker for file operations. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
+FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with four microservices: a FastAPI server (API), a Telegram Bot client, a Celery worker for file operations, and an ARQ-based async worker for off-path scraping. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
 
 ## Architecture
 
@@ -23,11 +23,13 @@ FastFetchBot/
 │           │   ├── twitter/  bluesky/  weibo/  xiaohongshu/  reddit/
 │           │   ├── instagram/  zhihu/  douban/  threads/  wechat/
 │           │   └── general/            # Firecrawl + Zyte generic scraping
+│           ├── file_export/  # Async Celery task wrappers (PDF, video, audio transcription)
 │           └── telegraph/    # Telegraph content publishing
-├── packages/file-export/     # fastfetchbot-file-export: video download, PDF export, transcription
+├── packages/file-export/     # fastfetchbot-file-export: synchronous Celery worker jobs (yt-dlp, WeasyPrint, OpenAI)
 ├── apps/api/                 # FastAPI server: enriched service, routing, storage
 ├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
-├── apps/worker/              # Celery worker: async file operations (video, PDF, audio)
+├── apps/worker/              # Celery worker: sync file operations (video, PDF, audio)
+├── apps/async-worker/        # ARQ async worker: off-path scraping + enrichment
 ├── pyproject.toml            # Root workspace configuration
 └── uv.lock                   # Lockfile for the entire workspace
 ```
@@ -37,6 +39,7 @@ FastFetchBot/
 | **API Server** (`apps/api/src/`) | `fastfetchbot-api` | 10450 | `gunicorn -k uvicorn.workers.UvicornWorker src.main:app --preload` |
 | **Telegram Bot** (`apps/telegram-bot/core/`) | `fastfetchbot-telegram-bot` | 10451 | `python -m core.main` |
 | **Worker** (`apps/worker/worker_core/`) | `fastfetchbot-worker` | — | `celery -A worker_core.main:app worker --loglevel=info --concurrency=2` |
+| **Async Worker** (`apps/async-worker/async_worker/`) | `fastfetchbot-async-worker` | — | `arq async_worker.main.WorkerSettings` |
 | **Shared Library** (`packages/shared/fastfetchbot_shared/`) | `fastfetchbot-shared` | — | — |
 | **File Export Library** (`packages/file-export/fastfetchbot_file_export/`) | `fastfetchbot-file-export` | — | — |
 
@@ -74,6 +77,7 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
   - **`templates/`** — 13 Jinja2 templates for platform-specific output formatting (bundled via `__file__`-relative paths)
   - **Platform modules**: `twitter/`, `bluesky/`, `weibo/`, `xiaohongshu/`, `reddit/`, `instagram/`, `zhihu/`, `douban/`, `threads/`, `wechat/`, `general/` (Firecrawl + Zyte)
 - **`services/telegraph/`** — Telegraph content publishing (creates telegra.ph pages from scraped content)
+- **`services/file_export/`** — Async Celery task wrappers for PDF export, video download, and audio transcription. These accept `celery_app` and `timeout` as constructor parameters (dependency injection) so any app can use them with its own Celery client
 
 The shared scrapers library can be used standalone without the API server:
 ```python
@@ -179,6 +183,8 @@ GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all three images o
 7. Add any new pip dependencies to `packages/shared/pyproject.toml` under `[project.optional-dependencies] scrapers`
 
 ### Key Conventions
+- **`packages/shared/` (`fastfetchbot-shared`)** is for shared async logic — scrapers, templates, Telegraph, and async Celery task wrappers (file_export). Most code here is async and reusable across apps
+- **`packages/file-export/` (`fastfetchbot-file-export`)** is exclusively for synchronous Celery worker jobs — the heavy I/O operations that run inside the Celery worker process (yt-dlp video download, WeasyPrint PDF generation, OpenAI audio transcription). Apps never import this package directly; they use the async wrappers in `fastfetchbot_shared.services.file_export` which submit tasks to the Celery worker
 - **Scrapers, templates, and Telegraph live in `packages/shared/`** — they are framework-agnostic and reusable
 - Scraper config (platform credentials, Firecrawl/Zyte settings) lives in `fastfetchbot_shared.services.scrapers.config`, **not** in `apps/api/src/config.py`
 - API-only config (BASE_URL, MongoDB, Celery, AWS, Inoreader) stays in `apps/api/src/config.py`

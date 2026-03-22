@@ -100,7 +100,7 @@ class TestGetItemServiceClasses:
             result = await svc.get_item()
 
         mock_scraper_class.assert_called_once_with(
-            url="https://twitter.com/x/1", data={"some": "data"}
+            url="https://twitter.com/x/1", category="twitter", data={"some": "data"}
         )
         mock_scraper_instance.get_item.assert_awaited_once()
         assert result["title"] == "Twitter Post"

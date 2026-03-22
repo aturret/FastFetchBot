@@ -7,7 +7,6 @@ from telegram.ext import (
     CallbackContext,
 )
 
-from core import api_client
 from core.services.message_sender import send_item_message
 from core.services.user_settings import get_auto_fetch_in_dm
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
@@ -20,7 +19,64 @@ from core.config import (
     FILE_EXPORTER_ON,
     OPENAI_API_KEY,
     GENERAL_SCRAPING_ON,
+    SCRAPE_MODE,
 )
+
+
+async def _get_url_metadata(url: str, ban_list: list | None = None) -> dict:
+    """Resolve URL metadata via API or shared library depending on SCRAPE_MODE.
+
+    In API mode: calls the API server's /scraper/getUrlMetadata endpoint.
+    In queue mode: calls the shared library's get_url_metadata directly
+    (pure URL parsing, no network call needed).
+    """
+    if SCRAPE_MODE == "queue":
+        from fastfetchbot_shared.utils.parse import get_url_metadata as shared_get_url_metadata
+
+        url_metadata = await shared_get_url_metadata(url, ban_list=ban_list)
+        return url_metadata.to_dict()
+    else:
+        from core import api_client
+
+        return await api_client.get_url_metadata(url, ban_list=ban_list)
+
+
+async def _fetch_and_send(
+    url: str,
+    chat_id: int | str,
+    message_id: int | None = None,
+    source: str = "",
+    content_type: str = "",
+    message=None,
+    **kwargs,
+) -> None:
+    """Fetch an item via API or queue depending on SCRAPE_MODE.
+
+    Args:
+        url: The resolved URL to scrape.
+        chat_id: Target chat for the result.
+        message_id: Optional message ID for reply threading.
+        source: Pre-resolved source platform (e.g. "twitter").
+        content_type: Pre-resolved content type (e.g. "social_media").
+        message: Optional telegram Message for reply context.
+        **kwargs: Extra arguments passed to the scraper.
+    """
+    if SCRAPE_MODE == "queue":
+        from core import queue_client
+
+        await queue_client.enqueue_scrape(
+            url=url,
+            chat_id=chat_id,
+            message_id=message_id,
+            source=source,
+            content_type=content_type,
+            **kwargs,
+        )
+    else:
+        from core import api_client
+
+        metadata_item = await api_client.get_item(url=url, **kwargs)
+        await send_item_message(metadata_item, chat_id=chat_id, message=message)
 
 
 async def https_url_process(update: Update, context: CallbackContext) -> None:
@@ -41,7 +97,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
         process_message = await message.reply_text(
             text=f"Processing the {i + 1}th url...",
         )
-        url_metadata = await api_client.get_url_metadata(url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST)
+        url_metadata = await _get_url_metadata(url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST)
         if url_metadata["source"] == "banned":
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, the url is banned."
@@ -52,9 +108,11 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                 await process_message.edit_text(
                     text=f"Uncategorized url found. General webpage parser is on, Processing..."
                 )
-                metadata_item = await api_client.get_item(url=url_metadata["url"])
-                await send_item_message(
-                    metadata_item, chat_id=message.chat_id
+                await _fetch_and_send(
+                    url=url_metadata["url"],
+                    chat_id=message.chat_id,
+                    source=url_metadata.get("source", ""),
+                    content_type=url_metadata.get("content_type", ""),
                 )
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, no supported url found."
@@ -210,26 +268,32 @@ async def _auto_fetch_urls(message) -> None:
     """Auto-fetch all URLs in a DM message without showing action buttons."""
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
-        url_metadata = await api_client.get_url_metadata(
+        url_metadata = await _get_url_metadata(
             url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST
         )
         if url_metadata["source"] == "unknown" and GENERAL_SCRAPING_ON:
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )
         elif url_metadata["source"] == "unknown" or url_metadata["source"] == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             continue
         if url_metadata.get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )
         if url_metadata.get("source") in VIDEO_WEBSITE_PATTERNS.keys():
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )
 
 
@@ -237,24 +301,33 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
     message = update.message
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
-        url_metadata = await api_client.get_url_metadata(
+        url_metadata = await _get_url_metadata(
             url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
         )
         if url_metadata["source"] == "unknown" and GENERAL_SCRAPING_ON:
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id, message=message
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                message=message,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )
         elif url_metadata["source"] == "unknown" or url_metadata["source"] == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
             return
         if url_metadata.get("source") in SOCIAL_MEDIA_WEBSITE_PATTERNS.keys():
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id, message=message
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                message=message,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )
         if url_metadata.get("source") in VIDEO_WEBSITE_PATTERNS.keys():
-            metadata_item = await api_client.get_item(url=url_metadata["url"])
-            await send_item_message(
-                metadata_item, chat_id=message.chat_id, message=message
+            await _fetch_and_send(
+                url=url_metadata["url"],
+                chat_id=message.chat_id,
+                message=message,
+                source=url_metadata.get("source", ""),
+                content_type=url_metadata.get("content_type", ""),
             )

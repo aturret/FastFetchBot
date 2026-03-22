@@ -13,6 +13,7 @@ from core.services.message_sender import send_item_message
 from fastfetchbot_shared.utils.logger import logger
 from core.config import (
     TELEGRAM_CHANNEL_ID,
+    SCRAPE_MODE,
 )
 
 
@@ -57,24 +58,40 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
             chat_id = query.message.chat_id
         if data["type"] == "video":
             await query.answer("Video processing...")
-        replying_message = await query.message.reply_text(
-            text=f"Item processing...",
-        )
         extra_args = data["extra_args"] if "extra_args" in data else {}
-        metadata_item = await api_client.get_item(
-            url=data["url"], **extra_args
-        )
-        await replying_message.edit_text(
-            text=f"Item processed. Sending to the target...",
-        )
-        if data["type"] == "force":
-            metadata_item["message_type"] = MessageType.SHORT
-        await send_item_message(metadata_item, chat_id=chat_id)
-        if data["type"] == "channel":
-            await query.message.reply_text(
-                text=f"Item sent to the channel.",
+
+        if SCRAPE_MODE == "queue":
+            from core import queue_client
+
+            replying_message = await query.message.reply_text(
+                text=f"Item queued for processing...",
             )
-        await replying_message.delete()
+            await queue_client.enqueue_scrape(
+                url=data["url"],
+                chat_id=chat_id,
+                source=data.get("source", ""),
+                content_type=data.get("content_type", ""),
+                **extra_args,
+            )
+            await replying_message.delete()
+        else:
+            replying_message = await query.message.reply_text(
+                text=f"Item processing...",
+            )
+            metadata_item = await api_client.get_item(
+                url=data["url"], **extra_args
+            )
+            await replying_message.edit_text(
+                text=f"Item processed. Sending to the target...",
+            )
+            if data["type"] == "force":
+                metadata_item["message_type"] = MessageType.SHORT
+            await send_item_message(metadata_item, chat_id=chat_id)
+            if data["type"] == "channel":
+                await query.message.reply_text(
+                    text=f"Item sent to the channel.",
+                )
+            await replying_message.delete()
     await query.message.delete()
     context.drop_callback_data(query)
 

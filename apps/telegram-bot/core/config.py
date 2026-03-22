@@ -121,6 +121,14 @@ FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
 OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
 GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
 
+# Scrape mode: "api" (sync via API server) or "queue" (async via ARQ worker)
+SCRAPE_MODE = env.get("SCRAPE_MODE", "queue")
+
+# Redis URLs for queue mode
+ARQ_REDIS_URL = env.get("ARQ_REDIS_URL", "redis://localhost:6379/2")
+OUTBOX_REDIS_URL = env.get("OUTBOX_REDIS_URL", "redis://localhost:6379/3")
+OUTBOX_QUEUE_KEY = env.get("OUTBOX_QUEUE_KEY", "scrape:outbox")
+
 # Database configuration
 ITEM_DATABASE_ON = get_env_bool(env, "ITEM_DATABASE_ON", False)
 MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
