@@ -1,18 +1,13 @@
 [project]
-name = "fastfetchbot-telegram-bot"
+name = "fastfetchbot-async-worker"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastfetchbot-shared[postgres,migrate]",
-    "python-telegram-bot[callback-data,rate-limiter]>=21.11",
-    "starlette>=0.45.0",
-    "uvicorn>=0.34.2",
-    "httpx>=0.28.1",
-    "jinja2>=3.1.6",
-    "beanie>=1.29.0",
-    "aiofiles>=24.1.0",
+    "fastfetchbot-shared[scrapers]",
     "arq>=0.26.1",
     "redis[hiredis]>=5.0.0",
+    "celery[redis]>=5.4.0",
+    "beanie>=1.29.0",
 ]
 
 [build-system]
@@ -20,7 +15,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["core"]
+packages = ["async_worker"]
 
 [tool.uv]
 package = false

@@ -19,9 +19,20 @@ from fastfetchbot_shared.utils.logger import logger
 class InfoExtractService(object):
     """Core scraping service — routes URLs to the correct scraper and returns raw metadata.
 
-    This base class handles only scraping. Telegraph publishing, PDF export,
-    DB storage, and video download are handled by subclasses (e.g. in the API app).
+    This base class handles scraping for all platforms, including video sites
+    (YouTube, Bilibili) via the shared VideoDownloader. Telegraph publishing,
+    PDF export, and DB storage are handled by subclasses (e.g. in the API app).
+
+    For video platforms, callers must pass ``celery_app`` and optionally
+    ``timeout`` as keyword arguments so the VideoDownloader can submit Celery
+    tasks for yt-dlp operations.
     """
+
+    @staticmethod
+    def _get_video_downloader():
+        """Lazy import to avoid circular dependency (video_download → scrapers.config → scrapers → common)."""
+        from fastfetchbot_shared.services.file_export.video_download import VideoDownloader
+        return VideoDownloader
 
     service_classes: dict = {
         "twitter": twitter.Twitter,
@@ -58,6 +69,14 @@ class InfoExtractService(object):
     def category(self) -> str:
         return self.source
 
+    def _resolve_scraper_class(self, category: str):
+        """Look up scraper class, falling back to lazy VideoDownloader for video platforms."""
+        if category in self.service_classes:
+            return self.service_classes[category]
+        if category in ("youtube", "bilibili"):
+            return self._get_video_downloader()
+        raise KeyError(f"No scraper registered for category: {category}")
+
     async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
         if not metadata_item:
             try:
@@ -66,8 +85,9 @@ class InfoExtractService(object):
                     item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
                     metadata_item = await item_data_processor.get_item()
                 else:
-                    scraper_item = self.service_classes[self.category](
-                        url=self.url, data=self.data, **self.kwargs
+                    scraper_cls = self._resolve_scraper_class(self.category)
+                    scraper_item = scraper_cls(
+                        url=self.url, category=self.category, data=self.data, **self.kwargs
                     )
                     metadata_item = await scraper_item.get_item()
             except Exception as e:

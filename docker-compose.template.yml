@@ -33,11 +33,15 @@ services:
       - .env
     environment:
       - API_SERVER_URL=http://api:10450
+      - SCRAPE_MODE=queue
+      - ARQ_REDIS_URL=redis://redis:6379/2
+      - OUTBOX_REDIS_URL=redis://redis:6379/3
     ports:
       - 10451:10451
     depends_on:
       - api
       - telegram-bot-api
+      - redis
       # - postgres  # Uncomment when using PostgreSQL for user settings
 
   telegram-bot-api:
@@ -81,6 +85,25 @@ services:
       - redis_data:/data
     ports:
       - 6379:6379
+
+  async-worker:
+    image: ghcr.io/aturret/fastfetchbot-async-worker:latest
+    # build:
+    #   context: .
+    #   dockerfile: apps/async-worker/Dockerfile
+    container_name: fastfetchbot-async-worker
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - ARQ_REDIS_URL=redis://redis:6379/2
+      - OUTBOX_REDIS_URL=redis://redis:6379/3
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./conf:/app/conf
+    depends_on:
+      - redis
 
   worker:
     image: ghcr.io/aturret/fastfetchbot-worker:latest

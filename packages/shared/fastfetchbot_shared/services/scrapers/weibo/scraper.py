@@ -217,14 +217,14 @@ class WeiboDataProcessor(DataProcessor):
         weibo_item_data["content"] = content
         # resolve retweet
         if weibo_info.get("retweeted_status"):
-            retweeted_weibo_id = (
+            retweeted_weibo_id = str((
                     weibo_info["retweeted_status"].get("id")
                     or weibo_info["retweeted_status"].get("mid")
                     or weibo_info["retweeted_status"].get("idstr")
-            )
+            ))
             retweeted_weibo_item = WeiboDataProcessor(url=WEIBO_WEB_HOST + retweeted_weibo_id)
             retweeted_info = await retweeted_weibo_item.get_item()
-            weibo_item_data["text"] += retweeted_info["text"]
+            weibo_item_data["text"] += "\n<blockquote>" + retweeted_info["text"] + "</blockquote>"
             weibo_item_data["content"] += "<hr>" + retweeted_info["content"]
             weibo_item_data["media_files"] += retweeted_info["media_files"]
         # type check

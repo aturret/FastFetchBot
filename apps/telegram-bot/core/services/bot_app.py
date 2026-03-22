@@ -30,6 +30,7 @@ from core.config import (
     TELEBOT_READ_TIMEOUT,
     TELEBOT_WRITE_TIMEOUT,
     TELEBOT_MAX_RETRY,
+    SCRAPE_MODE,
 )
 
 from core.handlers.url_process import https_url_process, https_url_auto_process
@@ -130,6 +131,15 @@ async def startup() -> None:
             BotCommand("settings", "Customize bot behavior"),
         ]
     )
+    # Initialize queue mode if enabled
+    if SCRAPE_MODE == "queue":
+        from core import queue_client
+        from core.services import outbox_consumer
+
+        await queue_client.init()
+        await outbox_consumer.start()
+        logger.info("Queue mode enabled: ARQ client and outbox consumer started")
+
     if application.post_init:
         await application.post_init()
     await application.start()
@@ -178,6 +188,15 @@ async def show_bot_info() -> None:
 
 
 async def shutdown() -> None:
+    # Shut down queue mode resources
+    if SCRAPE_MODE == "queue":
+        from core import queue_client
+        from core.services import outbox_consumer
+
+        await outbox_consumer.stop()
+        await queue_client.close()
+        logger.info("Queue mode resources shut down")
+
     if application.updater and application.updater.running:
         await application.updater.stop()
     await application.stop()
