@@ -13,7 +13,6 @@ from fastfetchbot_shared.services.scrapers import (
     threads,
 )
 from fastfetchbot_shared.services.scrapers.scraper_manager import ScraperManager
-from fastfetchbot_shared.services.file_export.video_download import VideoDownloader
 from fastfetchbot_shared.utils.logger import logger
 
 
@@ -29,6 +28,12 @@ class InfoExtractService(object):
     tasks for yt-dlp operations.
     """
 
+    @staticmethod
+    def _get_video_downloader():
+        """Lazy import to avoid circular dependency (video_download → scrapers.config → scrapers → common)."""
+        from fastfetchbot_shared.services.file_export.video_download import VideoDownloader
+        return VideoDownloader
+
     service_classes: dict = {
         "twitter": twitter.Twitter,
         "threads": threads.Threads,
@@ -39,8 +44,6 @@ class InfoExtractService(object):
         "douban": douban.Douban,
         "zhihu": zhihu.Zhihu,
         "xiaohongshu": xiaohongshu.Xiaohongshu,
-        "youtube": VideoDownloader,
-        "bilibili": VideoDownloader,
     }
 
     def __init__(
@@ -66,6 +69,14 @@ class InfoExtractService(object):
     def category(self) -> str:
         return self.source
 
+    def _resolve_scraper_class(self, category: str):
+        """Look up scraper class, falling back to lazy VideoDownloader for video platforms."""
+        if category in self.service_classes:
+            return self.service_classes[category]
+        if category in ("youtube", "bilibili"):
+            return self._get_video_downloader()
+        raise KeyError(f"No scraper registered for category: {category}")
+
     async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
         if not metadata_item:
             try:
@@ -74,7 +85,8 @@ class InfoExtractService(object):
                     item_data_processor = await ScraperManager.scrapers[self.category].get_processor_by_url(url=self.url)
                     metadata_item = await item_data_processor.get_item()
                 else:
-                    scraper_item = self.service_classes[self.category](
+                    scraper_cls = self._resolve_scraper_class(self.category)
+                    scraper_item = scraper_cls(
                         url=self.url, category=self.category, data=self.data, **self.kwargs
                     )
                     metadata_item = await scraper_item.get_item()
