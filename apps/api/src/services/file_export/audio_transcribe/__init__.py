@@ -1,29 +1,16 @@
-import asyncio
+"""API-layer audio transcription — wraps the shared AudioTranscribe with API config."""
 
-from src.config import DOWNLOAD_VIDEO_TIMEOUT
+from fastfetchbot_shared.services.file_export.audio_transcribe import AudioTranscribe as BaseAudioTranscribe
 from src.services.celery_client import celery_app
-from fastfetchbot_shared.utils.logger import logger
+from src.config import DOWNLOAD_VIDEO_TIMEOUT
 
 
-class AudioTranscribe:
+class AudioTranscribe(BaseAudioTranscribe):
+    """API AudioTranscribe that injects the API's Celery app and timeout."""
+
     def __init__(self, audio_file: str):
-        self.audio_file = audio_file
-
-    async def transcribe(self):
-        return await self._get_audio_text(self.audio_file)
-
-    @staticmethod
-    async def _get_audio_text(audio_file: str):
-        logger.info(f"submitting transcribe task: {audio_file}")
-        result = celery_app.send_task("file_export.transcribe", kwargs={
-            "audio_file": audio_file,
-        })
-        try:
-            response = await asyncio.to_thread(result.get, timeout=int(DOWNLOAD_VIDEO_TIMEOUT))
-            return response["transcript"]
-        except Exception:
-            logger.exception(
-                f"file_export.transcribe task failed: audio_file={audio_file}, "
-                f"timeout={DOWNLOAD_VIDEO_TIMEOUT}"
-            )
-            raise
+        super().__init__(
+            audio_file=audio_file,
+            celery_app=celery_app,
+            timeout=DOWNLOAD_VIDEO_TIMEOUT,
+        )

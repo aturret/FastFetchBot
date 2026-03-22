@@ -13,14 +13,20 @@ from fastfetchbot_shared.services.scrapers import (
     threads,
 )
 from fastfetchbot_shared.services.scrapers.scraper_manager import ScraperManager
+from fastfetchbot_shared.services.file_export.video_download import VideoDownloader
 from fastfetchbot_shared.utils.logger import logger
 
 
 class InfoExtractService(object):
     """Core scraping service — routes URLs to the correct scraper and returns raw metadata.
 
-    This base class handles only scraping. Telegraph publishing, PDF export,
-    DB storage, and video download are handled by subclasses (e.g. in the API app).
+    This base class handles scraping for all platforms, including video sites
+    (YouTube, Bilibili) via the shared VideoDownloader. Telegraph publishing,
+    PDF export, and DB storage are handled by subclasses (e.g. in the API app).
+
+    For video platforms, callers must pass ``celery_app`` and optionally
+    ``timeout`` as keyword arguments so the VideoDownloader can submit Celery
+    tasks for yt-dlp operations.
     """
 
     service_classes: dict = {
@@ -33,6 +39,8 @@ class InfoExtractService(object):
         "douban": douban.Douban,
         "zhihu": zhihu.Zhihu,
         "xiaohongshu": xiaohongshu.Xiaohongshu,
+        "youtube": VideoDownloader,
+        "bilibili": VideoDownloader,
     }
 
     def __init__(
@@ -67,7 +75,7 @@ class InfoExtractService(object):
                     metadata_item = await item_data_processor.get_item()
                 else:
                     scraper_item = self.service_classes[self.category](
-                        url=self.url, data=self.data, **self.kwargs
+                        url=self.url, category=self.category, data=self.data, **self.kwargs
                     )
                     metadata_item = await scraper_item.get_item()
             except Exception as e:
