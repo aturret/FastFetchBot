@@ -47,6 +47,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
         libffi-dev \
+        libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY packages/ /app/packages/
