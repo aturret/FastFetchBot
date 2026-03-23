@@ -97,6 +97,7 @@ class TestConsumeLoopSuccessItem:
         payload = _make_payload(
             metadata_item={"title": "Test", "content": "hi"},
             chat_id=42,
+            message_id=99,
         )
         call_count = 0
 
@@ -125,6 +126,7 @@ class TestConsumeLoopSuccessItem:
             mock_send.assert_awaited_once()
             call_kwargs = mock_send.call_args.kwargs
             assert call_kwargs["chat_id"] == 42
+            assert call_kwargs["message_id"] == 99
 
 
 # ---------------------------------------------------------------------------

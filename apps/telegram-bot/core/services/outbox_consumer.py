@@ -47,7 +47,10 @@ async def _consume_loop() -> None:
                 metadata_item = payload.get("metadata_item")
                 if metadata_item and chat_id:
                     logger.info(f"[{job_id}] Delivering result to chat {chat_id}")
-                    await send_item_message(metadata_item, chat_id=chat_id)
+                    await send_item_message(
+                        metadata_item, chat_id=chat_id,
+                        message_id=payload.get("message_id"),
+                    )
                 else:
                     logger.warning(f"[{job_id}] Invalid payload: missing metadata_item or chat_id")
 
