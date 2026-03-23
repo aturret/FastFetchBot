@@ -52,16 +52,19 @@ def _get_application():
 
 
 async def send_item_message(
-        data: dict, chat_id: Union[int, str] = None, message: Message = None
+        data: dict, chat_id: Union[int, str] = None, message: Message = None,
+        message_id: int = None,
 ) -> None:
     """
     :param data: (dict) metadata of the item
     :param chat_id: (int) any chat id for sending
     :param message: (Message) any message to reply
+    :param message_id: (int) bare message ID for reply threading (used when Message object is unavailable, e.g. outbox consumer)
     :return:
     """
     application = _get_application()
     logger.debug(f"send_item_message: {data}, {chat_id}, {message}")
+    _reply_to = message.message_id if message else message_id
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
     if (
@@ -100,7 +103,7 @@ async def send_item_message(
                         parse_mode=ParseMode.HTML,
                         caption=caption_text,
                         write_timeout=TELEBOT_WRITE_TIMEOUT,
-                        reply_to_message_id=message.message_id if message else None,
+                        reply_to_message_id=_reply_to,
                     )
                     if sent_media_files_message is tuple:
                         reply_to_message_id = sent_media_files_message[0].message_id
@@ -112,7 +115,7 @@ async def send_item_message(
                     chat_id=chat_id,
                     text=caption_text,
                     parse_mode=ParseMode.HTML,
-                    reply_to_message_id=message.message_id if message else None,
+                    reply_to_message_id=_reply_to,
                     disable_web_page_preview=True
                     if data["message_type"] == MessageType.SHORT
                     else False,
@@ -161,7 +164,7 @@ async def send_item_message(
                 chat_id=chat_id,
                 text=caption_text,
                 parse_mode=ParseMode.HTML,
-                reply_to_message_id=message.message_id if message else None,
+                reply_to_message_id=_reply_to,
                 disable_web_page_preview=True
                 if data["message_type"] == "short"
                 else False,

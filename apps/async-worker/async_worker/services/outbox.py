@@ -22,9 +22,15 @@ async def push(
     metadata_item: dict | None = None,
     message_id: int | None = None,
     error: str | None = None,
+    bot_id: int | str | None = None,
 ) -> None:
-    """Push a result payload to the Redis outbox queue."""
+    """Push a result payload to the per-bot Redis outbox queue.
+
+    The queue key is ``{OUTBOX_QUEUE_KEY}:{bot_id}`` when *bot_id* is provided,
+    falling back to the plain ``OUTBOX_QUEUE_KEY`` for backward compatibility.
+    """
     r = await get_outbox_redis()
+    queue_key = f"{OUTBOX_QUEUE_KEY}:{bot_id}" if bot_id is not None else OUTBOX_QUEUE_KEY
     payload = {
         "job_id": job_id,
         "chat_id": chat_id,
@@ -32,8 +38,8 @@ async def push(
         "metadata_item": metadata_item,
         "error": error,
     }
-    await r.lpush(OUTBOX_QUEUE_KEY, json.dumps(payload, ensure_ascii=False))
-    logger.info(f"Pushed result to outbox: job_id={job_id}, error={error is not None}")
+    await r.lpush(queue_key, json.dumps(payload, ensure_ascii=False))
+    logger.info(f"Pushed result to outbox: job_id={job_id}, queue={queue_key}, error={error is not None}")
 
 
 async def close() -> None:

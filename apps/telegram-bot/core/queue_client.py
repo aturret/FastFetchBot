@@ -6,6 +6,7 @@ from core.config import ARQ_REDIS_URL
 from fastfetchbot_shared.utils.logger import logger
 
 _arq_redis: ArqRedis | None = None
+_bot_id: int | None = None
 
 
 def _parse_redis_url(url: str) -> RedisSettings:
@@ -21,20 +22,26 @@ def _parse_redis_url(url: str) -> RedisSettings:
     )
 
 
-async def init() -> None:
-    """Initialize the ARQ Redis connection pool."""
-    global _arq_redis
+async def init(bot_id: int) -> None:
+    """Initialize the ARQ Redis connection pool.
+
+    Args:
+        bot_id: Telegram bot user ID (from application.bot.id).
+    """
+    global _arq_redis, _bot_id
     if _arq_redis is None:
+        _bot_id = bot_id
         _arq_redis = await create_pool(_parse_redis_url(ARQ_REDIS_URL))
-        logger.info("ARQ queue client initialized")
+        logger.info(f"ARQ queue client initialized for bot_id={bot_id}")
 
 
 async def close() -> None:
     """Close the ARQ Redis connection pool."""
-    global _arq_redis
+    global _arq_redis, _bot_id
     if _arq_redis is not None:
         await _arq_redis.aclose()
         _arq_redis = None
+        _bot_id = None
         logger.info("ARQ queue client closed")
 
 
@@ -50,7 +57,7 @@ async def enqueue_scrape(
 
     Returns the job_id (UUID string).
     """
-    if _arq_redis is None:
+    if _arq_redis is None or _bot_id is None:
         raise RuntimeError("Queue client not initialized. Call queue_client.init() first.")
 
     job_id = str(uuid.uuid4())
@@ -62,6 +69,7 @@ async def enqueue_scrape(
         message_id=message_id,
         source=source,
         content_type=content_type,
+        bot_id=_bot_id,
         **kwargs,
     )
     logger.info(f"Enqueued scrape job: job_id={job_id}, url={url}")

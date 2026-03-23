@@ -17,6 +17,7 @@ async def scrape_and_enrich(
     message_id: int | None = None,
     source: str = "",
     content_type: str = "",
+    bot_id: int | str | None = None,
     store_telegraph: bool | None = None,
     store_document: bool | None = None,
     **kwargs,
@@ -31,6 +32,8 @@ async def scrape_and_enrich(
         message_id: Optional Telegram message ID for reply threading.
         source: URL source platform (e.g. "twitter", "weibo").
         content_type: Content type (e.g. "social_media", "video").
+        bot_id: Telegram bot user ID. Used to route results to the correct
+                bot's outbox queue (``scrape:outbox:{bot_id}``).
         store_telegraph: Override Telegraph publishing flag.
         store_document: Override PDF export flag.
         **kwargs: Extra arguments passed to the scraper.
@@ -64,12 +67,13 @@ async def scrape_and_enrich(
 
         logger.info(f"[{job_id}] Scrape completed successfully")
 
-        # Push to outbox
+        # Push to outbox (per-bot queue key)
         await outbox.push(
             job_id=job_id,
             chat_id=chat_id,
             message_id=message_id,
             metadata_item=metadata_item,
+            bot_id=bot_id,
         )
 
         return {"job_id": job_id, "status": "success"}
@@ -84,6 +88,7 @@ async def scrape_and_enrich(
             chat_id=chat_id,
             message_id=message_id,
             error=str(e),
+            bot_id=bot_id,
         )
 
         return {"job_id": job_id, "status": "error", "error": str(e)}
