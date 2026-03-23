@@ -67,7 +67,7 @@ async def _fetch_and_send(
         await queue_client.enqueue_scrape(
             url=url,
             chat_id=chat_id,
-            message_id=message_id or message.message_id if message else None,
+            message_id=message_id if message_id is not None else (message.message_id if message else None),
             source=source,
             content_type=content_type,
             **kwargs,
