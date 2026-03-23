@@ -69,7 +69,7 @@ class TestGetOutboxRedis:
 
 class TestPush:
     @pytest.mark.asyncio
-    async def test_push_metadata_item(self, mock_redis):
+    async def test_push_metadata_item_with_bot_id(self, mock_redis):
         with patch(
             "async_worker.services.outbox.aioredis.from_url",
             return_value=mock_redis,
@@ -81,6 +81,7 @@ class TestPush:
                 chat_id=12345,
                 metadata_item={"title": "Test", "content": "hi"},
                 message_id=99,
+                bot_id=123,
             )
 
         mock_redis.lpush.assert_awaited_once()
@@ -88,11 +89,31 @@ class TestPush:
         queue_key = args[0][0]
         payload = json.loads(args[0][1])
 
+        assert "123" in queue_key  # per-bot queue key
         assert payload["job_id"] == "j1"
         assert payload["chat_id"] == 12345
         assert payload["message_id"] == 99
         assert payload["metadata_item"] == {"title": "Test", "content": "hi"}
         assert payload["error"] is None
+
+    @pytest.mark.asyncio
+    async def test_push_without_bot_id_uses_base_key(self, mock_redis):
+        with patch(
+            "async_worker.services.outbox.aioredis.from_url",
+            return_value=mock_redis,
+        ):
+            from async_worker.services.outbox import push
+
+            await push(
+                job_id="j0",
+                chat_id=1,
+                metadata_item={"title": "Test"},
+            )
+
+        args = mock_redis.lpush.call_args
+        queue_key = args[0][0]
+        # Without bot_id, should use the plain OUTBOX_QUEUE_KEY
+        assert ":" not in queue_key.split("outbox")[-1]
 
     @pytest.mark.asyncio
     async def test_push_error(self, mock_redis):
@@ -106,6 +127,7 @@ class TestPush:
                 job_id="j2",
                 chat_id=42,
                 error="something broke",
+                bot_id=456,
             )
 
         payload = json.loads(mock_redis.lpush.call_args[0][1])

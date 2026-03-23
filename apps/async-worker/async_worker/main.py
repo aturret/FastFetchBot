@@ -29,6 +29,9 @@ def parse_redis_url(url: str) -> RedisSettings:
         port=parsed.port or 6379,
         database=int(parsed.path.lstrip("/") or 0),
         password=parsed.password,
+        conn_timeout=60,
+        conn_retries=5,
+        conn_retry_delay=1,
     )
 
 
@@ -44,5 +47,12 @@ class WorkerSettings:
     # Maximum concurrent jobs
     max_jobs = 10
 
+    # Retry jobs on transient failures (e.g. Redis timeout after task completes)
+    retry_jobs = True
+    max_tries = 3
+
     # Keep results for 1 hour
     keep_result = 3600
+
+    # Health-check the Redis connection every 30s to prevent stale connections
+    health_check_interval = 30

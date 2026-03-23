@@ -152,6 +152,7 @@ class TestScrapeAndEnrichSuccess:
             chat_id=42,
             job_id="j1",
             message_id=99,
+            bot_id=123,
         )
         mock_outbox.push.assert_awaited_once()
         call_kwargs = mock_outbox.push.call_args.kwargs
@@ -159,6 +160,22 @@ class TestScrapeAndEnrichSuccess:
         assert call_kwargs["chat_id"] == 42
         assert call_kwargs["message_id"] == 99
         assert call_kwargs["metadata_item"] is not None
+        assert call_kwargs["bot_id"] == 123
+
+    @pytest.mark.asyncio
+    async def test_pushes_result_without_bot_id(
+        self, ctx, mock_info_extract, mock_enrichment, mock_outbox
+    ):
+        """When bot_id is not provided, it should still be passed as None."""
+        await scrape_and_enrich(
+            ctx,
+            url="u",
+            chat_id=42,
+            job_id="j1",
+        )
+        mock_outbox.push.assert_awaited_once()
+        call_kwargs = mock_outbox.push.call_args.kwargs
+        assert call_kwargs["bot_id"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -177,13 +194,14 @@ class TestScrapeAndEnrichError:
             MockCls.return_value = instance
 
             result = await scrape_and_enrich(
-                ctx, url="u", chat_id=1, job_id="j-err"
+                ctx, url="u", chat_id=1, job_id="j-err", bot_id=789
             )
 
         assert result["status"] == "error"
         assert "scrape boom" in result["error"]
         mock_outbox.push.assert_awaited_once()
         assert mock_outbox.push.call_args.kwargs["error"] == "scrape boom"
+        assert mock_outbox.push.call_args.kwargs["bot_id"] == 789
 
     @pytest.mark.asyncio
     async def test_enrichment_failure_pushes_error(

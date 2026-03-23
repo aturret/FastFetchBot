@@ -19,9 +19,11 @@ def reset_module_state():
 
     oc._redis = None
     oc._consumer_task = None
+    oc._outbox_key = None
     yield
     oc._redis = None
     oc._consumer_task = None
+    oc._outbox_key = None
 
 
 @pytest.fixture
@@ -275,8 +277,9 @@ class TestStartStop:
                 "_consume_loop",
                 new_callable=AsyncMock,
             ):
-                await oc.start()
+                await oc.start(bot_id=123)
                 assert oc._consumer_task is not None
+                assert oc._outbox_key == "scrape:outbox:123"
 
                 # Clean up
                 await oc.stop()
@@ -289,7 +292,7 @@ class TestStartStop:
         fake_task = MagicMock()
         oc._consumer_task = fake_task
 
-        await oc.start()
+        await oc.start(bot_id=456)
         # Should still be the original fake task
         assert oc._consumer_task is fake_task
 
@@ -317,6 +320,7 @@ class TestStartStop:
         mock_redis.aclose.assert_awaited_once()
         assert oc._consumer_task is None
         assert oc._redis is None
+        assert oc._outbox_key is None
 
     @pytest.mark.asyncio
     async def test_stop_when_not_running(self):

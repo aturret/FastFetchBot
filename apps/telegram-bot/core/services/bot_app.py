@@ -136,9 +136,10 @@ async def startup() -> None:
         from core import queue_client
         from core.services import outbox_consumer
 
-        await queue_client.init()
-        await outbox_consumer.start()
-        logger.info("Queue mode enabled: ARQ client and outbox consumer started")
+        bot_id = application.bot.id
+        await queue_client.init(bot_id=bot_id)
+        await outbox_consumer.start(bot_id=bot_id)
+        logger.info(f"Queue mode enabled: ARQ client and outbox consumer started (bot_id={bot_id})")
 
     if application.post_init:
         await application.post_init()

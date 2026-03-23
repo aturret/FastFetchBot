@@ -64,6 +64,9 @@ class TestTelegraphEnrichment:
     @pytest.mark.asyncio
     async def test_skips_telegraph_when_disabled(self, base_metadata_item, mock_telegraph):
         MockTg, instance = mock_telegraph
+        # Set a non-empty telegraph_url to avoid triggering the PDF fallback path
+        # (which tries to import celery_client and connect to Redis)
+        base_metadata_item["telegraph_url"] = "https://existing.url"
         result = await enrich(
             base_metadata_item, store_telegraph=False, store_document=False
         )
@@ -173,6 +176,8 @@ class TestTitleStripping:
     @pytest.mark.asyncio
     async def test_strips_title_whitespace(self, base_metadata_item):
         base_metadata_item["title"] = "  padded title  "
+        # Set a non-empty telegraph_url to avoid triggering the PDF fallback path
+        base_metadata_item["telegraph_url"] = "https://existing.url"
         result = await enrich(
             base_metadata_item, store_telegraph=False, store_document=False
         )
