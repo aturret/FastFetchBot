@@ -8,7 +8,7 @@ from html_telegraph_poster_v2.async_poster import (
 )
 from html_telegraph_poster_v2.async_poster.utils import DocumentPreprocessor
 
-from fastfetchbot_shared.services.scrapers.config import TELEGRAPH_TOKEN_LIST
+from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.models.telegraph_item import TelegraphItem, from_str
 from fastfetchbot_shared.utils.logger import logger
 
@@ -50,12 +50,12 @@ class Telegraph(TelegraphItem):
                 await temp_html.upload_all_images()
                 self.content = temp_html.get_processed_html()
             logger.info("Telegraph: Uploading to telegraph...")
-            if not TELEGRAPH_TOKEN_LIST:
+            if not settings.telegraph_token_list:
                 await self.telegraph.create_api_token(
                     short_name=self.author[0:14], author_name=self.author
                 )
             else:
-                random_token = random.choice(TELEGRAPH_TOKEN_LIST)
+                random_token = random.choice(settings.telegraph_token_list)
                 await self.telegraph.set_token(random_token)
 
             telegraph_post = await self.telegraph.post(

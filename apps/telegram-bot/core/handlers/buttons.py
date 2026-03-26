@@ -11,10 +11,7 @@ from fastfetchbot_shared.models.metadata_item import MessageType
 from core import api_client
 from core.services.message_sender import send_item_message
 from fastfetchbot_shared.utils.logger import logger
-from core.config import (
-    TELEGRAM_CHANNEL_ID,
-    SCRAPE_MODE,
-)
+from core.config import settings, TELEGRAM_CHANNEL_ID
 
 
 async def buttons_process(update: Update, context: CallbackContext) -> None:
@@ -60,7 +57,7 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
             await query.answer("Video processing...")
         extra_args = data["extra_args"] if "extra_args" in data else {}
 
-        if SCRAPE_MODE == "queue":
+        if settings.SCRAPE_MODE == "queue":
             from core import queue_client
 
             replying_message = await query.message.reply_text(

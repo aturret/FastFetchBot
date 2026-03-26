@@ -10,12 +10,7 @@ from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, Me
 from fastfetchbot_shared.utils.network import HEADERS
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.parse import get_html_text_length
-from src.config import (
-    INOREADER_APP_ID,
-    INOREADER_APP_KEY,
-    INOREADER_EMAIL,
-    INOREADER_PASSWORD,
-)
+from src.config import settings
 
 INOREADER_CONTENT_URL = "https://www.inoreader.com/reader/api/0/stream/contents/"
 TAG_PATH = "user/-/label/"
@@ -144,8 +139,8 @@ class Inoreader(MetadataItem):
             resp = await client.post(
                 INOREADER_LOGIN_URL,
                 params={
-                    "Email": INOREADER_EMAIL,
-                    "Passwd": INOREADER_PASSWORD,
+                    "Email": settings.INOREADER_EMAIL,
+                    "Passwd": settings.INOREADER_PASSWORD,
                 },
             )
             authorization = resp.text.split("\n")[2].split("=")[1]
@@ -156,8 +151,8 @@ class Inoreader(MetadataItem):
             params = params or {}
             params.update(
                 {
-                    "AppId": INOREADER_APP_ID,
-                    "AppKey": INOREADER_APP_KEY,
+                    "AppId": settings.INOREADER_APP_ID,
+                    "AppKey": settings.INOREADER_APP_KEY,
                 }
             )
             resp = await client.get(

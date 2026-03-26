@@ -2,7 +2,7 @@ import uuid
 
 from arq.connections import ArqRedis, create_pool, RedisSettings
 
-from core.config import ARQ_REDIS_URL
+from core.config import settings
 from fastfetchbot_shared.utils.logger import logger
 
 _arq_redis: ArqRedis | None = None
@@ -31,7 +31,7 @@ async def init(bot_id: int) -> None:
     global _arq_redis, _bot_id
     if _arq_redis is None:
         _bot_id = bot_id
-        _arq_redis = await create_pool(_parse_redis_url(ARQ_REDIS_URL))
+        _arq_redis = await create_pool(_parse_redis_url(settings.ARQ_REDIS_URL))
         logger.info(f"ARQ queue client initialized for bot_id={bot_id}")
 
 

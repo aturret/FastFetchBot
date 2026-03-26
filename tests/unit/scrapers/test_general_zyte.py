@@ -31,7 +31,7 @@ class TestZyteDataProcessorInit:
 class TestZyteGetPageContent:
     @pytest.mark.asyncio
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.zyte.ZYTE_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.ZYTE_API_KEY",
         None,
     )
     async def test_no_api_key_raises(self):
@@ -40,7 +40,7 @@ class TestZyteGetPageContent:
             await proc._get_page_content()
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.zyte.ZYTE_API_KEY", "zyte-key")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.ZYTE_API_KEY", "zyte-key")
     @patch("fastfetchbot_shared.services.scrapers.general.zyte.AsyncZyteAPI")
     async def test_success(self, mock_zyte_cls):
         mock_client = AsyncMock()
@@ -69,7 +69,7 @@ class TestZyteGetPageContent:
             assert kw["og_image"] == "https://img.com/pic.jpg"
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.zyte.ZYTE_API_KEY", "zyte-key")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.ZYTE_API_KEY", "zyte-key")
     @patch("fastfetchbot_shared.services.scrapers.general.zyte.AsyncZyteAPI")
     async def test_exception_propagates(self, mock_zyte_cls):
         mock_client = AsyncMock()

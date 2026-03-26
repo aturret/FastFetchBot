@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from firecrawl import AsyncFirecrawl
 
-from fastfetchbot_shared.services.scrapers.config import FIRECRAWL_API_URL, FIRECRAWL_API_KEY
+from fastfetchbot_shared.services.scrapers.config import settings
 
 
 @dataclass(frozen=True)
@@ -49,8 +49,8 @@ class FirecrawlClient:
                 return cls._instance
 
             config = FirecrawlSettings(
-                api_url=FIRECRAWL_API_URL,
-                api_key=FIRECRAWL_API_KEY,
+                api_url=settings.FIRECRAWL_API_URL,
+                api_key=settings.FIRECRAWL_API_KEY,
             )
 
             cls._instance = cls(config)

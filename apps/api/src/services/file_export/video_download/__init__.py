@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from fastfetchbot_shared.services.file_export.video_download import VideoDownloader as BaseVideoDownloader
 from src.services.celery_client import celery_app
-from src.config import DOWNLOAD_VIDEO_TIMEOUT
+from src.config import settings
 
 
 class VideoDownloader(BaseVideoDownloader):
@@ -25,7 +25,7 @@ class VideoDownloader(BaseVideoDownloader):
             url=url,
             category=category,
             celery_app=celery_app,
-            timeout=DOWNLOAD_VIDEO_TIMEOUT,
+            timeout=settings.DOWNLOAD_VIDEO_TIMEOUT,
             data=data,
             download=download,
             audio_only=audio_only,

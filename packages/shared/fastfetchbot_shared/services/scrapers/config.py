@@ -1,137 +1,205 @@
 import json
 import os
 import tempfile
+from typing import Optional
 
 from jinja2 import Environment, FileSystemLoader
+from pydantic import computed_field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fastfetchbot_shared.utils.cookie import read_json_cookies_to_string
 from fastfetchbot_shared.utils.logger import logger
-from fastfetchbot_shared.utils.parse import get_env_bool
+from fastfetchbot_shared.utils.pydantic_types import _parse_comma_list, _parse_optional_comma_list
 
-env = os.environ
 
-# Filesystem environment variables
-TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
-WORK_DIR = env.get("WORK_DIR", os.getcwd())
-DOWNLOAD_DIR = env.get("DOWNLOAD_DIR", os.path.join(WORK_DIR, "download"))
-DEBUG_MODE = get_env_bool(env, "DEBUG_MODE", False)
+class ScrapersSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
 
-# Cookie/config file directory — defaults to <WORK_DIR>/conf but can be overridden
-CONF_DIR = env.get("CONF_DIR", os.path.join(WORK_DIR, "conf"))
+    # Filesystem
+    TEMP_DIR: str = tempfile.gettempdir()
+    WORK_DIR: str = os.getcwd()
+    DOWNLOAD_DIR: str = ""
+    DEBUG_MODE: bool = False
+    CONF_DIR: str = ""
+    TEMPLATE_LANGUAGE: str = "zh_CN"
+
+    # XHS sign server and cookie path (also declared in SharedSettings, read independently)
+    SIGN_SERVER_URL: str = "http://localhost:8989"
+    XHS_COOKIE_PATH: str = ""
+
+    # X-RapidAPI (shared by Twitter and Instagram scrapers)
+    X_RAPIDAPI_KEY: Optional[str] = None
+
+    # Twitter
+    TWITTER_EMAIL: Optional[str] = None
+    TWITTER_PASSWORD: Optional[str] = None
+    TWITTER_USERNAME: Optional[str] = None
+    TWITTER_CT0: Optional[str] = None
+    TWITTER_AUTH_TOKEN: Optional[str] = None
+
+    # Bluesky
+    BLUESKY_USERNAME: Optional[str] = None
+    BLUESKY_PASSWORD: Optional[str] = None
+
+    # Weibo (cookie loaded externally)
+    WEIBO_COOKIES: Optional[str] = None
+
+    # Xiaohongshu
+    XIAOHONGSHU_A1: Optional[str] = None
+    XIAOHONGSHU_WEBID: Optional[str] = None
+    XIAOHONGSHU_WEBSESSION: Optional[str] = None
+    # Stored as comma-separated strings; access parsed lists via computed properties
+    XHS_PHONE_LIST: str = ""
+    XHS_IP_PROXY_LIST: str = ""
+    XHS_ENABLE_IP_PROXY: bool = False
+    XHS_SAVE_LOGIN_STATE: bool = True
+
+    # Zhihu
+    FXZHIHU_HOST: str = "fxzhihu.com"
+    ZHIHU_Z_C0: Optional[str] = None
+
+    # Reddit
+    REDDIT_CLIENT_ID: Optional[str] = None
+    REDDIT_CLIENT_SECRET: Optional[str] = None
+    REDDIT_PASSWORD: Optional[str] = None
+    REDDIT_USERNAME: Optional[str] = None
+
+    # OpenAI
+    OPENAI_API_KEY: Optional[str] = None
+
+    # General webpage scraping
+    GENERAL_SCRAPING_ON: bool = False
+    GENERAL_SCRAPING_API: str = "FIRECRAWL"
+
+    # Firecrawl API
+    FIRECRAWL_API_URL: str = ""
+    FIRECRAWL_API_KEY: str = ""
+    FIRECRAWL_WAIT_FOR: str = "3000"
+    FIRECRAWL_USE_JSON_EXTRACTION: bool = False
+
+    # Zyte API
+    ZYTE_API_KEY: Optional[str] = None
+
+    # Telegraph (comma-separated string; access parsed list via computed property)
+    TELEGRAPH_TOKEN_LIST: str = ""
+
+    @model_validator(mode="after")
+    def _resolve_derived(self) -> "ScrapersSettings":
+        if not self.DOWNLOAD_DIR:
+            self.DOWNLOAD_DIR = os.path.join(self.WORK_DIR, "download")
+        if not self.CONF_DIR:
+            self.CONF_DIR = os.path.join(self.WORK_DIR, "conf")
+        return self
+
+    @computed_field
+    @property
+    def xhs_phone_list(self) -> list[str]:
+        """Parse XHS_PHONE_LIST comma-separated string into a list."""
+        return _parse_comma_list(self.XHS_PHONE_LIST)
+
+    @computed_field
+    @property
+    def xhs_ip_proxy_list(self) -> list[str]:
+        """Parse XHS_IP_PROXY_LIST comma-separated string into a list."""
+        return _parse_comma_list(self.XHS_IP_PROXY_LIST)
+
+    @computed_field
+    @property
+    def telegraph_token_list(self) -> Optional[list[str]]:
+        """Parse TELEGRAPH_TOKEN_LIST comma-separated string into a list, None if empty."""
+        return _parse_optional_comma_list(self.TELEGRAPH_TOKEN_LIST)
+
+    @computed_field
+    @property
+    def TWITTER_COOKIES(self) -> dict[str, Optional[str]]:
+        return {"ct0": self.TWITTER_CT0, "auth_token": self.TWITTER_AUTH_TOKEN}
+
+    @computed_field
+    @property
+    def XIAOHONGSHU_COOKIES(self) -> dict[str, Optional[str]]:
+        return {
+            "a1": self.XIAOHONGSHU_A1,
+            "web_id": self.XIAOHONGSHU_WEBID,
+            "web_session": self.XIAOHONGSHU_WEBSESSION,
+        }
+
+    @property
+    def firecrawl_wait_for_int(self) -> int:
+        """Parse FIRECRAWL_WAIT_FOR as int with fallback to 3000."""
+        try:
+            val = int(self.FIRECRAWL_WAIT_FOR)
+            return val if val else 3000
+        except (ValueError, TypeError):
+            return 3000
+
+
+settings = ScrapersSettings()
+
+# --- Non-settings module-level objects ---
 
 # Templates & Jinja2
 templates_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
-TEMPLATE_LANGUAGE = env.get("TEMPLATE_LANGUAGE", "zh_CN")
 
-# X-RapidAPI (shared by Twitter and Instagram scrapers)
-X_RAPIDAPI_KEY = env.get("X_RAPIDAPI_KEY", None)
 
-# Twitter
-TWITTER_EMAIL = env.get("TWITTER_EMAIL", None)
-TWITTER_PASSWORD = env.get("TWITTER_PASSWORD", None)
-TWITTER_USERNAME = env.get("TWITTER_USERNAME", None)
-TWITTER_CT0 = env.get("TWITTER_CT0", None)
-TWITTER_AUTH_TOKEN = env.get("TWITTER_AUTH_TOKEN", None)
-TWITTER_COOKIES = {
-    "ct0": TWITTER_CT0,
-    "auth_token": TWITTER_AUTH_TOKEN,
-}
+# --- Cookie file loading (standalone functions) ---
 
-# Bluesky
-BLUESKY_USERNAME = env.get("BLUESKY_USERNAME", None)
-BLUESKY_PASSWORD = env.get("BLUESKY_PASSWORD", None)
+def _load_weibo_cookies(conf_dir: str, env_fallback: Optional[str]) -> Optional[str]:
+    weibo_cookies_path = os.path.join(conf_dir, "weibo_cookies.json")
+    if os.path.exists(weibo_cookies_path):
+        return read_json_cookies_to_string(weibo_cookies_path)
+    return env_fallback
 
-# Weibo
-weibo_cookies_path = os.path.join(CONF_DIR, "weibo_cookies.json")
-if os.path.exists(weibo_cookies_path):
-    WEIBO_COOKIES = read_json_cookies_to_string(weibo_cookies_path)
-else:
-    WEIBO_COOKIES = env.get("WEIBO_COOKIES", None)
 
-# Xiaohongshu
-XIAOHONGSHU_A1 = env.get("XIAOHONGSHU_A1", None)
-XIAOHONGSHU_WEBID = env.get("XIAOHONGSHU_WEBID", None)
-XIAOHONGSHU_WEBSESSION = env.get("XIAOHONGSHU_WEBSESSION", None)
-XIAOHONGSHU_COOKIES = {
-    "a1": XIAOHONGSHU_A1,
-    "web_id": XIAOHONGSHU_WEBID,
-    "web_session": XIAOHONGSHU_WEBSESSION,
-}
-XHS_PHONE_LIST = env.get("XHS_PHONE_LIST", "").split(",")
-XHS_IP_PROXY_LIST = env.get("XHS_IP_PROXY_LIST", "").split(",")
-XHS_ENABLE_IP_PROXY = get_env_bool(env, "XHS_ENABLE_IP_PROXY", False)
-XHS_SAVE_LOGIN_STATE = get_env_bool(env, "XHS_SAVE_LOGIN_STATE", True)
-
-# XHS sign server and cookie file
-from fastfetchbot_shared.config import SIGN_SERVER_URL as XHS_SIGN_SERVER_URL
-from fastfetchbot_shared.config import XHS_COOKIE_PATH as _XHS_COOKIE_PATH
-
-xhs_cookie_path = _XHS_COOKIE_PATH or os.path.join(CONF_DIR, "xhs_cookies.txt")
-
-XHS_COOKIE_STRING = ""
-if os.path.exists(xhs_cookie_path):
-    try:
-        with open(xhs_cookie_path, "r", encoding="utf-8") as f:
-            XHS_COOKIE_STRING = f.read().strip()
-    except (IOError, OSError) as e:
-        logger.error(f"Error reading XHS cookie file: {e}")
-        XHS_COOKIE_STRING = ""
-else:
+def _load_xhs_cookies(
+    conf_dir: str,
+    xhs_cookie_path: str,
+    a1: Optional[str],
+    webid: Optional[str],
+    websession: Optional[str],
+) -> str:
+    cookie_path = xhs_cookie_path or os.path.join(conf_dir, "xhs_cookies.txt")
+    if os.path.exists(cookie_path):
+        try:
+            with open(cookie_path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except (IOError, OSError) as e:
+            logger.error(f"Error reading XHS cookie file: {e}")
+            return ""
     cookie_parts = []
-    if XIAOHONGSHU_A1:
-        cookie_parts.append(f"a1={XIAOHONGSHU_A1}")
-    if XIAOHONGSHU_WEBID:
-        cookie_parts.append(f"web_id={XIAOHONGSHU_WEBID}")
-    if XIAOHONGSHU_WEBSESSION:
-        cookie_parts.append(f"web_session={XIAOHONGSHU_WEBSESSION}")
-    XHS_COOKIE_STRING = "; ".join(cookie_parts)
+    if a1:
+        cookie_parts.append(f"a1={a1}")
+    if webid:
+        cookie_parts.append(f"web_id={webid}")
+    if websession:
+        cookie_parts.append(f"web_session={websession}")
+    return "; ".join(cookie_parts)
 
-# Zhihu
-FXZHIHU_HOST = env.get("FXZHIHU_HOST", "fxzhihu.com")
-ZHIHU_Z_C0 = env.get("ZHIHU_Z_C0", None)
 
-zhihu_cookie_path = os.path.join(CONF_DIR, "zhihu_cookies.json")
-if os.path.exists(zhihu_cookie_path):
-    try:
-        with open(zhihu_cookie_path, "r") as f:
-            ZHIHU_COOKIES_JSON = json.load(f)
-    except json.JSONDecodeError:
-        logger.error("Error: zhihu_cookies.json is not in a valid JSON format.")
-        ZHIHU_COOKIES_JSON = None
-    except FileNotFoundError:
-        logger.error("Error: zhihu_cookies.json does not exist.")
-        ZHIHU_COOKIES_JSON = None
-else:
-    ZHIHU_COOKIES_JSON = None
+def _load_zhihu_cookies(conf_dir: str) -> Optional[dict]:
+    zhihu_cookie_path = os.path.join(conf_dir, "zhihu_cookies.json")
+    if os.path.exists(zhihu_cookie_path):
+        try:
+            with open(zhihu_cookie_path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logger.error("Error: zhihu_cookies.json is not in a valid JSON format.")
+            return None
+        except FileNotFoundError:
+            logger.error("Error: zhihu_cookies.json does not exist.")
+            return None
+    return None
 
-# Reddit
-REDDIT_CLIENT_ID = env.get("REDDIT_CLIENT_ID", None)
-REDDIT_CLIENT_SECRET = env.get("REDDIT_CLIENT_SECRET", None)
-REDDIT_PASSWORD = env.get("REDDIT_PASSWORD", None)
-REDDIT_USERNAME = env.get("REDDIT_USERNAME", None)
 
-# Open AI API
-OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
-
-# General webpage scraping
-GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
-GENERAL_SCRAPING_API = env.get("GENERAL_SCRAPING_API", "FIRECRAWL")
-
-# Firecrawl API
-FIRECRAWL_API_URL = env.get("FIRECRAWL_API_URL", "")
-FIRECRAWL_API_KEY = env.get("FIRECRAWL_API_KEY", "")
-try:
-    FIRECRAWL_WAIT_FOR = int(env.get("FIRECRAWL_WAIT_FOR") or 3000)
-except (ValueError, TypeError):
-    FIRECRAWL_WAIT_FOR = 3000
-FIRECRAWL_USE_JSON_EXTRACTION = get_env_bool(env, "FIRECRAWL_USE_JSON_EXTRACTION", False)
-
-# Zyte API
-ZYTE_API_KEY = env.get("ZYTE_API_KEY", None)
-
-# Telegraph
-telegraph_token_list = env.get("TELEGRAPH_TOKEN_LIST", "")
-TELEGRAPH_TOKEN_LIST = telegraph_token_list.split(",") if telegraph_token_list else None
+WEIBO_COOKIES = _load_weibo_cookies(settings.CONF_DIR, settings.WEIBO_COOKIES)
+XHS_COOKIE_STRING = _load_xhs_cookies(
+    settings.CONF_DIR,
+    settings.XHS_COOKIE_PATH,
+    settings.XIAOHONGSHU_A1,
+    settings.XIAOHONGSHU_WEBID,
+    settings.XIAOHONGSHU_WEBSESSION,
+)
+XHS_SIGN_SERVER_URL = settings.SIGN_SERVER_URL
+ZHIHU_COOKIES_JSON = _load_zhihu_cookies(settings.CONF_DIR)

@@ -72,7 +72,7 @@ class TestFromDict:
 
 class TestGetTelegraph:
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", ["tok1", "tok2"])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "tok1,tok2")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     @patch("fastfetchbot_shared.services.telegraph.DocumentPreprocessor")
     async def test_upload_images_true_with_token_list(
@@ -100,7 +100,7 @@ class TestGetTelegraph:
         mock_poster.post.assert_awaited_once()
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", ["tok1"])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "tok1")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     async def test_upload_images_false(self, mock_poster_cls):
         mock_poster = AsyncMock()
@@ -115,7 +115,7 @@ class TestGetTelegraph:
         mock_poster.post.assert_awaited_once()
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", None)
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     async def test_no_token_list_creates_token(self, mock_poster_cls):
         mock_poster = AsyncMock()
@@ -132,10 +132,10 @@ class TestGetTelegraph:
         mock_poster.set_token.assert_not_awaited()
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", [])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     async def test_empty_token_list_creates_token(self, mock_poster_cls):
-        """Empty list is falsy, so it should create a token."""
+        """Empty string parses to None (falsy), so it should create a token."""
         mock_poster = AsyncMock()
         mock_poster_cls.return_value = mock_poster
         mock_poster.post.return_value = {"url": "https://telegra.ph/page3"}
@@ -147,7 +147,7 @@ class TestGetTelegraph:
         mock_poster.create_api_token.assert_awaited_once()
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", ["tok"])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "tok")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     async def test_exception_returns_empty_string(self, mock_poster_cls):
         mock_poster = AsyncMock()
@@ -160,7 +160,7 @@ class TestGetTelegraph:
         assert result == ""
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", ["tok"])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "tok")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     @patch("fastfetchbot_shared.services.telegraph.DocumentPreprocessor")
     async def test_exception_during_image_upload_returns_empty(
@@ -179,7 +179,7 @@ class TestGetTelegraph:
         assert result == ""
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.telegraph.TELEGRAPH_TOKEN_LIST", ["tok"])
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.TELEGRAPH_TOKEN_LIST", "tok")
     @patch("fastfetchbot_shared.services.telegraph.AsyncTelegraphPoster")
     @patch("fastfetchbot_shared.services.telegraph.DocumentPreprocessor")
     async def test_content_updated_after_image_processing(

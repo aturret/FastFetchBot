@@ -2,7 +2,7 @@ import json
 
 import redis.asyncio as aioredis
 
-from async_worker.config import OUTBOX_REDIS_URL, OUTBOX_QUEUE_KEY
+from async_worker.config import settings
 from fastfetchbot_shared.utils.logger import logger
 
 _redis: aioredis.Redis | None = None
@@ -12,7 +12,7 @@ async def get_outbox_redis() -> aioredis.Redis:
     """Get or create the outbox Redis connection."""
     global _redis
     if _redis is None:
-        _redis = aioredis.from_url(OUTBOX_REDIS_URL, decode_responses=True)
+        _redis = aioredis.from_url(settings.OUTBOX_REDIS_URL, decode_responses=True)
     return _redis
 
 
@@ -30,7 +30,7 @@ async def push(
     falling back to the plain ``OUTBOX_QUEUE_KEY`` for backward compatibility.
     """
     r = await get_outbox_redis()
-    queue_key = f"{OUTBOX_QUEUE_KEY}:{bot_id}" if bot_id is not None else OUTBOX_QUEUE_KEY
+    queue_key = f"{settings.OUTBOX_QUEUE_KEY}:{bot_id}" if bot_id is not None else settings.OUTBOX_QUEUE_KEY
     payload = {
         "job_id": job_id,
         "chat_id": chat_id,

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup, Doctype
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 
-from fastfetchbot_shared.services.scrapers.config import OPENAI_API_KEY
+from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
 from fastfetchbot_shared.services.scrapers.general import GeneralItem
@@ -163,12 +163,12 @@ class BaseGeneralDataProcessor(DataProcessor):
         if not html_content:
             return html_content
 
-        if not OPENAI_API_KEY:
+        if not settings.OPENAI_API_KEY:
             logger.warning("OPENAI_API_KEY not configured, skipping LLM parsing")
             return html_content
 
         try:
-            client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+            client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
             # Truncate content if too long to avoid token limits
             max_content_length = 50000

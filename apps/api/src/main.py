@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src import database
 from src.routers import inoreader, scraper_routers, scraper
-from src.config import DATABASE_ON
+from src.config import settings
 from fastfetchbot_shared.utils.logger import logger
 
 SENTRY_DSN = ""
@@ -23,12 +23,12 @@ sentry_sdk.init(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if DATABASE_ON:
+    if settings.DATABASE_ON:
         await database.startup()
     try:
         yield
     finally:
-        if DATABASE_ON:
+        if settings.DATABASE_ON:
             await database.shutdown()
 
 

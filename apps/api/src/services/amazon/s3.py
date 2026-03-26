@@ -11,13 +11,13 @@ from botocore.exceptions import ClientError
 
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.utils.network import download_file_to_local
-from src.config import AWS_S3_BUCKET_NAME, AWS_REGION_NAME, AWS_DOMAIN_HOST
+from src.config import settings
 
 session = aioboto3.Session()
 image_url_host = (
-    AWS_DOMAIN_HOST
-    if AWS_DOMAIN_HOST
-    else f"{AWS_S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com"
+    settings.AWS_DOMAIN_HOST
+    if settings.AWS_DOMAIN_HOST
+    else f"{settings.AWS_S3_BUCKET_NAME}.s3.{settings.AWS_REGION_NAME}.amazonaws.com"
 )
 
 
@@ -40,11 +40,13 @@ async def download_and_upload(url: str, referer: str = None, suite: str = "test"
 
 async def upload(
         staging_path: Path,
-        bucket: str = AWS_S3_BUCKET_NAME,
+        bucket: str = None,
         suite: str = "test",
         release: str = datetime.now().strftime("%Y-%m-%d"),
         file_name: str = None,
 ) -> str:
+    if bucket is None:
+        bucket = settings.AWS_S3_BUCKET_NAME
     if not file_name:
         file_name = uuid.uuid4().hex
     blob_s3_key = f"{suite}/{release}/{file_name}"

@@ -8,6 +8,7 @@ dependencies = [
     "httpx>=0.28.1",
     "lxml>=5.4.0",
     "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
     "pillow>=10.0.0",
     "python-magic>=0.4.27",
     "aiofiles>=24.1.0",

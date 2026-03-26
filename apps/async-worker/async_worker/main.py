@@ -2,7 +2,7 @@ import asyncio
 
 from arq.connections import RedisSettings
 
-from async_worker.config import ARQ_REDIS_URL
+from async_worker.config import settings
 from async_worker.tasks.scrape import scrape_and_enrich
 
 # The twitter-api-client-v2 library installs uvloop's EventLoopPolicy at
@@ -39,7 +39,7 @@ class WorkerSettings:
     """ARQ worker configuration."""
 
     functions = [scrape_and_enrich]
-    redis_settings = parse_redis_url(ARQ_REDIS_URL)
+    redis_settings = parse_redis_url(settings.ARQ_REDIS_URL)
 
     # Job timeout: 10 minutes (matches existing Celery soft limit)
     job_timeout = 600

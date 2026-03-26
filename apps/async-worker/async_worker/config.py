@@ -1,29 +1,41 @@
 import os
 
-from fastfetchbot_shared.utils.parse import get_env_bool
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-env = os.environ
 
-# ARQ Redis (task queue)
-ARQ_REDIS_URL = env.get("ARQ_REDIS_URL", "redis://localhost:6379/2")
+class AsyncWorkerSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
 
-# Outbox Redis (result delivery)
-OUTBOX_REDIS_URL = env.get("OUTBOX_REDIS_URL", "redis://localhost:6379/3")
-OUTBOX_QUEUE_KEY = env.get("OUTBOX_QUEUE_KEY", "scrape:outbox")
+    # ARQ Redis
+    ARQ_REDIS_URL: str = "redis://localhost:6379/2"
 
-# Celery (for PDF export tasks on existing worker)
-CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    # Outbox Redis
+    OUTBOX_REDIS_URL: str = "redis://localhost:6379/3"
+    OUTBOX_QUEUE_KEY: str = "scrape:outbox"
 
-# Feature flags
-STORE_TELEGRAPH = get_env_bool(env, "STORE_TELEGRAPH", True)
-STORE_DOCUMENT = get_env_bool(env, "STORE_DOCUMENT", False)
-DATABASE_ON = get_env_bool(env, "DATABASE_ON", False)
+    # Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
-# MongoDB (optional, for DB storage)
-MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
-MONGODB_PORT = int(env.get("MONGODB_PORT", 27017))
-MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
+    # Feature flags
+    STORE_TELEGRAPH: bool = True
+    STORE_DOCUMENT: bool = False
+    DATABASE_ON: bool = False
 
-# Download timeout for Celery PDF tasks
-DOWNLOAD_VIDEO_TIMEOUT = int(env.get("DOWNLOAD_VIDEO_TIMEOUT", 600))
+    # MongoDB
+    MONGODB_HOST: str = "localhost"
+    MONGODB_PORT: int = 27017
+    MONGODB_URL: str = ""
+
+    # Timeout
+    DOWNLOAD_VIDEO_TIMEOUT: int = 600
+
+    @model_validator(mode="after")
+    def _resolve_derived(self) -> "AsyncWorkerSettings":
+        if not self.MONGODB_URL:
+            self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
+        return self
+
+
+settings = AsyncWorkerSettings()

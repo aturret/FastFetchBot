@@ -2,7 +2,7 @@ from typing import Union, Optional, Dict, Callable, Awaitable
 
 import httpx
 
-from src.config import TELEGRAM_BOT_CALLBACK_URL
+from src.config import settings
 from fastfetchbot_shared.models.url_metadata import UrlMetadata
 from src.services.inoreader import Inoreader
 from src.services.scrapers.common import InfoExtractService
@@ -19,7 +19,7 @@ async def _default_message_callback(metadata_item: dict, chat_id: Union[int, str
     """Default callback that sends via HTTP to the Telegram bot service."""
     async with httpx.AsyncClient() as client:
         await client.post(
-            f"{TELEGRAM_BOT_CALLBACK_URL}/send_message",
+            f"{settings.TELEGRAM_BOT_CALLBACK_URL}/send_message",
             json={"data": metadata_item, "chat_id": str(chat_id)},
             timeout=120,
         )

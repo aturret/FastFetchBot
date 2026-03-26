@@ -388,14 +388,14 @@ class TestParsingArticleBodyByLlm:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", None)
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", None)
     async def test_no_api_key(self):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor
         result = await BaseGeneralDataProcessor.parsing_article_body_by_llm("<p>html</p>")
         assert result == "<p>html</p>"
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", "sk-test")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", "sk-test")
     @patch("fastfetchbot_shared.services.scrapers.general.base.AsyncOpenAI")
     async def test_success(self, mock_openai_cls):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor
@@ -410,7 +410,7 @@ class TestParsingArticleBodyByLlm:
         mock_openai_cls.assert_called_once_with(api_key="sk-test")
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", "sk-test")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", "sk-test")
     @patch("fastfetchbot_shared.services.scrapers.general.base.AsyncOpenAI")
     async def test_empty_response(self, mock_openai_cls):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor
@@ -424,7 +424,7 @@ class TestParsingArticleBodyByLlm:
         assert result == "<p>raw</p>"
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", "sk-test")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", "sk-test")
     @patch("fastfetchbot_shared.services.scrapers.general.base.AsyncOpenAI")
     async def test_exception(self, mock_openai_cls):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor
@@ -436,7 +436,7 @@ class TestParsingArticleBodyByLlm:
         assert result == "<p>raw</p>"
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", "sk-test")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", "sk-test")
     @patch("fastfetchbot_shared.services.scrapers.general.base.AsyncOpenAI")
     async def test_truncates_long_content(self, mock_openai_cls):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor
@@ -456,7 +456,7 @@ class TestParsingArticleBodyByLlm:
         assert len(user_msg) < 60000 + 200
 
     @pytest.mark.asyncio
-    @patch("fastfetchbot_shared.services.scrapers.general.base.OPENAI_API_KEY", "sk-test")
+    @patch("fastfetchbot_shared.services.scrapers.config.settings.OPENAI_API_KEY", "sk-test")
     @patch("fastfetchbot_shared.services.scrapers.general.base.AsyncOpenAI")
     async def test_short_content_not_truncated(self, mock_openai_cls):
         from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor

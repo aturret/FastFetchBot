@@ -99,12 +99,12 @@ class TestXhsSinglePostAdapterInit:
         )
         assert adapter.sign_server_endpoint == "http://sign:8989"
 
-    @patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.SIGN_SERVER_URL", "")
+    @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "")
     def test_no_sign_server_raises(self):
         with pytest.raises(ValueError, match="sign server URL"):
             XhsSinglePostAdapter(cookies="c=1", sign_server_endpoint="")
 
-    @patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.SIGN_SERVER_URL", "http://fallback:8989")
+    @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "http://fallback:8989")
     def test_fallback_to_env_sign_server(self):
         adapter = XhsSinglePostAdapter(cookies="c=1", sign_server_endpoint="")
         assert adapter.sign_server_endpoint == "http://fallback:8989"

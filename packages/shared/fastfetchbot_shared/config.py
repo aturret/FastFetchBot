@@ -1,23 +1,37 @@
 import os
 import tempfile
 
-from fastfetchbot_shared.utils.parse import get_env_bool
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-env = os.environ
 
-# Filesystem environment variables
-TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
-WORK_DIR = env.get("WORK_DIR", os.getcwd())
-DOWNLOAD_DIR = env.get("DOWNLOAD_DIR", os.path.join(WORK_DIR, "download"))
-DEBUG_MODE = get_env_bool(env, "DEBUG_MODE", False)
+class SharedSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
 
-# Logging environment variables
-LOG_FILE_PATH = env.get("LOG_FILE_PATH", TEMP_DIR)
-LOG_LEVEL = env.get("LOG_LEVEL", "DEBUG")
+    # Filesystem
+    TEMP_DIR: str = tempfile.gettempdir()
+    WORK_DIR: str = os.getcwd()
+    DOWNLOAD_DIR: str = ""
+    DEBUG_MODE: bool = False
 
-# Utils environment variables
-HTTP_REQUEST_TIMEOUT = env.get("HTTP_REQUEST_TIMEOUT", 30)
+    # Logging
+    LOG_FILE_PATH: str = ""
+    LOG_LEVEL: str = "DEBUG"
 
-# XHS (Xiaohongshu) shared configuration
-SIGN_SERVER_URL = env.get("SIGN_SERVER_URL", "http://localhost:8989")
-XHS_COOKIE_PATH = env.get("XHS_COOKIE_PATH", "")
+    # Utils
+    HTTP_REQUEST_TIMEOUT: int = 30
+
+    # XHS (Xiaohongshu) shared configuration
+    SIGN_SERVER_URL: str = "http://localhost:8989"
+    XHS_COOKIE_PATH: str = ""
+
+    @model_validator(mode="after")
+    def _resolve_derived(self) -> "SharedSettings":
+        if not self.DOWNLOAD_DIR:
+            self.DOWNLOAD_DIR = os.path.join(self.WORK_DIR, "download")
+        if not self.LOG_FILE_PATH:
+            self.LOG_FILE_PATH = self.TEMP_DIR
+        return self
+
+
+settings = SharedSettings()

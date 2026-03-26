@@ -3,7 +3,7 @@
 from fastfetchbot_shared.models.metadata_item import MessageType
 from fastfetchbot_shared.services.telegraph import Telegraph
 from fastfetchbot_shared.utils.logger import logger
-from async_worker.config import STORE_TELEGRAPH, STORE_DOCUMENT, DOWNLOAD_VIDEO_TIMEOUT
+from async_worker.config import settings
 
 
 async def enrich(
@@ -17,9 +17,9 @@ async def enrich(
     - PDF export (via shared PdfExport → Celery worker)
     """
     if store_telegraph is None:
-        store_telegraph = STORE_TELEGRAPH
+        store_telegraph = settings.STORE_TELEGRAPH
     if store_document is None:
-        store_document = STORE_DOCUMENT
+        store_document = settings.STORE_DOCUMENT
 
     # Force Telegraph for long messages
     if metadata_item.get("message_type") == MessageType.LONG:
@@ -49,7 +49,7 @@ async def enrich(
                 title=metadata_item["title"],
                 html_string=metadata_item["content"],
                 celery_app=celery_app,
-                timeout=DOWNLOAD_VIDEO_TIMEOUT,
+                timeout=settings.DOWNLOAD_VIDEO_TIMEOUT,
             )
             output_filename = await pdf_export.export()
             metadata_item["media_files"].append(

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from src.config import INOREADER_APP_ID, INOREADER_APP_KEY
+from src.config import settings
 from src.services.inoreader import Inoreader
 from src.services.inoreader.process import (
     get_inoreader_item_async,
@@ -21,7 +21,7 @@ async def get_inoreader_webhook_data(data: dict):
 
 @router.post("/triggerAsync", dependencies=[Security(verify_api_key)])
 async def inoreader_trigger_webhook(request: Request):
-    if not INOREADER_APP_ID or not INOREADER_APP_KEY:
+    if not settings.INOREADER_APP_ID or not settings.INOREADER_APP_KEY:
         return "inoreader app id or key not set"
     params = request.query_params
     await get_inoreader_item_async(trigger=True, params=params)
