@@ -12,14 +12,11 @@ from core.services.user_settings import get_auto_fetch_in_dm
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 from fastfetchbot_shared.utils.logger import logger
 from core.config import (
+    settings,
     TELEGRAM_CHANNEL_ID,
     TELEGRAM_CHANNEL_ADMIN_LIST,
     TELEGRAM_GROUP_MESSAGE_BAN_LIST,
     TELEGRAM_BOT_MESSAGE_BAN_LIST,
-    FILE_EXPORTER_ON,
-    OPENAI_API_KEY,
-    GENERAL_SCRAPING_ON,
-    SCRAPE_MODE,
 )
 
 
@@ -30,7 +27,7 @@ async def _get_url_metadata(url: str, ban_list: list | None = None) -> dict:
     In queue mode: calls the shared library's get_url_metadata directly
     (pure URL parsing, no network call needed).
     """
-    if SCRAPE_MODE == "queue":
+    if settings.SCRAPE_MODE == "queue":
         from fastfetchbot_shared.utils.parse import get_url_metadata as shared_get_url_metadata
 
         url_metadata = await shared_get_url_metadata(url, ban_list=ban_list)
@@ -61,7 +58,7 @@ async def _fetch_and_send(
         message: Optional telegram Message for reply context.
         **kwargs: Extra arguments passed to the scraper.
     """
-    if SCRAPE_MODE == "queue":
+    if settings.SCRAPE_MODE == "queue":
         from core import queue_client
 
         await queue_client.enqueue_scrape(
@@ -104,7 +101,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             )
             return
         if url_metadata["source"] == "unknown":
-            if GENERAL_SCRAPING_ON:
+            if settings.GENERAL_SCRAPING_ON:
                 await process_message.edit_text(
                     text=f"Uncategorized url found. General webpage parser is on, Processing..."
                 )
@@ -166,7 +163,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         ),
                     ]
                 )
-                if FILE_EXPORTER_ON:
+                if settings.FILE_EXPORTER_ON:
                     special_function_keyboard.extend(
                         [
                             InlineKeyboardButton(
@@ -193,7 +190,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                             ),
                         ]
                     )
-                    if OPENAI_API_KEY:
+                    if settings.OPENAI_API_KEY:
                         special_function_keyboard.append(
                             InlineKeyboardButton(
                                 "Transcribe Text",
@@ -233,7 +230,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                         ),
                     ]
                 )
-                if FILE_EXPORTER_ON:
+                if settings.FILE_EXPORTER_ON:
                     special_function_keyboard.append(
                         InlineKeyboardButton(
                             "Send with PDF",
@@ -271,7 +268,7 @@ async def _auto_fetch_urls(message) -> None:
         url_metadata = await _get_url_metadata(
             url, ban_list=TELEGRAM_BOT_MESSAGE_BAN_LIST
         )
-        if url_metadata["source"] == "unknown" and GENERAL_SCRAPING_ON:
+        if url_metadata["source"] == "unknown" and settings.GENERAL_SCRAPING_ON:
             await _fetch_and_send(
                 url=url_metadata["url"],
                 chat_id=message.chat_id,
@@ -304,7 +301,7 @@ async def https_url_auto_process(update: Update, context: CallbackContext) -> No
         url_metadata = await _get_url_metadata(
             url, ban_list=TELEGRAM_GROUP_MESSAGE_BAN_LIST
         )
-        if url_metadata["source"] == "unknown" and GENERAL_SCRAPING_ON:
+        if url_metadata["source"] == "unknown" and settings.GENERAL_SCRAPING_ON:
             await _fetch_and_send(
                 url=url_metadata["url"],
                 chat_id=message.chat_id,

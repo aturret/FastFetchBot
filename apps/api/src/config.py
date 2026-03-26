@@ -2,65 +2,82 @@ import os
 import tempfile
 import gettext
 import secrets
+from typing import Optional
 
-from fastfetchbot_shared.utils.parse import get_env_bool
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-env = os.environ
-current_directory = os.path.dirname(os.path.abspath(__file__))
-conf_dir = os.path.join(current_directory, "..", "conf")
 
-# FastAPI environment variables
-BASE_URL = env.get("BASE_URL", "localhost")
-API_KEY_NAME = env.get("API_KEY_NAME", "pwd")
-API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
+class ApiSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
 
-# Filesystem environment variables
-TEMP_DIR = env.get("TEMP_DIR", tempfile.gettempdir())
-WORK_DIR = env.get("WORK_DIR", os.getcwd())
-DOWNLOAD_DIR = env.get("DOWNLOAD_DIR", os.path.join(WORK_DIR, "download"))
-DEBUG_MODE = get_env_bool(env, "DEBUG_MODE", False)
+    # FastAPI
+    BASE_URL: str = "localhost"
+    API_KEY_NAME: str = "pwd"
+    API_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
-# Logging environment variables
-LOG_FILE_PATH = env.get("LOG_FILE_PATH", TEMP_DIR)
-LOG_LEVEL = env.get("LOG_LEVEL", "DEBUG")
+    # Filesystem
+    TEMP_DIR: str = tempfile.gettempdir()
+    WORK_DIR: str = os.getcwd()
+    DOWNLOAD_DIR: str = ""
+    DEBUG_MODE: bool = False
 
-# MongoDB environment variables
-DATABASE_ON = get_env_bool(env, "DATABASE_ON", False)
-MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
-MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
-MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
+    # Logging
+    LOG_FILE_PATH: str = ""
+    LOG_LEVEL: str = "DEBUG"
 
-# File exporter toggle (used by telegram bot to show/hide buttons)
-FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
-DOWNLOAD_VIDEO_TIMEOUT = env.get("DOWNLOAD_VIDEO_TIMEOUT", 600)
+    # MongoDB
+    DATABASE_ON: bool = False
+    MONGODB_PORT: int = 27017
+    MONGODB_HOST: str = "localhost"
+    MONGODB_URL: str = ""
 
-# Celery configuration
-CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    # File exporter
+    FILE_EXPORTER_ON: bool = True
+    DOWNLOAD_VIDEO_TIMEOUT: int = 600
 
-# AWS storage
-AWS_STORAGE_ON = get_env_bool(env, "AWS_STORAGE_ON", False)
-AWS_ACCESS_KEY_ID = env.get("AWS_ACCESS_KEY_ID", None)
-AWS_SECRET_ACCESS_KEY = env.get("AWS_SECRET_ACCESS_KEY", None)
-AWS_S3_BUCKET_NAME = env.get("AWS_S3_BUCKET_NAME", "")
-AWS_REGION_NAME = env.get("AWS_REGION_NAME", "")
-AWS_DOMAIN_HOST = env.get("AWS_DOMAIN_HOST", None)
-if not (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME):
-    AWS_STORAGE_ON = False
+    # Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
-# Inoreader
-INOREADER_APP_ID = env.get("INOREADER_APP_ID", None)
-INOREADER_APP_KEY = env.get("INOREADER_APP_KEY", None)
-INOREADER_EMAIL = env.get("INOREADER_EMAIL", None)
-INOREADER_PASSWORD = env.get("INOREADER_PASSWORD", None)
+    # AWS storage
+    AWS_STORAGE_ON: bool = False
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_S3_BUCKET_NAME: str = ""
+    AWS_REGION_NAME: str = ""
+    AWS_DOMAIN_HOST: Optional[str] = None
 
-# Locale directories environment variables
+    # Inoreader
+    INOREADER_APP_ID: Optional[str] = None
+    INOREADER_APP_KEY: Optional[str] = None
+    INOREADER_EMAIL: Optional[str] = None
+    INOREADER_PASSWORD: Optional[str] = None
+
+    # Utils
+    HTTP_REQUEST_TIMEOUT: int = 30
+
+    # Telegram Bot callback URL
+    TELEGRAM_BOT_CALLBACK_URL: str = "http://telegram-bot:10451"
+
+    @model_validator(mode="after")
+    def _resolve_derived(self) -> "ApiSettings":
+        if not self.DOWNLOAD_DIR:
+            self.DOWNLOAD_DIR = os.path.join(self.WORK_DIR, "download")
+        if not self.LOG_FILE_PATH:
+            self.LOG_FILE_PATH = self.TEMP_DIR
+        if not self.MONGODB_URL:
+            self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
+        if not (self.AWS_ACCESS_KEY_ID and self.AWS_SECRET_ACCESS_KEY and self.AWS_S3_BUCKET_NAME):
+            self.AWS_STORAGE_ON = False
+        return self
+
+
+settings = ApiSettings()
+
+# --- Non-settings module-level objects ---
+
+# Locale / i18n
 localedir = os.path.join(os.path.dirname(__file__), "locale")
 translation = gettext.translation("messages", localedir=localedir, fallback=True)
 _ = translation.gettext
-
-# Utils environment variables
-HTTP_REQUEST_TIMEOUT = env.get("HTTP_REQUEST_TIMEOUT", 30)
-
-# Telegram Bot callback URL (for inter-service communication)
-TELEGRAM_BOT_CALLBACK_URL = env.get("TELEGRAM_BOT_CALLBACK_URL", "http://telegram-bot:10451")

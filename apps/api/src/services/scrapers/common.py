@@ -8,7 +8,7 @@ from fastfetchbot_shared.services.telegraph import Telegraph
 from src.services.file_export import video_download, document_export
 from src.database import save_instances
 from fastfetchbot_shared.utils.logger import logger
-from src.config import DATABASE_ON
+from src.config import settings
 
 
 class InfoExtractService(CoreInfoExtractService):
@@ -24,11 +24,13 @@ class InfoExtractService(CoreInfoExtractService):
             self,
             url_metadata: UrlMetadata,
             data: Any = None,
-            store_database: Optional[bool] = DATABASE_ON,
+            store_database: Optional[bool] = None,
             store_telegraph: Optional[bool] = True,
             store_document: Optional[bool] = False,
             **kwargs,
     ):
+        if store_database is None:
+            store_database = settings.DATABASE_ON
         super().__init__(
             url_metadata,
             data=data,

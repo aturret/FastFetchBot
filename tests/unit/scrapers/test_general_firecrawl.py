@@ -42,11 +42,11 @@ class TestFirecrawlClientSingleton:
 
     @patch("fastfetchbot_shared.services.scrapers.general.firecrawl_client.AsyncFirecrawl")
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_URL",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_URL",
         "https://fc.example.com",
     )
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_KEY",
         "test-key",
     )
     def test_get_instance_creates_singleton(self, mock_fc_cls):
@@ -59,11 +59,11 @@ class TestFirecrawlClientSingleton:
 
     @patch("fastfetchbot_shared.services.scrapers.general.firecrawl_client.AsyncFirecrawl")
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_URL",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_URL",
         "https://fc.example.com",
     )
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_KEY",
         "test-key",
     )
     def test_reset_instance(self, mock_fc_cls):
@@ -75,11 +75,11 @@ class TestFirecrawlClientSingleton:
 
     @patch("fastfetchbot_shared.services.scrapers.general.firecrawl_client.AsyncFirecrawl")
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_URL",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_URL",
         "https://fc.example.com",
     )
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_KEY",
         "test-key",
     )
     def test_double_check_locking_inner_branch(self, mock_fc_cls):
@@ -125,11 +125,11 @@ class TestFirecrawlClientScrapeUrl:
     @pytest.mark.asyncio
     @patch("fastfetchbot_shared.services.scrapers.general.firecrawl_client.AsyncFirecrawl")
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_URL",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_URL",
         "https://fc.example.com",
     )
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_KEY",
         "k",
     )
     async def test_scrape_url_success(self, mock_fc_cls):
@@ -153,11 +153,11 @@ class TestFirecrawlClientScrapeUrl:
     @pytest.mark.asyncio
     @patch("fastfetchbot_shared.services.scrapers.general.firecrawl_client.AsyncFirecrawl")
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_URL",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_URL",
         "https://fc.example.com",
     )
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.firecrawl_client.FIRECRAWL_API_KEY",
+        "fastfetchbot_shared.services.scrapers.config.settings.FIRECRAWL_API_KEY",
         "k",
     )
     async def test_scrape_url_exception(self, mock_fc_cls):

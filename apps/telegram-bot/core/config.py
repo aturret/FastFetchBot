@@ -1,152 +1,166 @@
 import os
 import secrets
+from typing import Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
-
-from fastfetchbot_shared.utils.parse import get_env_bool
-
-env = os.environ
-current_directory = os.path.dirname(os.path.abspath(__file__))
-
-# API Server connection (for calling the FastFetchBot API server)
-API_SERVER_URL = env.get("API_SERVER_URL", "http://localhost:10450")
-API_KEY_NAME = env.get("API_KEY_NAME", "pwd")
-API_KEY = env.get("API_KEY", secrets.token_urlsafe(32))
-
-# Bot's own BASE_URL (for webhook registration)
-BASE_URL = env.get("BASE_URL", "localhost")
-
-# Telegram bot environment variables
-TELEGRAM_BOT_ON = get_env_bool(env, "TELEGRAM_BOT_ON", True)
-TELEGRAM_BOT_MODE = env.get("TELEGRAM_BOT_MODE", "polling")
-TELEGRAM_BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", None)
-TELEGRAM_BOT_SECRET_TOKEN = env.get(
-    "TELEGRAM_BOT_SECRET_TOKEN", secrets.token_urlsafe(32)
-)
-
-# Telegram channel configuration
-TELEGRAM_CHANNEL_ID = []
-telegram_channel_id = env.get("TELEGRAM_CHANNEL_ID", "").split(",")
-for single_telegram_channel_id in telegram_channel_id:
-    if single_telegram_channel_id.startswith("@"):
-        TELEGRAM_CHANNEL_ID.append(single_telegram_channel_id)
-    elif single_telegram_channel_id.startswith("-1"):
-        TELEGRAM_CHANNEL_ID.append(int(single_telegram_channel_id))
-if len(TELEGRAM_CHANNEL_ID) == 0:
-    TELEGRAM_CHANNEL_ID = None
-
-# Debug channel
-telebot_debug_channel = env.get("TELEBOT_DEBUG_CHANNEL", "")
-if telebot_debug_channel.startswith("@"):
-    TELEBOT_DEBUG_CHANNEL = telebot_debug_channel
-elif telebot_debug_channel.startswith("-1"):
-    TELEBOT_DEBUG_CHANNEL = int(telebot_debug_channel)
-else:
-    TELEBOT_DEBUG_CHANNEL = None
-
-# Channel admin list
-telegram_channel_admin_list = env.get("TELEGRAM_CHANNEL_ADMIN_LIST", "")
-TELEGRAM_CHANNEL_ADMIN_LIST = [
-    admin_id for admin_id in telegram_channel_admin_list.split(",")
-]
-if not TELEGRAM_CHANNEL_ADMIN_LIST:
-    TELEGRAM_CHANNEL_ADMIN_LIST = None
-
-# Webhook URL (constructed from bot's own BASE_URL)
-TELEGRAM_WEBHOOK_URL = f"https://{BASE_URL}/webhook"
-
-# Telegram Bot API server configuration
-TELEBOT_API_SERVER_HOST = env.get("TELEBOT_API_SERVER_HOST", None)
-TELEBOT_API_SERVER_PORT = env.get("TELEBOT_API_SERVER_PORT", None)
-TELEBOT_API_SERVER = (
-    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/bot"
-    if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
-    else "https://api.telegram.org/bot"
-)
-TELEBOT_API_SERVER_FILE = (
-    f"http://{TELEBOT_API_SERVER_HOST}:{TELEBOT_API_SERVER_PORT}" + "/file/bot"
-    if (TELEBOT_API_SERVER_HOST and TELEBOT_API_SERVER_PORT)
-    else "https://api.telegram.org/file/bot"
-)
-TELEBOT_LOCAL_FILE_MODE = (
-    False if TELEBOT_API_SERVER == "https://api.telegram.org/bot" else True
-)
-
-# Telegram Bot server port
-TELEGRAM_BOT_PORT = int(env.get("TELEGRAM_BOT_PORT", 10451)) or 10451
-
-# Telegram Bot timeouts
-TELEBOT_CONNECT_TIMEOUT = int(env.get("TELEGRAM_CONNECT_TIMEOUT", 15)) or 15
-TELEBOT_READ_TIMEOUT = int(env.get("TELEGRAM_READ_TIMEOUT", 60)) or 60
-TELEBOT_WRITE_TIMEOUT = int(env.get("TELEGRAM_WRITE_TIMEOUT", 60)) or 60
-TELEBOT_MAX_RETRY = int(env.get("TELEGRAM_MAX_RETRY", 5)) or 5
-
-# Telegram image limits
-TELEGRAM_IMAGE_DIMENSION_LIMIT = int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 1600)) or 1600
-TELEGRAM_IMAGE_SIZE_LIMIT = (
-    int(env.get("TELEGRAM_IMAGE_SIZE_LIMIT", 5242880)) or 5242880
-)
-
-# Ban lists
-telegram_group_message_ban_list = env.get("TELEGRAM_GROUP_MESSAGE_BAN_LIST", "")
-telegram_bot_message_ban_list = env.get("TELEGRAM_BOT_MESSAGE_BAN_LIST", "")
+from pydantic import Field, computed_field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def ban_list_resolver(ban_list_string: str) -> list:
-    ban_list = ban_list_string.split(",")
-    for item in ban_list:
-        if item == "social_media":
-            ban_list.extend(
-                [
-                    "weibo",
-                    "twitter",
-                    "instagram",
-                    "zhihu",
-                    "douban",
-                    "wechat",
-                    "xiaohongshu",
-                    "reddit",
-                ]
-            )
-        elif item == "video":
-            ban_list.extend(["youtube", "bilibili"])
-    return ban_list
+class TelegramBotSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
+
+    # API Server connection
+    API_SERVER_URL: str = "http://localhost:10450"
+    API_KEY_NAME: str = "pwd"
+    API_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+
+    # Bot's own BASE_URL
+    BASE_URL: str = "localhost"
+
+    # Telegram bot
+    TELEGRAM_BOT_ON: bool = True
+    TELEGRAM_BOT_MODE: str = "polling"
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+    TELEGRAM_BOT_SECRET_TOKEN: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32)
+    )
+
+    # Channel IDs (raw comma-separated string, parsed after instantiation)
+    TELEGRAM_CHANNEL_ID: str = ""
+    TELEGRAM_CHANNEL_ADMIN_LIST: str = ""
+    TELEBOT_DEBUG_CHANNEL: str = ""
+
+    # Telegram Bot API server
+    TELEBOT_API_SERVER_HOST: Optional[str] = None
+    TELEBOT_API_SERVER_PORT: Optional[str] = None
+
+    # Telegram Bot server port
+    TELEGRAM_BOT_PORT: int = 10451
+
+    # Telegram Bot timeouts (env var names differ from field names)
+    TELEBOT_CONNECT_TIMEOUT: int = Field(default=15, validation_alias="TELEGRAM_CONNECT_TIMEOUT")
+    TELEBOT_READ_TIMEOUT: int = Field(default=60, validation_alias="TELEGRAM_READ_TIMEOUT")
+    TELEBOT_WRITE_TIMEOUT: int = Field(default=60, validation_alias="TELEGRAM_WRITE_TIMEOUT")
+    TELEBOT_MAX_RETRY: int = Field(default=5, validation_alias="TELEGRAM_MAX_RETRY")
+
+    # Telegram image limits (fix bug: use separate env var names)
+    TELEGRAM_IMAGE_DIMENSION_LIMIT: int = 1600
+    TELEGRAM_IMAGE_SIZE_LIMIT: int = 5242880
+
+    # Ban lists (raw comma-separated, parsed after instantiation)
+    TELEGRAM_GROUP_MESSAGE_BAN_LIST: str = ""
+    TELEGRAM_BOT_MESSAGE_BAN_LIST: str = ""
+
+    # Feature flags
+    FILE_EXPORTER_ON: bool = True
+    OPENAI_API_KEY: Optional[str] = None
+    GENERAL_SCRAPING_ON: bool = False
+
+    # Scrape mode
+    SCRAPE_MODE: str = "queue"
+
+    # Redis URLs
+    ARQ_REDIS_URL: str = "redis://localhost:6379/2"
+    OUTBOX_REDIS_URL: str = "redis://localhost:6379/3"
+    OUTBOX_QUEUE_KEY: str = "scrape:outbox"
+
+    # Database
+    ITEM_DATABASE_ON: bool = False
+    MONGODB_PORT: int = 27017
+    MONGODB_HOST: str = "localhost"
+    MONGODB_URL: str = ""
+    SETTINGS_DATABASE_URL: str = "sqlite+aiosqlite:///data/fastfetchbot.db"
+
+    # Template language
+    TEMPLATE_LANGUAGE: str = "zh_CN"
+
+    @model_validator(mode="after")
+    def _resolve_derived(self) -> "TelegramBotSettings":
+        if not self.MONGODB_URL:
+            self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
+        return self
+
+    @computed_field
+    @property
+    def TELEGRAM_WEBHOOK_URL(self) -> str:
+        return f"https://{self.BASE_URL}/webhook"
+
+    @computed_field
+    @property
+    def TELEBOT_API_SERVER(self) -> str:
+        if self.TELEBOT_API_SERVER_HOST and self.TELEBOT_API_SERVER_PORT:
+            return f"http://{self.TELEBOT_API_SERVER_HOST}:{self.TELEBOT_API_SERVER_PORT}/bot"
+        return "https://api.telegram.org/bot"
+
+    @computed_field
+    @property
+    def TELEBOT_API_SERVER_FILE(self) -> str:
+        if self.TELEBOT_API_SERVER_HOST and self.TELEBOT_API_SERVER_PORT:
+            return f"http://{self.TELEBOT_API_SERVER_HOST}:{self.TELEBOT_API_SERVER_PORT}/file/bot"
+        return "https://api.telegram.org/file/bot"
+
+    @computed_field
+    @property
+    def TELEBOT_LOCAL_FILE_MODE(self) -> bool:
+        return self.TELEBOT_API_SERVER != "https://api.telegram.org/bot"
 
 
-TELEGRAM_GROUP_MESSAGE_BAN_LIST = ban_list_resolver(telegram_group_message_ban_list)
-TELEGRAM_BOT_MESSAGE_BAN_LIST = ban_list_resolver(telegram_bot_message_ban_list)
+settings = TelegramBotSettings()
 
-# Feature flags (needed for handler logic)
-FILE_EXPORTER_ON = get_env_bool(env, "FILE_EXPORTER_ON", True)
-OPENAI_API_KEY = env.get("OPENAI_API_KEY", None)
-GENERAL_SCRAPING_ON = get_env_bool(env, "GENERAL_SCRAPING_ON", False)
-
-# Scrape mode: "api" (sync via API server) or "queue" (async via ARQ worker)
-SCRAPE_MODE = env.get("SCRAPE_MODE", "queue")
-
-# Redis URLs for queue mode
-ARQ_REDIS_URL = env.get("ARQ_REDIS_URL", "redis://localhost:6379/2")
-OUTBOX_REDIS_URL = env.get("OUTBOX_REDIS_URL", "redis://localhost:6379/3")
-OUTBOX_QUEUE_KEY = env.get("OUTBOX_QUEUE_KEY", "scrape:outbox")
-
-# Database configuration
-ITEM_DATABASE_ON = get_env_bool(env, "ITEM_DATABASE_ON", False)
-MONGODB_PORT = int(env.get("MONGODB_PORT", 27017)) or 27017
-MONGODB_HOST = env.get("MONGODB_HOST", "localhost")
-MONGODB_URL = env.get("MONGODB_URL", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}")
-
-# User settings database (SQLAlchemy async)
-SETTINGS_DATABASE_URL = env.get(
-    "SETTINGS_DATABASE_URL", "sqlite+aiosqlite:///data/fastfetchbot.db"
-)
+# --- Non-settings module-level objects ---
 
 # Jinja2 template configuration
+current_directory = os.path.dirname(os.path.abspath(__file__))
 templates_directory = os.path.join(current_directory, "templates")
 JINJA2_ENV = Environment(
     loader=FileSystemLoader(templates_directory), lstrip_blocks=True, trim_blocks=True
 )
 
-# Template language
-TEMPLATE_LANGUAGE = env.get(
-    "TEMPLATE_LANGUAGE", "zh_CN"
-)  # It is a workaround for translation system
+
+# --- Parsed channel/ban list values ---
+
+def _parse_channel_ids(raw: str) -> Optional[list[Union[str, int]]]:
+    result: list[Union[str, int]] = []
+    for cid in raw.split(","):
+        cid = cid.strip()
+        if cid.startswith("@"):
+            result.append(cid)
+        elif cid.startswith("-1"):
+            result.append(int(cid))
+    return result or None
+
+
+def _parse_debug_channel(raw: str) -> Optional[Union[str, int]]:
+    raw = raw.strip()
+    if raw.startswith("@"):
+        return raw
+    elif raw.startswith("-1"):
+        return int(raw)
+    return None
+
+
+def _parse_admin_list(raw: str) -> Optional[list[str]]:
+    result = [admin_id.strip() for admin_id in raw.split(",") if admin_id.strip()]
+    return result or None
+
+
+def ban_list_resolver(ban_list_string: str) -> list:
+    ban_list = [item.strip() for item in ban_list_string.split(",") if item.strip()]
+    expanded = list(ban_list)
+    for item in ban_list:
+        if item == "social_media":
+            expanded.extend([
+                "weibo", "twitter", "instagram", "zhihu",
+                "douban", "wechat", "xiaohongshu", "reddit",
+            ])
+        elif item == "video":
+            expanded.extend(["youtube", "bilibili"])
+    return expanded
+
+
+TELEGRAM_CHANNEL_ID = _parse_channel_ids(settings.TELEGRAM_CHANNEL_ID)
+TELEBOT_DEBUG_CHANNEL = _parse_debug_channel(settings.TELEBOT_DEBUG_CHANNEL)
+TELEGRAM_CHANNEL_ADMIN_LIST = _parse_admin_list(settings.TELEGRAM_CHANNEL_ADMIN_LIST)
+TELEGRAM_GROUP_MESSAGE_BAN_LIST = ban_list_resolver(settings.TELEGRAM_GROUP_MESSAGE_BAN_LIST)
+TELEGRAM_BOT_MESSAGE_BAN_LIST = ban_list_resolver(settings.TELEGRAM_BOT_MESSAGE_BAN_LIST)

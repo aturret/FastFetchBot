@@ -3,7 +3,7 @@ import json
 
 import redis.asyncio as aioredis
 
-from core.config import OUTBOX_REDIS_URL, OUTBOX_QUEUE_KEY
+from core.config import settings
 from core.services.message_sender import send_item_message
 from fastfetchbot_shared.utils.logger import logger
 
@@ -16,14 +16,14 @@ async def _get_redis() -> aioredis.Redis:
     """Get or create the outbox Redis connection."""
     global _redis
     if _redis is None:
-        _redis = aioredis.from_url(OUTBOX_REDIS_URL, decode_responses=True)
+        _redis = aioredis.from_url(settings.OUTBOX_REDIS_URL, decode_responses=True)
     return _redis
 
 
 async def _consume_loop() -> None:
     """Background loop: BRPOP from the per-bot outbox queue and dispatch results."""
     r = await _get_redis()
-    key = _outbox_key or OUTBOX_QUEUE_KEY
+    key = _outbox_key or settings.OUTBOX_QUEUE_KEY
     logger.info(f"Outbox consumer started, listening on '{key}'")
 
     while True:
@@ -87,7 +87,7 @@ async def start(bot_id: int) -> None:
     if _consumer_task is not None:
         logger.warning("Outbox consumer already running")
         return
-    _outbox_key = f"{OUTBOX_QUEUE_KEY}:{bot_id}"
+    _outbox_key = f"{settings.OUTBOX_QUEUE_KEY}:{bot_id}"
     _consumer_task = asyncio.create_task(_consume_loop())
     logger.info(f"Outbox consumer task created for bot_id={bot_id}")
 

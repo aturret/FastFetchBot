@@ -12,7 +12,7 @@ from fake_useragent import UserAgent
 from playwright.async_api import async_playwright
 
 from fastfetchbot_shared.models.classes import NamedBytesIO
-from fastfetchbot_shared.config import HTTP_REQUEST_TIMEOUT, DOWNLOAD_DIR
+from fastfetchbot_shared.config import settings
 from fastfetchbot_shared.utils.image import check_image_type
 from fastfetchbot_shared.utils.logger import logger
 
@@ -24,13 +24,13 @@ async def get_response(
         headers = HEADERS
     if client:
         resp = await client.get(
-            url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT
+            url, headers=headers, params=params, timeout=settings.HTTP_REQUEST_TIMEOUT
         )
         return resp
     else:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                url, headers=headers, params=params, timeout=HTTP_REQUEST_TIMEOUT
+                url, headers=headers, params=params, timeout=settings.HTTP_REQUEST_TIMEOUT
             )
             return resp
 
@@ -62,7 +62,7 @@ async def get_selector(
             url,
             headers=headers,
             follow_redirects=follow_redirects,
-            timeout=HTTP_REQUEST_TIMEOUT,
+            timeout=settings.HTTP_REQUEST_TIMEOUT,
         )
         if (
                 resp.history
@@ -85,7 +85,7 @@ async def get_redirect_url(url: str, headers: Optional[dict] = None) -> str:
     if not headers:
         headers = HEADERS
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT)
+        resp = await client.get(url, headers=headers, timeout=settings.HTTP_REQUEST_TIMEOUT)
         if resp.status_code == 302 or resp.status_code == 301:
             return resp.headers["Location"]
         else:
@@ -149,7 +149,7 @@ async def download_file_by_metadata_item(
             headers["Accept"] = "image/avif,image/webp,*/*"
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url=url, headers=headers, timeout=HTTP_REQUEST_TIMEOUT
+                url=url, headers=headers, timeout=settings.HTTP_REQUEST_TIMEOUT
             )
             # if redirect 302, get the final url
             if response.status_code == 302 or response.status_code == 301:
@@ -168,7 +168,7 @@ async def download_file_by_metadata_item(
 async def download_file_to_local(
         url: str,
         file_path: str = None,
-        dir_path: str = DOWNLOAD_DIR,
+        dir_path: str = settings.DOWNLOAD_DIR,
         file_name: str = "",
         headers: dict = None,
         referer: str = None,

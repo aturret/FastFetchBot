@@ -3,13 +3,13 @@ from typing import Union, List
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie, Document
 
-from core.config import MONGODB_URL
+from core.config import settings
 from core.models.database_model import document_list
 from fastfetchbot_shared.utils.logger import logger
 
 
 async def startup() -> None:
-    client = AsyncIOMotorClient(MONGODB_URL)
+    client = AsyncIOMotorClient(settings.MONGODB_URL)
     await init_beanie(database=client["telegram_bot"], document_models=document_list)
 
 

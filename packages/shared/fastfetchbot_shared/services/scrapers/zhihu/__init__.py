@@ -18,7 +18,7 @@ from fastfetchbot_shared.utils.parse import (
 from fastfetchbot_shared.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
     get_content_async, get_response
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
-from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, FXZHIHU_HOST
+from fastfetchbot_shared.services.scrapers.config import settings, JINJA2_ENV
 from .config import (
     SHORT_LIMIT,
     ZHIHU_COLUMNS_API_HOST,
@@ -234,21 +234,21 @@ class Zhihu(MetadataItem):
             if self.zhihu_type == "answer":
                 if self.question_id:
                     self.request_url = (
-                            "https://" + FXZHIHU_HOST + '/question/' + self.question_id + '/answer/' + self.answer_id
+                            "https://" + settings.FXZHIHU_HOST + '/question/' + self.question_id + '/answer/' + self.answer_id
                     )
                     return
                 self.request_url = (
-                        "https://" + FXZHIHU_HOST + '/answer/' + self.answer_id
+                        "https://" + settings.FXZHIHU_HOST + '/answer/' + self.answer_id
                 )
                 return
             elif self.zhihu_type == "article":
                 self.request_url = (
-                        "https://" + FXZHIHU_HOST + '/p/' + self.article_id
+                        "https://" + settings.FXZHIHU_HOST + '/p/' + self.article_id
                 )
                 return
             elif self.zhihu_type == "status":
                 self.request_url = (
-                        "https://" + FXZHIHU_HOST + '/pin/' + self.status_id
+                        "https://" + settings.FXZHIHU_HOST + '/pin/' + self.status_id
                 )
                 return
         if self.zhihu_type == "answer":

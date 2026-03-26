@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastfetchbot_shared.services.scrapers.config import FIRECRAWL_WAIT_FOR, FIRECRAWL_USE_JSON_EXTRACTION
+from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
 from fastfetchbot_shared.services.scrapers.general.firecrawl_client import FirecrawlClient
 from fastfetchbot_shared.services.scrapers.general.firecrawl_schema import (
@@ -57,7 +57,7 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
         self._use_json_extraction = (
             use_json_extraction
             if use_json_extraction is not None
-            else FIRECRAWL_USE_JSON_EXTRACTION
+            else settings.FIRECRAWL_USE_JSON_EXTRACTION
         )
 
     async def _get_page_content(self) -> None:
@@ -77,7 +77,7 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
             formats=["markdown", "html"],
             only_main_content=True,
             exclude_tags=FIRECRAWL_EXCLUDE_TAGS,
-            wait_for=FIRECRAWL_WAIT_FOR,
+            wait_for=settings.firecrawl_wait_for_int,
         )
         await self._process_firecrawl_result(result)
 
@@ -93,7 +93,7 @@ class FirecrawlDataProcessor(BaseGeneralDataProcessor):
             formats=["markdown", "html", json_format],
             only_main_content=True,
             exclude_tags=FIRECRAWL_EXCLUDE_TAGS,
-            wait_for=FIRECRAWL_WAIT_FOR,
+            wait_for=settings.firecrawl_wait_for_int,
         )
 
         json_data = result.get("json")

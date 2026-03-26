@@ -18,20 +18,7 @@ from telegram.ext import (
 )
 
 from fastfetchbot_shared.utils.logger import logger
-from core.config import (
-    TELEGRAM_BOT_TOKEN,
-    TELEGRAM_BOT_MODE,
-    TELEGRAM_WEBHOOK_URL,
-    TELEGRAM_BOT_SECRET_TOKEN,
-    TELEBOT_API_SERVER,
-    TELEBOT_API_SERVER_FILE,
-    TELEBOT_LOCAL_FILE_MODE,
-    TELEBOT_CONNECT_TIMEOUT,
-    TELEBOT_READ_TIMEOUT,
-    TELEBOT_WRITE_TIMEOUT,
-    TELEBOT_MAX_RETRY,
-    SCRAPE_MODE,
-)
+from core.config import settings
 
 from core.handlers.url_process import https_url_process, https_url_auto_process
 from core.handlers.buttons import buttons_process, invalid_buttons
@@ -47,26 +34,26 @@ application and handlers initialization
 
 
 async def set_webhook() -> bool:
-    logger.debug(f"set_webhook: {TELEGRAM_WEBHOOK_URL}, secret_token: {TELEGRAM_BOT_SECRET_TOKEN}")
+    logger.debug(f"set_webhook: {settings.TELEGRAM_WEBHOOK_URL}, secret_token: {settings.TELEGRAM_BOT_SECRET_TOKEN}")
     return await application.bot.set_webhook(
-        url=TELEGRAM_WEBHOOK_URL, secret_token=TELEGRAM_BOT_SECRET_TOKEN
+        url=settings.TELEGRAM_WEBHOOK_URL, secret_token=settings.TELEGRAM_BOT_SECRET_TOKEN
     )
 
 
-if TELEGRAM_BOT_TOKEN is not None:
+if settings.TELEGRAM_BOT_TOKEN is not None:
     builder = (
         Application.builder()
-        .token(TELEGRAM_BOT_TOKEN)
+        .token(settings.TELEGRAM_BOT_TOKEN)
         .arbitrary_callback_data(True)
-        .connect_timeout(TELEBOT_CONNECT_TIMEOUT)
-        .read_timeout(TELEBOT_READ_TIMEOUT)
-        .write_timeout(TELEBOT_WRITE_TIMEOUT)
-        .base_url(TELEBOT_API_SERVER)
-        .base_file_url(TELEBOT_API_SERVER_FILE)
-        .local_mode(TELEBOT_LOCAL_FILE_MODE)
-        .rate_limiter(AIORateLimiter(max_retries=TELEBOT_MAX_RETRY))
+        .connect_timeout(settings.TELEBOT_CONNECT_TIMEOUT)
+        .read_timeout(settings.TELEBOT_READ_TIMEOUT)
+        .write_timeout(settings.TELEBOT_WRITE_TIMEOUT)
+        .base_url(settings.TELEBOT_API_SERVER)
+        .base_file_url(settings.TELEBOT_API_SERVER_FILE)
+        .local_mode(settings.TELEBOT_LOCAL_FILE_MODE)
+        .rate_limiter(AIORateLimiter(max_retries=settings.TELEBOT_MAX_RETRY))
     )
-    if TELEGRAM_BOT_MODE == "webhook":
+    if settings.TELEGRAM_BOT_MODE == "webhook":
         builder = builder.updater(None)
     application = builder.build()
 else:
@@ -132,7 +119,7 @@ async def startup() -> None:
         ]
     )
     # Initialize queue mode if enabled
-    if SCRAPE_MODE == "queue":
+    if settings.SCRAPE_MODE == "queue":
         from core import queue_client
         from core.services import outbox_consumer
 
@@ -172,9 +159,9 @@ async def show_bot_info() -> None:
         logger.info(f"Can Join Groups: {bot_info.can_join_groups}")
         logger.info(f"Can Read All Group Messages: {bot_info.can_read_all_group_messages}")
         logger.info(f"Supports Inline Queries: {bot_info.supports_inline_queries}")
-        logger.info(f"Mode: {TELEGRAM_BOT_MODE}")
+        logger.info(f"Mode: {settings.TELEGRAM_BOT_MODE}")
 
-        if TELEGRAM_BOT_MODE == "webhook":
+        if settings.TELEGRAM_BOT_MODE == "webhook":
             webhook_info = await bot.get_webhook_info()
             logger.info(f"Webhook URL: {webhook_info.url}")
             logger.info(f"Webhook Has Custom Certificate: {webhook_info.has_custom_certificate}")
@@ -190,7 +177,7 @@ async def show_bot_info() -> None:
 
 async def shutdown() -> None:
     # Shut down queue mode resources
-    if SCRAPE_MODE == "queue":
+    if settings.SCRAPE_MODE == "queue":
         from core import queue_client
         from core.services import outbox_consumer
 

@@ -6,7 +6,7 @@ from fastfetchbot_shared.services.scrapers.common import InfoExtractService
 from fastfetchbot_shared.utils.logger import logger
 from async_worker.services import outbox, enrichment
 from async_worker.celery_client import celery_app
-from async_worker.config import DOWNLOAD_VIDEO_TIMEOUT
+from async_worker.config import settings
 
 
 async def scrape_and_enrich(
@@ -53,7 +53,7 @@ async def scrape_and_enrich(
             store_telegraph=False,  # We handle enrichment separately
             store_document=False,
             celery_app=celery_app,
-            timeout=DOWNLOAD_VIDEO_TIMEOUT,
+            timeout=settings.DOWNLOAD_VIDEO_TIMEOUT,
             **kwargs,
         )
         metadata_item = await service.get_item()

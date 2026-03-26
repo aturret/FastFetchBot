@@ -216,9 +216,3 @@ def get_bool(value: Optional[str], default: bool = True) -> bool:
         return False
     else:
         return default
-
-
-def get_env_bool(env, var_name: Optional[str], default: bool = False):
-    """Retrieve environment variable as a boolean."""
-    value = env.get(var_name, "").lower()
-    return get_bool(value, default)

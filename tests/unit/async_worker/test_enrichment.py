@@ -193,8 +193,9 @@ class TestConfigDefaults:
     @pytest.mark.asyncio
     async def test_uses_config_defaults_when_none(self, base_metadata_item, mock_telegraph):
         """When store_telegraph/store_document are None, config defaults should be used."""
-        with patch("async_worker.services.enrichment.STORE_TELEGRAPH", True), \
-             patch("async_worker.services.enrichment.STORE_DOCUMENT", False):
+        from async_worker.config import settings as aw_settings
+        with patch.object(aw_settings, "STORE_TELEGRAPH", True), \
+             patch.object(aw_settings, "STORE_DOCUMENT", False):
             result = await enrich(base_metadata_item)
 
         # STORE_TELEGRAPH=True means Telegraph should be called

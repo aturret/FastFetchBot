@@ -27,7 +27,7 @@ class TestZhihuConfig:
     def test_config_with_z_c0(self):
         """When ZHIHU_Z_C0 is set, ZHIHU_API_COOKIE uses it."""
         with patch(
-            "fastfetchbot_shared.services.scrapers.config.ZHIHU_Z_C0", "test_token"
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", "test_token"
         ), patch(
             "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON", None
         ):
@@ -41,7 +41,7 @@ class TestZhihuConfig:
         """When ZHIHU_Z_C0 is empty but ZHIHU_COOKIES_JSON is set, use cookies JSON."""
         cookies = [{"name": "a", "value": "1"}, {"name": "b", "value": "2"}]
         with patch(
-            "fastfetchbot_shared.services.scrapers.config.ZHIHU_Z_C0", ""
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", ""
         ), patch(
             "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON",
             cookies,
@@ -56,7 +56,7 @@ class TestZhihuConfig:
     def test_config_no_cookies(self):
         """When both ZHIHU_Z_C0 and ZHIHU_COOKIES_JSON are empty/None."""
         with patch(
-            "fastfetchbot_shared.services.scrapers.config.ZHIHU_Z_C0", ""
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", ""
         ), patch(
             "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON",
             None,
@@ -72,7 +72,7 @@ class TestZhihuConfig:
         """ZHIHU_Z_C0 takes priority over ZHIHU_COOKIES_JSON for API cookie."""
         cookies = [{"name": "a", "value": "1"}]
         with patch(
-            "fastfetchbot_shared.services.scrapers.config.ZHIHU_Z_C0", "my_z_c0"
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", "my_z_c0"
         ), patch(
             "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON",
             cookies,
@@ -353,7 +353,7 @@ class TestGetRequestUrl:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://www.zhihu.com/question/100/answer/200")
         z.zhihu_type = "answer"
@@ -372,7 +372,7 @@ class TestGetRequestUrl:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://www.zhihu.com/answer/200")
         z.zhihu_type = "answer"
@@ -391,7 +391,7 @@ class TestGetRequestUrl:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://zhuanlan.zhihu.com/p/12345")
         z.zhihu_type = "article"
@@ -409,7 +409,7 @@ class TestGetRequestUrl:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://www.zhihu.com/pin/999")
         z.zhihu_type = "status"
@@ -2019,7 +2019,7 @@ class TestGetZhihuItem:
             new_callable=AsyncMock,
             return_value=mock_resp,
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://www.zhihu.com/question/100/answer/200")
             await z._get_zhihu_item()
@@ -2043,7 +2043,7 @@ class TestGetZhihuItem:
             new_callable=AsyncMock,
             side_effect=Exception("fx fail"),
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.FXZHIHU_HOST", "fxzhihu.com"
+            "fastfetchbot_shared.services.scrapers.config.settings.FXZHIHU_HOST", "fxzhihu.com"
         ):
             z = Zhihu(url="https://www.zhihu.com/question/100/answer/200")
             with pytest.raises(Exception):

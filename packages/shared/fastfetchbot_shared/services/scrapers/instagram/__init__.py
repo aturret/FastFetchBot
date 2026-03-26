@@ -10,7 +10,7 @@ from fastfetchbot_shared.utils.network import get_response
 from fastfetchbot_shared.utils.parse import get_html_text_length
 from fastfetchbot_shared.utils.logger import logger
 from .config import API_HEADERS_LIST, ALL_SCRAPERS
-from fastfetchbot_shared.services.scrapers.config import X_RAPIDAPI_KEY
+from fastfetchbot_shared.services.scrapers.config import settings
 
 
 class Instagram(MetadataItem):
@@ -55,7 +55,7 @@ class Instagram(MetadataItem):
             self.scraper = scraper
             self.host = API_HEADERS_LIST[self.scraper]["host"]
             self.headers = {
-                "X-RapidAPI-Key": X_RAPIDAPI_KEY,
+                "X-RapidAPI-Key": settings.X_RAPIDAPI_KEY,
                 "X-RapidAPI-Host": API_HEADERS_LIST[self.scraper]["top_domain"],
                 "content-type": "application/octet-stream",
             }

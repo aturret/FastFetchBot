@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastfetchbot_shared.services.scrapers.config import GENERAL_SCRAPING_API
+from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
 from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralScraper
 from fastfetchbot_shared.services.scrapers.general.firecrawl import FirecrawlScraper
@@ -33,7 +33,7 @@ class GeneralScraper(Scraper):
         Args:
             scraper_type: The type of scraper to use. If None, uses GENERAL_SCRAPING_API config.
         """
-        self.scraper_type = scraper_type or GENERAL_SCRAPING_API
+        self.scraper_type = scraper_type or settings.GENERAL_SCRAPING_API
         self._scraper: Optional[BaseGeneralScraper] = None
         self._init_scraper()
 

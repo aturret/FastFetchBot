@@ -4,9 +4,7 @@ from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.services.scrapers.bluesky.scraper import BlueskyScraper
 from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboScraper
 from fastfetchbot_shared.services.scrapers.general.scraper import GeneralScraper
-from fastfetchbot_shared.services.scrapers.config import (
-    BLUESKY_USERNAME, BLUESKY_PASSWORD
-)
+from fastfetchbot_shared.services.scrapers.config import settings
 
 
 class ScraperManager:
@@ -46,7 +44,7 @@ class ScraperManager:
 
     @classmethod
     async def init_bluesky_scraper(cls) -> BlueskyScraper:
-        cls.bluesky_scraper = BlueskyScraper(username=BLUESKY_USERNAME, password=BLUESKY_PASSWORD)
+        cls.bluesky_scraper = BlueskyScraper(username=settings.BLUESKY_USERNAME, password=settings.BLUESKY_PASSWORD)
         await cls.bluesky_scraper.init()
         return cls.bluesky_scraper
 

@@ -1,9 +1,9 @@
 from celery import Celery
 
-from async_worker.config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
+from async_worker.config import settings
 
 celery_app = Celery(
     "fastfetchbot_worker",
-    broker=CELERY_BROKER_URL,
-    backend=CELERY_RESULT_BACKEND,
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
 )

@@ -3,9 +3,9 @@ import secrets
 from fastapi import HTTPException, Security, status
 from fastapi.security.api_key import APIKeyQuery
 
-from src.config import API_KEY_NAME, API_KEY
+from src.config import settings
 
-api_key_query = APIKeyQuery(name=API_KEY_NAME, auto_error=False)
+api_key_query = APIKeyQuery(name=settings.API_KEY_NAME, auto_error=False)
 
 
 def verify_key(input_key: str, true_key: str):
@@ -16,4 +16,4 @@ def verify_key(input_key: str, true_key: str):
 
 
 def verify_api_key(api_key_query: str = Security(api_key_query)):
-    verify_key(api_key_query, API_KEY)
+    verify_key(api_key_query, settings.API_KEY)

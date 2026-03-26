@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter
 from fastapi.requests import Request
 
-from src.config import API_KEY_NAME
+from src.config import settings
 from src.services.scrapers.common import InfoExtractService
 from fastapi import Security
 from src.auth import verify_api_key
@@ -20,8 +20,8 @@ async def get_item_route(request: Request):
     url = query_params.pop("url")
     ban_list = query_params.pop("ban_list", None)
     logger.debug(f"get_item_route: url: {url}, query_params: {query_params}")
-    if API_KEY_NAME in query_params:
-        query_params.pop(API_KEY_NAME)
+    if settings.API_KEY_NAME in query_params:
+        query_params.pop(settings.API_KEY_NAME)
     url_metadata = await get_url_metadata(url, ban_list)
     item = InfoExtractService(url_metadata, **query_params)
     result = await item.get_item()

@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 
 from core.services.bot_app import process_telegram_update
 from core.services.message_sender import send_item_message
-from core.config import TELEGRAM_BOT_SECRET_TOKEN
+from core.config import settings
 from fastfetchbot_shared.utils.logger import logger
 
 
@@ -21,17 +21,16 @@ async def lifespan(app):
     update_queue all share one event loop.
     """
     from core.services.bot_app import startup, shutdown, set_webhook, start_polling, show_bot_info
-    from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_MODE, ITEM_DATABASE_ON
     from fastfetchbot_shared.database import init_db, close_db
 
     # -- startup --
-    if ITEM_DATABASE_ON:
+    if settings.ITEM_DATABASE_ON:
         from core import database
         await database.startup()
     await init_db()
-    if TELEGRAM_BOT_TOKEN:
+    if settings.TELEGRAM_BOT_TOKEN:
         await startup()
-        if TELEGRAM_BOT_MODE == "webhook":
+        if settings.TELEGRAM_BOT_MODE == "webhook":
             result = await set_webhook()
             if result:
                 logger.info("Webhook registered successfully")
@@ -44,17 +43,17 @@ async def lifespan(app):
     yield
 
     # -- shutdown --
-    if TELEGRAM_BOT_TOKEN:
+    if settings.TELEGRAM_BOT_TOKEN:
         await shutdown()
     await close_db()
-    if ITEM_DATABASE_ON:
+    if settings.ITEM_DATABASE_ON:
         from core import database
         await database.shutdown()
 
 
 async def telegram_webhook(request: Request):
     secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-    if secret != TELEGRAM_BOT_SECRET_TOKEN:
+    if secret != settings.TELEGRAM_BOT_SECRET_TOKEN:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     data = await request.json()
     logger.debug(f"Telegram webhook update received: {data.get('update_id', 'unknown')}")

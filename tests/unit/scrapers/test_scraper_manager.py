@@ -143,10 +143,10 @@ class TestInitBlueskyScraperDirect:
             "fastfetchbot_shared.services.scrapers.scraper_manager.BlueskyScraper",
             return_value=mock_instance,
         ) as MockCls, patch(
-            "fastfetchbot_shared.services.scrapers.scraper_manager.BLUESKY_USERNAME",
+            "fastfetchbot_shared.services.scrapers.config.settings.BLUESKY_USERNAME",
             "testuser",
         ), patch(
-            "fastfetchbot_shared.services.scrapers.scraper_manager.BLUESKY_PASSWORD",
+            "fastfetchbot_shared.services.scrapers.config.settings.BLUESKY_PASSWORD",
             "testpass",
         ):
             result = await ScraperManager.init_bluesky_scraper()

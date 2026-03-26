@@ -5,13 +5,7 @@ import asyncpraw
 from bs4 import BeautifulSoup
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MessageType, MediaFile
-from fastfetchbot_shared.services.scrapers.config import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_PASSWORD,
-    REDDIT_USERNAME,
-    JINJA2_ENV,
-)
+from fastfetchbot_shared.services.scrapers.config import settings, JINJA2_ENV
 from fastfetchbot_shared.utils.parse import unix_timestamp_to_utc, get_html_text_length
 from fastfetchbot_shared.utils.network import get_redirect_url
 
@@ -36,13 +30,13 @@ class Reddit(MetadataItem):
         await self._process_reddit_data(reddit_data)
 
     async def _get_reddit_data(self) -> dict:
-        reddit_user_agent = f"testscript by u/{REDDIT_USERNAME}"
+        reddit_user_agent = f"testscript by u/{settings.REDDIT_USERNAME}"
         reddit = asyncpraw.Reddit(
-            client_id=REDDIT_CLIENT_ID,
-            client_secret=REDDIT_CLIENT_SECRET,
-            password=REDDIT_PASSWORD,
+            client_id=settings.REDDIT_CLIENT_ID,
+            client_secret=settings.REDDIT_CLIENT_SECRET,
+            password=settings.REDDIT_PASSWORD,
             user_agent=reddit_user_agent,
-            username=REDDIT_USERNAME,
+            username=settings.REDDIT_USERNAME,
         )
         submission = await reddit.submission(url=self.url)
         return submission.__dict__

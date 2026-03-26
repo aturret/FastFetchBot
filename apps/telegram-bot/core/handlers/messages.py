@@ -15,10 +15,7 @@ from core.database import save_instances
 from core.models.telegram_chat import TelegramMessage, TelegramUser, TelegramChat
 from core.services.user_settings import ensure_user_settings
 from fastfetchbot_shared.utils.logger import logger
-from core.config import (
-    TELEBOT_DEBUG_CHANNEL,
-    ITEM_DATABASE_ON,
-)
+from core.config import settings, TELEBOT_DEBUG_CHANNEL
 
 
 async def all_messages_process(update: Update, context: CallbackContext) -> None:
@@ -34,7 +31,7 @@ async def all_messages_process(update: Update, context: CallbackContext) -> None
                 "Failed to ensure user settings for user {}", message.from_user.id
             )
 
-    if message and ITEM_DATABASE_ON:
+    if message and settings.ITEM_DATABASE_ON:
         telegram_chat = TelegramChat.construct(**message.chat.to_dict())
         telegram_user = TelegramUser.construct(**message.from_user.to_dict())
         telegram_message = TelegramMessage(

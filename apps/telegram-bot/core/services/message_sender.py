@@ -23,14 +23,7 @@ from fastfetchbot_shared.utils.parse import telegram_message_html_trim
 from fastfetchbot_shared.utils.network import download_file_by_metadata_item
 from fastfetchbot_shared.utils.image import Image, image_compressing, check_image_type
 from fastfetchbot_shared.utils.logger import logger
-from core.config import (
-    TELEBOT_API_SERVER,
-    TELEBOT_WRITE_TIMEOUT,
-    TELEGRAM_IMAGE_DIMENSION_LIMIT,
-    TELEGRAM_IMAGE_SIZE_LIMIT,
-    JINJA2_ENV,
-    TEMPLATE_LANGUAGE,
-)
+from core.config import settings, JINJA2_ENV
 from core.services.constants import (
     TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT,
     TELEGRAM_FILE_UPLOAD_LIMIT,
@@ -41,7 +34,7 @@ from core.services.constants import (
 environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
 template_text = TEMPLATE_TRANSLATION.get(
-    TEMPLATE_LANGUAGE, TEMPLATE_TRANSLATION["zh_CN"]
+    settings.TEMPLATE_LANGUAGE, TEMPLATE_TRANSLATION["zh_CN"]
 )
 
 
@@ -102,7 +95,7 @@ async def send_item_message(
                         media=media_group,
                         parse_mode=ParseMode.HTML,
                         caption=caption_text,
-                        write_timeout=TELEBOT_WRITE_TIMEOUT,
+                        write_timeout=settings.TELEBOT_WRITE_TIMEOUT,
                         reply_to_message_id=_reply_to,
                     )
                     if sent_media_files_message is tuple:
@@ -259,7 +252,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     continue
             # check the file size
             if (
-                    not TELEBOT_API_SERVER
+                    not settings.TELEBOT_API_SERVER
             ):  # the official telegram bot api server only supports 50MB file
                 if file_size > TELEGRAM_FILE_UPLOAD_LIMIT:
                     # if the size is over 50MB, skip this file
@@ -284,9 +277,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 # don't try to resize image if the ratio is too large
                 if (
                         ratio < 5
-                        or max(img_height, img_width) < TELEGRAM_IMAGE_DIMENSION_LIMIT
+                        or max(img_height, img_width) < settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ):
-                    image = image_compressing(image, TELEGRAM_IMAGE_DIMENSION_LIMIT)
+                    image = image_compressing(image, settings.TELEGRAM_IMAGE_DIMENSION_LIMIT)
                     with BytesIO() as buffer:
                         # mime_type file format
                         image.save(buffer, format=ext)
@@ -303,9 +296,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     f"image size: {file_size}, ratio: {ratio}, width: {img_width}, height: {img_height}"
                 )
                 if (
-                        file_size > TELEGRAM_IMAGE_SIZE_LIMIT
-                        or img_width > TELEGRAM_IMAGE_DIMENSION_LIMIT
-                        or img_height > TELEGRAM_IMAGE_DIMENSION_LIMIT
+                        file_size > settings.TELEGRAM_IMAGE_SIZE_LIMIT
+                        or img_width > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
+                        or img_height > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ) and data["category"] not in ["xiaohongshu"]:
                     io_object = await download_file_by_metadata_item(
                         url=image_url, data=data

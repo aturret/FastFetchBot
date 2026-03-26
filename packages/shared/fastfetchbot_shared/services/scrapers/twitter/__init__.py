@@ -17,7 +17,7 @@ from .config import (
     SCRAPER_INFO,
     SHORT_LIMIT,
 )
-from fastfetchbot_shared.services.scrapers.config import X_RAPIDAPI_KEY, TWITTER_COOKIES, DEBUG_MODE
+from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.utils.logger import logger
 
 
@@ -105,7 +105,7 @@ class Twitter(MetadataItem):
             save=False,
             pbar=False,
             debug=0,
-            cookies=TWITTER_COOKIES
+            cookies=settings.TWITTER_COOKIES
         )
         tweet_data = await asyncio.to_thread(scraper.tweets_details, [int(self.tid)], limit=1)
         logger.debug(tweet_data)
@@ -308,7 +308,7 @@ class Twitter(MetadataItem):
     def _get_request_headers(self):
         self.host = SCRAPER_INFO[self.scraper]["host"]
         self.headers = {
-            "X-RapidAPI-Key": X_RAPIDAPI_KEY,
+            "X-RapidAPI-Key": settings.X_RAPIDAPI_KEY,
             "X-RapidAPI-Host": SCRAPER_INFO[self.scraper]["top_domain"]
                                + X_RAPIDAPI_HOST,
             "content-type": "application/octet-stream",

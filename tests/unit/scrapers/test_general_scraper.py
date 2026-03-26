@@ -30,7 +30,7 @@ class TestScraperRegistry:
 
 class TestGeneralScraperInit:
     @patch(
-        "fastfetchbot_shared.services.scrapers.general.scraper.GENERAL_SCRAPING_API",
+        "fastfetchbot_shared.services.scrapers.config.settings.GENERAL_SCRAPING_API",
         "FIRECRAWL",
     )
     @patch(

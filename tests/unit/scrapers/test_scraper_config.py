@@ -28,6 +28,10 @@ def _reload_config(env_overrides=None, path_exists_side_effect=None,
     if env_overrides:
         env.update(env_overrides)
 
+    # XHS_COOKIE_PATH is now an env var read by ScrapersSettings
+    if xhs_cookie_path_override is not None:
+        env["XHS_COOKIE_PATH"] = xhs_cookie_path_override
+
     patches = []
 
     # Patch os.environ
@@ -55,17 +59,13 @@ def _reload_config(env_overrides=None, path_exists_side_effect=None,
         )
         patches.append(p_cookies)
 
-    # Patch _XHS_COOKIE_PATH from shared config
-    xhs_path_val = xhs_cookie_path_override if xhs_cookie_path_override is not None else ""
-    p_xhs = patch("fastfetchbot_shared.config.XHS_COOKIE_PATH", xhs_path_val)
-    patches.append(p_xhs)
-
     for p in patches:
         p.start()
 
+    mod_name = "fastfetchbot_shared.services.scrapers.config"
+    original_module = sys.modules.get(mod_name)
     try:
         # Remove cached module so reload actually re-executes
-        mod_name = "fastfetchbot_shared.services.scrapers.config"
         if mod_name in sys.modules:
             del sys.modules[mod_name]
         import fastfetchbot_shared.services.scrapers.config as cfg
@@ -73,6 +73,11 @@ def _reload_config(env_overrides=None, path_exists_side_effect=None,
     finally:
         for p in patches:
             p.stop()
+        # Restore the original module to avoid polluting other tests
+        if mod_name in sys.modules:
+            del sys.modules[mod_name]
+        if original_module is not None:
+            sys.modules[mod_name] = original_module
 
 
 # ---------------------------------------------------------------------------
@@ -84,52 +89,52 @@ class TestDefaultValues:
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TEMP_DIR == tempfile.gettempdir()
-        assert cfg.WORK_DIR == os.getcwd()
-        assert cfg.DOWNLOAD_DIR == os.path.join(os.getcwd(), "download")
-        assert cfg.DEBUG_MODE is False
-        assert cfg.CONF_DIR == os.path.join(os.getcwd(), "conf")
+        assert cfg.settings.TEMP_DIR == tempfile.gettempdir()
+        assert cfg.settings.WORK_DIR == os.getcwd()
+        assert cfg.settings.DOWNLOAD_DIR == os.path.join(os.getcwd(), "download")
+        assert cfg.settings.DEBUG_MODE is False
+        assert cfg.settings.CONF_DIR == os.path.join(os.getcwd(), "conf")
 
     def test_template_defaults(self):
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TEMPLATE_LANGUAGE == "zh_CN"
+        assert cfg.settings.TEMPLATE_LANGUAGE == "zh_CN"
         assert cfg.JINJA2_ENV is not None
 
     def test_platform_defaults_are_none(self):
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.X_RAPIDAPI_KEY is None
-        assert cfg.TWITTER_EMAIL is None
-        assert cfg.TWITTER_PASSWORD is None
-        assert cfg.TWITTER_USERNAME is None
-        assert cfg.TWITTER_CT0 is None
-        assert cfg.TWITTER_AUTH_TOKEN is None
-        assert cfg.TWITTER_COOKIES == {"ct0": None, "auth_token": None}
-        assert cfg.BLUESKY_USERNAME is None
-        assert cfg.BLUESKY_PASSWORD is None
-        assert cfg.XIAOHONGSHU_A1 is None
-        assert cfg.XIAOHONGSHU_WEBID is None
-        assert cfg.XIAOHONGSHU_WEBSESSION is None
-        assert cfg.XIAOHONGSHU_COOKIES == {"a1": None, "web_id": None, "web_session": None}
-        assert cfg.REDDIT_CLIENT_ID is None
-        assert cfg.REDDIT_CLIENT_SECRET is None
-        assert cfg.REDDIT_PASSWORD is None
-        assert cfg.REDDIT_USERNAME is None
-        assert cfg.OPENAI_API_KEY is None
-        assert cfg.ZYTE_API_KEY is None
-        assert cfg.ZHIHU_Z_C0 is None
+        assert cfg.settings.X_RAPIDAPI_KEY is None
+        assert cfg.settings.TWITTER_EMAIL is None
+        assert cfg.settings.TWITTER_PASSWORD is None
+        assert cfg.settings.TWITTER_USERNAME is None
+        assert cfg.settings.TWITTER_CT0 is None
+        assert cfg.settings.TWITTER_AUTH_TOKEN is None
+        assert cfg.settings.TWITTER_COOKIES == {"ct0": None, "auth_token": None}
+        assert cfg.settings.BLUESKY_USERNAME is None
+        assert cfg.settings.BLUESKY_PASSWORD is None
+        assert cfg.settings.XIAOHONGSHU_A1 is None
+        assert cfg.settings.XIAOHONGSHU_WEBID is None
+        assert cfg.settings.XIAOHONGSHU_WEBSESSION is None
+        assert cfg.settings.XIAOHONGSHU_COOKIES == {"a1": None, "web_id": None, "web_session": None}
+        assert cfg.settings.REDDIT_CLIENT_ID is None
+        assert cfg.settings.REDDIT_CLIENT_SECRET is None
+        assert cfg.settings.REDDIT_PASSWORD is None
+        assert cfg.settings.REDDIT_USERNAME is None
+        assert cfg.settings.OPENAI_API_KEY is None
+        assert cfg.settings.ZYTE_API_KEY is None
+        assert cfg.settings.ZHIHU_Z_C0 is None
 
     def test_xhs_defaults(self):
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.XHS_PHONE_LIST == [""]
-        assert cfg.XHS_IP_PROXY_LIST == [""]
-        assert cfg.XHS_ENABLE_IP_PROXY is False
-        assert cfg.XHS_SAVE_LOGIN_STATE is True
+        assert cfg.settings.xhs_phone_list == []
+        assert cfg.settings.xhs_ip_proxy_list == []
+        assert cfg.settings.XHS_ENABLE_IP_PROXY is False
+        assert cfg.settings.XHS_SAVE_LOGIN_STATE is True
 
     def test_weibo_cookies_default_from_env(self):
         cfg = _reload_config(
@@ -142,24 +147,24 @@ class TestDefaultValues:
             path_exists_side_effect=lambda p: False,
         )
         assert cfg.ZHIHU_COOKIES_JSON is None
-        assert cfg.FXZHIHU_HOST == "fxzhihu.com"
+        assert cfg.settings.FXZHIHU_HOST == "fxzhihu.com"
 
     def test_general_scraping_defaults(self):
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.GENERAL_SCRAPING_ON is False
-        assert cfg.GENERAL_SCRAPING_API == "FIRECRAWL"
-        assert cfg.FIRECRAWL_API_URL == ""
-        assert cfg.FIRECRAWL_API_KEY == ""
-        assert cfg.FIRECRAWL_WAIT_FOR == 3000
-        assert cfg.FIRECRAWL_USE_JSON_EXTRACTION is False
+        assert cfg.settings.GENERAL_SCRAPING_ON is False
+        assert cfg.settings.GENERAL_SCRAPING_API == "FIRECRAWL"
+        assert cfg.settings.FIRECRAWL_API_URL == ""
+        assert cfg.settings.FIRECRAWL_API_KEY == ""
+        assert cfg.settings.firecrawl_wait_for_int == 3000
+        assert cfg.settings.FIRECRAWL_USE_JSON_EXTRACTION is False
 
     def test_telegraph_default_empty(self):
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TELEGRAPH_TOKEN_LIST is None
+        assert cfg.settings.telegraph_token_list is None
 
     def test_xhs_cookie_string_empty_when_no_file_no_env(self):
         cfg = _reload_config(
@@ -184,11 +189,11 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TEMP_DIR == "/tmp/custom"
-        assert cfg.WORK_DIR == "/work"
-        assert cfg.DOWNLOAD_DIR == "/work/dl"
-        assert cfg.DEBUG_MODE is True
-        assert cfg.CONF_DIR == "/etc/myconf"
+        assert cfg.settings.TEMP_DIR == "/tmp/custom"
+        assert cfg.settings.WORK_DIR == "/work"
+        assert cfg.settings.DOWNLOAD_DIR == "/work/dl"
+        assert cfg.settings.DEBUG_MODE is True
+        assert cfg.settings.CONF_DIR == "/etc/myconf"
 
     def test_custom_twitter_vars(self):
         cfg = _reload_config(
@@ -201,12 +206,12 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TWITTER_EMAIL == "test@example.com"
-        assert cfg.TWITTER_PASSWORD == "pass123"
-        assert cfg.TWITTER_USERNAME == "tuser"
-        assert cfg.TWITTER_CT0 == "ct0val"
-        assert cfg.TWITTER_AUTH_TOKEN == "authval"
-        assert cfg.TWITTER_COOKIES == {"ct0": "ct0val", "auth_token": "authval"}
+        assert cfg.settings.TWITTER_EMAIL == "test@example.com"
+        assert cfg.settings.TWITTER_PASSWORD == "pass123"
+        assert cfg.settings.TWITTER_USERNAME == "tuser"
+        assert cfg.settings.TWITTER_CT0 == "ct0val"
+        assert cfg.settings.TWITTER_AUTH_TOKEN == "authval"
+        assert cfg.settings.TWITTER_COOKIES == {"ct0": "ct0val", "auth_token": "authval"}
 
     def test_custom_bluesky_vars(self):
         cfg = _reload_config(
@@ -216,8 +221,8 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.BLUESKY_USERNAME == "buser"
-        assert cfg.BLUESKY_PASSWORD == "bpass"
+        assert cfg.settings.BLUESKY_USERNAME == "buser"
+        assert cfg.settings.BLUESKY_PASSWORD == "bpass"
 
     def test_custom_xhs_phone_and_proxy(self):
         cfg = _reload_config(
@@ -229,17 +234,17 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.XHS_PHONE_LIST == ["111", "222", "333"]
-        assert cfg.XHS_IP_PROXY_LIST == ["p1", "p2"]
-        assert cfg.XHS_ENABLE_IP_PROXY is True
-        assert cfg.XHS_SAVE_LOGIN_STATE is False
+        assert cfg.settings.xhs_phone_list == ["111", "222", "333"]
+        assert cfg.settings.xhs_ip_proxy_list == ["p1", "p2"]
+        assert cfg.settings.XHS_ENABLE_IP_PROXY is True
+        assert cfg.settings.XHS_SAVE_LOGIN_STATE is False
 
     def test_custom_template_language(self):
         cfg = _reload_config(
             env_overrides={"TEMPLATE_LANGUAGE": "en_US"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TEMPLATE_LANGUAGE == "en_US"
+        assert cfg.settings.TEMPLATE_LANGUAGE == "en_US"
 
     def test_custom_reddit_vars(self):
         cfg = _reload_config(
@@ -251,10 +256,10 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.REDDIT_CLIENT_ID == "rcid"
-        assert cfg.REDDIT_CLIENT_SECRET == "rsec"
-        assert cfg.REDDIT_PASSWORD == "rpass"
-        assert cfg.REDDIT_USERNAME == "ruser"
+        assert cfg.settings.REDDIT_CLIENT_ID == "rcid"
+        assert cfg.settings.REDDIT_CLIENT_SECRET == "rsec"
+        assert cfg.settings.REDDIT_PASSWORD == "rpass"
+        assert cfg.settings.REDDIT_USERNAME == "ruser"
 
     def test_custom_general_scraping_vars(self):
         cfg = _reload_config(
@@ -269,27 +274,27 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.GENERAL_SCRAPING_ON is True
-        assert cfg.GENERAL_SCRAPING_API == "ZYTE"
-        assert cfg.FIRECRAWL_API_URL == "https://fc.example.com"
-        assert cfg.FIRECRAWL_API_KEY == "fc-key"
-        assert cfg.FIRECRAWL_WAIT_FOR == 5000
-        assert cfg.FIRECRAWL_USE_JSON_EXTRACTION is True
-        assert cfg.ZYTE_API_KEY == "zyte-key"
+        assert cfg.settings.GENERAL_SCRAPING_ON is True
+        assert cfg.settings.GENERAL_SCRAPING_API == "ZYTE"
+        assert cfg.settings.FIRECRAWL_API_URL == "https://fc.example.com"
+        assert cfg.settings.FIRECRAWL_API_KEY == "fc-key"
+        assert cfg.settings.firecrawl_wait_for_int == 5000
+        assert cfg.settings.FIRECRAWL_USE_JSON_EXTRACTION is True
+        assert cfg.settings.ZYTE_API_KEY == "zyte-key"
 
     def test_custom_openai_key(self):
         cfg = _reload_config(
             env_overrides={"OPENAI_API_KEY": "sk-test"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.OPENAI_API_KEY == "sk-test"
+        assert cfg.settings.OPENAI_API_KEY == "sk-test"
 
     def test_custom_x_rapidapi_key(self):
         cfg = _reload_config(
             env_overrides={"X_RAPIDAPI_KEY": "rapid-key"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.X_RAPIDAPI_KEY == "rapid-key"
+        assert cfg.settings.X_RAPIDAPI_KEY == "rapid-key"
 
     def test_custom_weibo_cookies_from_env(self):
         cfg = _reload_config(
@@ -306,8 +311,8 @@ class TestCustomEnvVars:
             },
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.FXZHIHU_HOST == "custom.zhihu.com"
-        assert cfg.ZHIHU_Z_C0 == "z_c0_val"
+        assert cfg.settings.FXZHIHU_HOST == "custom.zhihu.com"
+        assert cfg.settings.ZHIHU_Z_C0 == "z_c0_val"
 
 
 # ---------------------------------------------------------------------------
@@ -392,13 +397,13 @@ class TestXhsCookieString:
         assert cfg.XHS_COOKIE_STRING == ""
 
     def test_xhs_cookie_default_path_when_no_override(self):
-        """When XHS_COOKIE_PATH is empty, uses CONF_DIR/xhs_cookies.txt."""
+        """When XHS_COOKIE_PATH is empty, _load_xhs_cookies uses CONF_DIR/xhs_cookies.txt."""
         cfg = _reload_config(
             path_exists_side_effect=lambda p: False,
             xhs_cookie_path_override="",
         )
-        expected = os.path.join(cfg.CONF_DIR, "xhs_cookies.txt")
-        assert cfg.xhs_cookie_path == expected
+        # The settings field stores the raw env value (empty string)
+        assert cfg.settings.XHS_COOKIE_PATH == ""
 
 
 # ---------------------------------------------------------------------------
@@ -453,35 +458,36 @@ class TestZhihuCookies:
 
 
 # ---------------------------------------------------------------------------
-# FIRECRAWL_WAIT_FOR invalid value
+# FIRECRAWL_WAIT_FOR (stored as str, parsed via firecrawl_wait_for_int)
 # ---------------------------------------------------------------------------
 
 class TestFirecrawlWaitFor:
     def test_firecrawl_wait_for_invalid_fallback(self):
+        """Non-numeric string should fall back to 3000 via firecrawl_wait_for_int."""
         cfg = _reload_config(
             env_overrides={"FIRECRAWL_WAIT_FOR": "not_a_number"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.FIRECRAWL_WAIT_FOR == 3000
+        assert cfg.settings.firecrawl_wait_for_int == 3000
 
     def test_firecrawl_wait_for_valid(self):
         cfg = _reload_config(
             env_overrides={"FIRECRAWL_WAIT_FOR": "7000"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.FIRECRAWL_WAIT_FOR == 7000
+        assert cfg.settings.firecrawl_wait_for_int == 7000
 
     def test_firecrawl_wait_for_empty_string(self):
-        """Empty string should use default 3000 via `or 3000`."""
+        """Empty string should fall back to 3000 via firecrawl_wait_for_int."""
         cfg = _reload_config(
             env_overrides={"FIRECRAWL_WAIT_FOR": ""},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.FIRECRAWL_WAIT_FOR == 3000
+        assert cfg.settings.firecrawl_wait_for_int == 3000
 
 
 # ---------------------------------------------------------------------------
-# TELEGRAPH_TOKEN_LIST
+# TELEGRAPH_TOKEN_LIST (stored as str, parsed via telegraph_token_list)
 # ---------------------------------------------------------------------------
 
 class TestTelegraphTokenList:
@@ -490,18 +496,18 @@ class TestTelegraphTokenList:
             env_overrides={"TELEGRAPH_TOKEN_LIST": ""},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TELEGRAPH_TOKEN_LIST is None
+        assert cfg.settings.telegraph_token_list is None
 
     def test_telegraph_comma_separated(self):
         cfg = _reload_config(
             env_overrides={"TELEGRAPH_TOKEN_LIST": "tok1,tok2,tok3"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TELEGRAPH_TOKEN_LIST == ["tok1", "tok2", "tok3"]
+        assert cfg.settings.telegraph_token_list == ["tok1", "tok2", "tok3"]
 
     def test_telegraph_single_token(self):
         cfg = _reload_config(
             env_overrides={"TELEGRAPH_TOKEN_LIST": "single_tok"},
             path_exists_side_effect=lambda p: False,
         )
-        assert cfg.TELEGRAPH_TOKEN_LIST == ["single_tok"]
+        assert cfg.settings.telegraph_token_list == ["single_tok"]

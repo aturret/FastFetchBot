@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 
 import httpx
 
-from fastfetchbot_shared.config import SIGN_SERVER_URL
+from fastfetchbot_shared.config import settings as shared_settings
 from fastfetchbot_shared.utils.logger import logger
 
 XHS_API_URL = "https://edith.xiaohongshu.com"
@@ -50,11 +50,11 @@ class XhsSinglePostAdapter:
             timeout: float = 20.0,
     ):
         self.cookies = cookies.strip()
-        self.sign_server_endpoint = (sign_server_endpoint or SIGN_SERVER_URL).rstrip("/")
+        self.sign_server_endpoint = (sign_server_endpoint or shared_settings.SIGN_SERVER_URL).rstrip("/")
         if not self.sign_server_endpoint:
             raise ValueError(
                 "XhsSinglePostAdapter requires a sign server URL. "
-                "Set SIGN_SERVER_URL in the environment or pass sign_server_endpoint explicitly."
+                "Set shared_settings.SIGN_SERVER_URL in the environment or pass sign_server_endpoint explicitly."
             )
         self.timeout = timeout
         self._http = httpx.AsyncClient(timeout=timeout, follow_redirects=True)

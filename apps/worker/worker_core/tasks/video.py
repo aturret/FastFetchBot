@@ -1,12 +1,5 @@
 from worker_core.main import app
-from worker_core.config import (
-    DOWNLOAD_DIR,
-    COOKIE_FILE_PATH,
-    PROXY_MODE,
-    PROXY_URL,
-    YOUTUBE_COOKIE,
-    BILIBILI_COOKIE,
-)
+from worker_core.config import settings
 from fastfetchbot_file_export.video_download import download_video
 from fastfetchbot_shared.utils.logger import logger
 
@@ -47,12 +40,12 @@ def video_download_task(
 ) -> dict:
     logger.info(f"video_download_task started: url={url}, extractor={extractor}, download={download}, hd={hd}, audio_only={audio_only}")
     config = {
-        "DOWNLOAD_DIR": DOWNLOAD_DIR,
-        "COOKIE_FILE_PATH": COOKIE_FILE_PATH,
-        "PROXY_MODE": PROXY_MODE,
-        "PROXY_URL": PROXY_URL,
-        "YOUTUBE_COOKIE": YOUTUBE_COOKIE,
-        "BILIBILI_COOKIE": BILIBILI_COOKIE,
+        "DOWNLOAD_DIR": settings.DOWNLOAD_DIR,
+        "COOKIE_FILE_PATH": settings.COOKIE_FILE_PATH,
+        "PROXY_MODE": settings.PROXY_MODE,
+        "PROXY_URL": settings.PROXY_URL,
+        "YOUTUBE_COOKIE": settings.YOUTUBE_COOKIE,
+        "BILIBILI_COOKIE": settings.BILIBILI_COOKIE,
         "LOCAL_MODE": True,
     }
     try:

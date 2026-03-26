@@ -1,10 +1,10 @@
 from celery import Celery
-from worker_core.config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
+from worker_core.config import settings
 
 app = Celery(
     "fastfetchbot_worker",
-    broker=CELERY_BROKER_URL,
-    backend=CELERY_RESULT_BACKEND,
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
 )
 
 app.conf.update(
