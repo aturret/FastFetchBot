@@ -635,7 +635,7 @@ class TestBlueskyScraper:
 
     @pytest.mark.asyncio
     async def test_request_post_data_exception_handling(self):
-        """_request_post_data should log error and return None on exception."""
+        """_request_post_data should log error and re-raise on exception."""
         from fastfetchbot_shared.services.scrapers.bluesky.scraper import BlueskyScraper
 
         with patch(
@@ -652,5 +652,5 @@ class TestBlueskyScraper:
             bluesky_post.handle = "alice"
             bluesky_post.post_rkey = "rkey123"
 
-            result = await scraper._request_post_data(bluesky_post)
-            assert result is None
+            with pytest.raises(Exception, match="network error"):
+                await scraper._request_post_data(bluesky_post)

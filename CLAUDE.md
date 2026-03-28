@@ -183,6 +183,23 @@ GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all four images on
 6. Add platform-specific router in `apps/api/src/routers/` (if API endpoints are needed)
 7. Add any new pip dependencies to `packages/shared/pyproject.toml` under `[project.optional-dependencies] scrapers`
 
+### Exception Handling
+- **Custom exceptions** are defined in `packages/shared/fastfetchbot_shared/exceptions.py`:
+  - `FastFetchBotError` — base for all domain errors
+  - `ScraperError` / `ScraperNetworkError` / `ScraperParseError` — scraper failures
+  - `TelegraphPublishError` — Telegraph publishing failures
+  - `FileExportError` — file export (PDF, video, audio) failures
+  - `ExternalServiceError` — external service call failures (OpenAI, Firecrawl, Zyte, XHS sign server, etc.)
+- **Always use typed exceptions** instead of generic `RuntimeError`, `ValueError`, or `Exception` for domain errors. Pick the most specific subclass that fits.
+- **Use `from e` chaining** when wrapping exceptions: `raise ScraperError("message") from e`
+- **Boundary-level handlers** catch exceptions at service boundaries:
+  - FastAPI: global `@app.exception_handler(FastFetchBotError)` returns 502, generic `Exception` returns 500
+  - Telegram bot: `error_process` handler catches handler exceptions; webhook server protects endpoints
+  - Celery/ARQ workers: existing task-level try/catch with outbox error push
+- **Never use `print()` or `traceback.print_exc()`** — always use `logger.exception()` (includes traceback) or `logger.error()` (message only)
+- **Never silently swallow exceptions** — if catching an exception, either re-raise it or handle it explicitly with logging. Do not return `None` or empty data on failure.
+- **Fail fast after fallback chains** — scrapers may try multiple methods/APIs, but must raise a typed error when all fallbacks are exhausted
+
 ### Key Conventions
 - **`packages/shared/` (`fastfetchbot-shared`)** is for shared async logic — scrapers, templates, Telegraph, and async Celery task wrappers (file_export). Most code here is async and reusable across apps
 - **`packages/file-export/` (`fastfetchbot-file-export`)** is exclusively for synchronous Celery worker jobs — the heavy I/O operations that run inside the Celery worker process (yt-dlp video download, WeasyPrint PDF generation, OpenAI audio transcription). Apps never import this package directly; they use the async wrappers in `fastfetchbot_shared.services.file_export` which submit tasks to the Celery worker

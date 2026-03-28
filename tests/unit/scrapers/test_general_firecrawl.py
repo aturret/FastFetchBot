@@ -9,6 +9,7 @@ from fastfetchbot_shared.services.scrapers.general.firecrawl_client import (
     FirecrawlClient,
     FirecrawlSettings,
 )
+from fastfetchbot_shared.exceptions import ExternalServiceError
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +167,7 @@ class TestFirecrawlClientScrapeUrl:
         mock_app.scrape.side_effect = Exception("network error")
 
         client = FirecrawlClient.get_instance()
-        with pytest.raises(RuntimeError, match="Firecrawl scrape_url failed"):
+        with pytest.raises(ExternalServiceError, match="Firecrawl scrape_url failed"):
             await client.scrape_url(url="https://fail.com")
 
 

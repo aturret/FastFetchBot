@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from fastfetchbot_shared.services.scrapers.scraper_manager import ScraperManager
+from fastfetchbot_shared.exceptions import ScraperError
 
 
 # ---------------------------------------------------------------------------
@@ -124,8 +125,8 @@ class TestInitScraperGeneral:
 
 class TestInitScraperUnsupported:
     @pytest.mark.asyncio
-    async def test_unsupported_category_raises_value_error(self):
-        with pytest.raises(ValueError, match="not supported"):
+    async def test_unsupported_category_raises_scraper_error(self):
+        with pytest.raises(ScraperError, match="not supported"):
             await ScraperManager.init_scraper("tiktok")
 
 

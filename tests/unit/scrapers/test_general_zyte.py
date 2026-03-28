@@ -8,6 +8,7 @@ from fastfetchbot_shared.services.scrapers.general.zyte import (
     ZyteDataProcessor,
     ZyteScraper,
 )
+from fastfetchbot_shared.exceptions import ExternalServiceError
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ class TestZyteGetPageContent:
     )
     async def test_no_api_key_raises(self):
         proc = ZyteDataProcessor("https://example.com")
-        with pytest.raises(RuntimeError, match="ZYTE_API_KEY is not configured"):
+        with pytest.raises(ExternalServiceError, match="ZYTE_API_KEY is not configured"):
             await proc._get_page_content()
 
     @pytest.mark.asyncio

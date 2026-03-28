@@ -426,3 +426,51 @@ class TestVideoInfoFormatting:
         }
         vd._video_info_formatting(meta_info)
         assert vd.media_files == []
+
+
+# ---------------------------------------------------------------------------
+# Exception handling in fastfetchbot_file_export.video_download
+# ---------------------------------------------------------------------------
+
+
+class TestVideoDownloadExceptions:
+    def test_unsupported_extractor_raises_file_export_error(self):
+        from fastfetchbot_file_export.video_download import get_format_for_orientation
+        from fastfetchbot_shared.exceptions import FileExportError
+
+        with pytest.raises(FileExportError, match="no available extractor found"):
+            get_format_for_orientation("tiktok", "horizontal", False)
+
+    def test_download_video_wraps_errors_in_file_export_error(self):
+        from fastfetchbot_file_export.video_download import download_video
+        from fastfetchbot_shared.exceptions import FileExportError
+
+        with patch(
+            "fastfetchbot_file_export.video_download.init_yt_downloader"
+        ) as mock_init:
+            mock_ydl = MagicMock()
+            mock_ydl.__enter__ = MagicMock(return_value=mock_ydl)
+            mock_ydl.__exit__ = MagicMock(return_value=False)
+            mock_ydl.extract_info.side_effect = RuntimeError("network error")
+            mock_init.return_value = mock_ydl
+
+            with pytest.raises(FileExportError, match="download_video failed"):
+                download_video("https://youtube.com/watch?v=test", download=True)
+
+    def test_download_video_preserves_original_cause(self):
+        from fastfetchbot_file_export.video_download import download_video
+        from fastfetchbot_shared.exceptions import FileExportError
+
+        original = RuntimeError("connection reset")
+        with patch(
+            "fastfetchbot_file_export.video_download.init_yt_downloader"
+        ) as mock_init:
+            mock_ydl = MagicMock()
+            mock_ydl.__enter__ = MagicMock(return_value=mock_ydl)
+            mock_ydl.__exit__ = MagicMock(return_value=False)
+            mock_ydl.extract_info.side_effect = original
+            mock_init.return_value = mock_ydl
+
+            with pytest.raises(FileExportError) as exc_info:
+                download_video("https://youtube.com/watch?v=x", download=True)
+            assert exc_info.value.__cause__ is original

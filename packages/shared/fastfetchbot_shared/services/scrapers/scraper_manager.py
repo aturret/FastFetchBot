@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastfetchbot_shared.utils.logger import logger
+from fastfetchbot_shared.exceptions import ScraperError
 from fastfetchbot_shared.services.scrapers.bluesky.scraper import BlueskyScraper
 from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboScraper
 from fastfetchbot_shared.services.scrapers.general.scraper import GeneralScraper
@@ -40,7 +41,7 @@ class ScraperManager:
                     cls.scrapers["unknown"] = scraper
         else:
             logger.error(f"Scraper {category} is not supported")
-            raise ValueError(f"Scraper {category} is not supported")
+            raise ScraperError(f"Scraper {category} is not supported")
 
     @classmethod
     async def init_bluesky_scraper(cls) -> BlueskyScraper:

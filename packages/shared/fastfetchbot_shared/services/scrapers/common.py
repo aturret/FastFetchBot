@@ -1,6 +1,7 @@
 from typing import Optional, Any
 
 from fastfetchbot_shared.models.url_metadata import UrlMetadata
+from fastfetchbot_shared.exceptions import ScraperError
 from fastfetchbot_shared.services.scrapers import (
     twitter,
     wechat,
@@ -75,7 +76,7 @@ class InfoExtractService(object):
             return self.service_classes[category]
         if category in ("youtube", "bilibili"):
             return self._get_video_downloader()
-        raise KeyError(f"No scraper registered for category: {category}")
+        raise ScraperError(f"No scraper registered for category: {category}")
 
     async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
         if not metadata_item:
@@ -92,7 +93,7 @@ class InfoExtractService(object):
                     metadata_item = await scraper_item.get_item()
             except Exception as e:
                 logger.error(f"Error while getting item: {e}")
-                raise e
+                raise
         logger.info(f"Got metadata item")
         logger.debug(metadata_item)
         metadata_item = await self.process_item(metadata_item)

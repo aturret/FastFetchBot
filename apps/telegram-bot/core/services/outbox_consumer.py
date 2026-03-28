@@ -4,7 +4,7 @@ import json
 import redis.asyncio as aioredis
 
 from core.config import settings
-from core.services.message_sender import send_item_message
+from core.services.message_sender import send_item_message, send_debug_channel
 from fastfetchbot_shared.utils.logger import logger
 
 _redis: aioredis.Redis | None = None
@@ -42,7 +42,9 @@ async def _consume_loop() -> None:
 
             if error:
                 logger.warning(f"[{job_id}] Scrape failed: {error}")
-                await _send_error_to_chat(chat_id, error)
+                await send_debug_channel(
+                    f"[Scrape Error] job_id={job_id}\nchat_id: {chat_id}\n\n{error}"
+                )
             else:
                 metadata_item = payload.get("metadata_item")
                 if metadata_item and chat_id:
@@ -61,19 +63,6 @@ async def _consume_loop() -> None:
             logger.error(f"Outbox consumer error: {e}")
             # Brief pause before retrying to avoid tight error loops
             await asyncio.sleep(1)
-
-
-async def _send_error_to_chat(chat_id: int | str, error: str) -> None:
-    """Send an error notification to the user's chat."""
-    try:
-        from core.services.bot_app import application
-
-        await application.bot.send_message(
-            chat_id=chat_id,
-            text=f"Sorry, an error occurred while processing your request:\n\n{error}",
-        )
-    except Exception as e:
-        logger.error(f"Failed to send error message to chat {chat_id}: {e}")
 
 
 async def start(bot_id: int) -> None:

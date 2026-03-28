@@ -2,6 +2,8 @@ import os
 
 from weasyprint import HTML, CSS
 from weasyprint.text.fonts import FontConfiguration
+from loguru import logger
+from fastfetchbot_shared.exceptions import FileExportError
 
 CSS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pdf_export.css")
 
@@ -19,7 +21,7 @@ def convert_html_to_pdf(
     elif html_string:
         html_item = HTML(string=html_string)
     else:
-        raise ValueError("Either html_string or html_file must be provided")
+        raise FileExportError("Either html_string or html_file must be provided")
     html_item.write_pdf(output_filename, stylesheets=[css_item])
 
 
@@ -30,10 +32,14 @@ def export_pdf(
     download_dir: str = "/tmp",
 ) -> str:
     """Export HTML to PDF and return the output file path."""
-    output_path = os.path.join(download_dir, output_filename)
-    convert_html_to_pdf(
-        output_filename=output_path,
-        html_string=html_string,
-        html_file=html_file,
-    )
-    return output_path
+    try:
+        output_path = os.path.join(download_dir, output_filename)
+        convert_html_to_pdf(
+            output_filename=output_path,
+            html_string=html_string,
+            html_file=html_file,
+        )
+        return output_path
+    except Exception as e:
+        logger.exception(f"PDF export failed for {output_filename}")
+        raise FileExportError(f"PDF export failed for {output_filename}") from e

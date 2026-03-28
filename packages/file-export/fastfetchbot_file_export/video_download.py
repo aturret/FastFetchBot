@@ -1,8 +1,8 @@
 import os
-import traceback
 
 from loguru import logger
 from yt_dlp import YoutubeDL
+from fastfetchbot_shared.exceptions import FileExportError
 
 
 def get_video_orientation(content_info: dict, extractor: str) -> str:
@@ -39,7 +39,7 @@ def get_format_for_orientation(
         if hd and bilibili_cookie:
             return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         return "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
-    raise ValueError("no available extractor found")
+    raise FileExportError("no available extractor found")
 
 
 def init_yt_downloader(
@@ -201,6 +201,6 @@ def download_video(
             "orientation": orientation,
             "file_path": file_path_output,
         }
-    except Exception:
-        logger.exception(f"download_video failed: url={url}\n{traceback.format_exc()}")
-        raise
+    except Exception as e:
+        logger.exception(f"download_video failed: url={url}")
+        raise FileExportError(f"download_video failed: url={url}") from e

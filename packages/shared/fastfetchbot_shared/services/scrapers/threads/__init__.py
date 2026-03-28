@@ -97,7 +97,7 @@ class Threads(MetadataItem):
             for xhr in gql_calls:
                 text = await xhr.text()
                 data = json.loads(text)
-                print(json.dumps(data, indent=4, ensure_ascii=False))
+                logger.debug(json.dumps(data, indent=4, ensure_ascii=False))
                 threads = data["data"]["data"]["containing_thread"]["thread_items"]
                 for thread in threads:
                     thread_data["threads"].append(self.parse_single_threads_data(thread["post"]))

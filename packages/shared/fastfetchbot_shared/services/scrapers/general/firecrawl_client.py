@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 from firecrawl import AsyncFirecrawl
 
 from fastfetchbot_shared.services.scrapers.config import settings
+from fastfetchbot_shared.exceptions import ExternalServiceError
 
 
 @dataclass(frozen=True)
@@ -93,4 +94,4 @@ class FirecrawlClient:
             )
             return result.model_dump(exclude_none=True)
         except Exception as e:
-            raise RuntimeError(f"Firecrawl scrape_url failed: url={url}") from e
+            raise ExternalServiceError(f"Firecrawl scrape_url failed: url={url}") from e

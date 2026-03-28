@@ -189,3 +189,4 @@ class BlueskyScraper(Scraper):
             return post_thread_data.thread
         except Exception as e:
             logger.error(f"Error while getting post data: {e}")
+            raise

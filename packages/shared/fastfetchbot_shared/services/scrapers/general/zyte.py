@@ -4,6 +4,7 @@ from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.services.scrapers.general.base import BaseGeneralDataProcessor, BaseGeneralScraper
 from fastfetchbot_shared.services.scrapers.scraper import DataProcessor
 from fastfetchbot_shared.utils.logger import logger
+from fastfetchbot_shared.exceptions import ExternalServiceError
 
 
 class ZyteDataProcessor(BaseGeneralDataProcessor):
@@ -17,7 +18,7 @@ class ZyteDataProcessor(BaseGeneralDataProcessor):
 
     async def _get_page_content(self) -> None:
         if not settings.ZYTE_API_KEY:
-            raise RuntimeError("ZYTE_API_KEY is not configured")
+            raise ExternalServiceError("ZYTE_API_KEY is not configured")
 
         try:
             client = AsyncZyteAPI(api_key=settings.ZYTE_API_KEY)
