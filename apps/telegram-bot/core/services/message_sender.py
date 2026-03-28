@@ -163,9 +163,8 @@ async def send_item_message(
                 else False,
                 disable_notification=True,
             )
-    except Exception as e:
-        logger.error(e)
-        traceback.print_exc()
+    except Exception:
+        logger.exception("Failed to send item message")
         await send_debug_channel(traceback.format_exc())
 
 
@@ -234,9 +233,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 "https",
             ]:  # if the url is a http url, download the file
                 file_format = "mp4" if media_item["media_type"] == "video" else None
-                io_object = await download_file_by_metadata_item(
-                    media_item["url"], data=data, file_format=file_format
-                )
+                try:
+                    io_object = await download_file_by_metadata_item(
+                        media_item["url"], data=data, file_format=file_format
+                    )
+                except Exception:
+                    logger.warning(f"Skipping media download: {media_item['url']}")
+                    continue
                 filename = io_object.name
                 file_size = io_object.size
             else:  # if the url is a local file path, just add it to the media group
@@ -300,9 +303,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                         or img_width > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                         or img_height > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ) and data["category"] not in ["xiaohongshu"]:
-                    io_object = await download_file_by_metadata_item(
-                        url=image_url, data=data
-                    )
+                    try:
+                        io_object = await download_file_by_metadata_item(
+                            url=image_url, data=data
+                        )
+                    except Exception:
+                        logger.warning(f"Skipping document download: {image_url}")
+                        continue
                     if not io_object.name.endswith(".gif"):
                         if not io_object.name.endswith(ext.lower()):
                             io_object.name = io_object.name + "." + ext.lower()
@@ -312,11 +319,15 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                         )
                         file_counter += 1
             elif media_item["media_type"] == "gif":
-                io_object = await download_file_by_metadata_item(
-                    url=media_item["url"],
-                    data=data,
-                    file_name="gif_image-" + str(media_counter) + ".gif",
-                )
+                try:
+                    io_object = await download_file_by_metadata_item(
+                        url=media_item["url"],
+                        data=data,
+                        file_name="gif_image-" + str(media_counter) + ".gif",
+                    )
+                except Exception:
+                    logger.warning(f"Skipping gif download: {media_item['url']}")
+                    continue
                 io_object.name = io_object.name + ".gif"
                 media_group.append(InputMediaAnimation(io_object))
             elif media_item["media_type"] == "video":

@@ -8,6 +8,7 @@ from lxml import etree
 
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
 from fastfetchbot_shared.utils.network import get_selector, HEADERS
+from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
 from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
 
@@ -220,10 +221,10 @@ class Douban(MetadataItem):
     @staticmethod
     def raw_content_to_html(raw_content: str) -> str:
         # Split the text into paragraphs based on double newlines
-        print(raw_content)
+        logger.debug(raw_content)
         paragraphs = raw_content.split('<br>\n')
         # Wrap each paragraph with <p> tags
-        print(paragraphs)
+        logger.debug(paragraphs)
         html_paragraphs = [f'<p>{paragraph.strip()}</p>' for paragraph in paragraphs]
         # Join the paragraphs to form the final HTML string
         html_string = ''.join(html_paragraphs)

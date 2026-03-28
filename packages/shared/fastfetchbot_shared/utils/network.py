@@ -5,7 +5,6 @@ from typing import Optional
 
 import aiofiles
 import httpx
-import traceback
 
 from lxml import etree
 from fake_useragent import UserAgent
@@ -39,8 +38,8 @@ async def get_response_json(url: str, headers=None, client: httpx.AsyncClient = 
     try:
         response = await get_response(url, headers=headers, client=client)
         json_result = response.json()
-    except Exception as e:
-        print(e, traceback.format_exc())
+    except Exception:
+        logger.exception(f"Failed to get JSON response from {url}")
         json_result = None
     return json_result
 
@@ -67,16 +66,16 @@ async def get_selector(
         if (
                 resp.history
         ):  # if there is a redirect, the request will have a response chain
-            print("Request was redirected")
+            logger.debug("Request was redirected")
             for h in resp.history:
-                print(h.status_code, h.url)
+                logger.debug(f"Redirect: {h.status_code} {h.url}")
                 # if code is 302, do not follow the redirect
                 if h.status_code == 302:
                     selector = await get_selector(
                         h.url, headers=headers, follow_redirects=False
                     )
                     return selector
-            print("Final destination:", resp.status_code, resp.url)
+            logger.debug(f"Final destination: {resp.status_code} {resp.url}")
         selector = etree.HTML(resp.text)  # the content of the final destination
         return selector
 
@@ -114,7 +113,7 @@ async def get_content_async(url):
             async with page.expect_response("**/api/content") as response_info:
                 response = await response_info.value
                 if response.status == 200:
-                    print("Content loaded")
+                    logger.debug("Content loaded")
 
         await page.goto(url)
         await wait_for_network_idle()
@@ -160,9 +159,9 @@ async def download_file_by_metadata_item(
             file_name = "media-" + str(uuid.uuid1())[:8] + "." + file_format
         io_object = NamedBytesIO(file_data, name=file_name)
         return io_object
-    except Exception as e:
-        await asyncio.sleep(2)
-        logger.error(f"Failed to download {url}, {e}")
+    except Exception:
+        logger.exception(f"Failed to download {url}")
+        raise
 
 
 async def download_file_to_local(

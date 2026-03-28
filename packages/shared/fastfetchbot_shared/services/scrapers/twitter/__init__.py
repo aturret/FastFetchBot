@@ -1,6 +1,5 @@
 # TODO: https://rapidapi.com/Glavier/api/twitter135
 import asyncio
-import traceback
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -9,6 +8,7 @@ import jmespath
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
 from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.exceptions import ScraperError, ScraperParseError
 from twitter.scraper import Scraper
 from .config import (
     ALL_SCRAPER,
@@ -73,11 +73,10 @@ class Twitter(MetadataItem):
                 elif self.scraper == "api-client":
                     tweet_data = await self._api_client_get_response_tweet_data()
                     return tweet_data
-            except Exception as e:
-                logger.error(e)
-                traceback.print_exc()
+            except Exception:
+                logger.exception(f"Twitter scraper {self.scraper} failed")
                 continue
-        raise Exception("No valid response from all Twitter scrapers")
+        raise ScraperError("No valid response from all Twitter scrapers")
 
     async def _rapidapi_get_response_tweet_data(self) -> Dict:
         async with httpx.AsyncClient() as client:
@@ -94,11 +93,11 @@ class Twitter(MetadataItem):
                         type(tweet_data) == str
                         and ("400" in tweet_data or "429" in tweet_data)
                 ):
-                    raise Exception("Invalid response from Twitter API")
+                    raise ScraperParseError("Invalid response from Twitter API")
                 else:
                     return tweet_data
             else:
-                raise Exception("Invalid response from Twitter API")
+                raise ScraperParseError("Invalid response from Twitter API")
 
     async def _api_client_get_response_tweet_data(self) -> Dict:
         scraper = Scraper(

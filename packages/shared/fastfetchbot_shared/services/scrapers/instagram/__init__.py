@@ -81,10 +81,10 @@ class Instagram(MetadataItem):
                     and "status" in ins_data
                     and ins_data["status"] is False
                 ):
-                    print("get_ins_post_item error: ", self.scraper)
+                    logger.warning(f"get_ins_post_item error: {self.scraper}")
                     continue
                 elif type(ins_data) == str and "400" in ins_data:
-                    print("get_ins_post_item error: ", self.scraper, ins_data)
+                    logger.warning(f"get_ins_post_item error: {self.scraper} {ins_data}")
                     continue
             if (
                 self.scraper == "looter2"

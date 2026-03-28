@@ -3,6 +3,7 @@ import os
 from pydub import AudioSegment
 from openai import OpenAI
 from loguru import logger
+from fastfetchbot_shared.exceptions import FileExportError
 
 TRANSCRIBE_MODEL = "whisper-1"
 SEGMENT_LENGTH = 5 * 60  # 5 minutes in seconds
@@ -74,40 +75,44 @@ def get_audio_text(audio_file: str, openai_api_key: str) -> str:
 
     Returns formatted string with summary and full transcript.
     """
-    client = OpenAI(api_key=openai_api_key)
-    transcript = ""
-    AudioSegment.converter = "ffmpeg"
-    audio_file_non_ext, audio_file_ext = os.path.splitext(audio_file)
-    ext = audio_file_ext.lstrip(".")
-    audio_item = AudioSegment.from_file(audio_file, ext)
-    start_trim = milliseconds_until_sound(audio_item)
-    audio_item = audio_item[start_trim:]
-    audio_length = int(audio_item.duration_seconds) + 1
+    try:
+        client = OpenAI(api_key=openai_api_key)
+        transcript = ""
+        AudioSegment.converter = "ffmpeg"
+        audio_file_non_ext, audio_file_ext = os.path.splitext(audio_file)
+        ext = audio_file_ext.lstrip(".")
+        audio_item = AudioSegment.from_file(audio_file, ext)
+        start_trim = milliseconds_until_sound(audio_item)
+        audio_item = audio_item[start_trim:]
+        audio_length = int(audio_item.duration_seconds) + 1
 
-    for index, i in enumerate(range(0, audio_length * 1000, SEGMENT_LENGTH * 1000)):
-        start_time = i
-        end_time = i + SEGMENT_LENGTH * 1000
-        if end_time >= audio_length * 1000:
-            audio_segment = audio_item[start_time:]
-        else:
-            audio_segment = audio_item[start_time:end_time]
+        for index, i in enumerate(range(0, audio_length * 1000, SEGMENT_LENGTH * 1000)):
+            start_time = i
+            end_time = i + SEGMENT_LENGTH * 1000
+            if end_time >= audio_length * 1000:
+                audio_segment = audio_item[start_time:]
+            else:
+                audio_segment = audio_item[start_time:end_time]
 
-        segment_path = f"{audio_file_non_ext}-{index + 1}{audio_file_ext}"
-        audio_segment.export(segment_path)
-        logger.info(f"audio_segment_path: {segment_path}")
+            segment_path = f"{audio_file_non_ext}-{index + 1}{audio_file_ext}"
+            audio_segment.export(segment_path)
+            logger.info(f"audio_segment_path: {segment_path}")
 
-        with open(segment_path, "rb") as f:
-            result = client.audio.transcriptions.create(
-                model=TRANSCRIBE_MODEL, file=f
-            )
-            transcript += result.text
+            with open(segment_path, "rb") as f:
+                result = client.audio.transcriptions.create(
+                    model=TRANSCRIBE_MODEL, file=f
+                )
+                transcript += result.text
 
-        os.remove(segment_path)
+            os.remove(segment_path)
 
-    transcript = punctuation_assistant(client, transcript)
-    transcript = (
-        f"全文总结：\n{summary_assistant(client, transcript)}\n原文：\n{transcript}"
-    )
-    logger.info(f"transcript: {transcript}")
-    os.remove(audio_file)
-    return transcript
+        transcript = punctuation_assistant(client, transcript)
+        transcript = (
+            f"全文总结：\n{summary_assistant(client, transcript)}\n原文：\n{transcript}"
+        )
+        logger.info(f"transcript: {transcript}")
+        os.remove(audio_file)
+        return transcript
+    except Exception as e:
+        logger.exception(f"Audio transcription failed for {audio_file}")
+        raise FileExportError(f"Audio transcription failed for {audio_file}") from e

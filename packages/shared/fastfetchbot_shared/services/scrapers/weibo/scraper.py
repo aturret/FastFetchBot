@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from lxml import html
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
+from fastfetchbot_shared.exceptions import ScraperError, ScraperNetworkError, ScraperParseError
 from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
 from fastfetchbot_shared.services.scrapers.weibo import Weibo
 from fastfetchbot_shared.utils.network import get_response_json, get_random_user_agent
@@ -61,19 +62,20 @@ class WeiboDataProcessor(DataProcessor):
         # Priority 1: API with SUB cookie and isGetLongText=true
         try:
             weibo_info = await self._get_weibo_info(method="api")
-        except ConnectionError as e:
+        except ScraperNetworkError as e:
             logger.warning(f"Failed to get weibo info by api: {e}")
         # Priority 2: webpage scraping
         if weibo_info is None:
             try:
                 weibo_info = await self._get_weibo_info(method="webpage")
-            except ConnectionError as e:
+            except ScraperNetworkError as e:
                 logger.error(f"All weibo fetch methods failed. Last error: {e}")
                 raise
         try:
             await self._process_weibo_item(weibo_info)
         except Exception as e:
             logger.error(f"Failed to process weibo item: {e}")
+            raise
 
     async def _get_weibo_info(self, method=None) -> dict:
         try:
@@ -84,11 +86,11 @@ class WeiboDataProcessor(DataProcessor):
             elif method == "api":
                 weibo_info = await self._get_weibo_info_api()
             else:
-                raise ValueError("method must be webpage or api")
+                raise ScraperError("method must be webpage or api")
             weibo_info = self._parse_weibo_info(weibo_info)
             return weibo_info
-        except ConnectionError as e:
-            raise ConnectionError(f"There are some network issues: {e}")
+        except (ConnectionError, ScraperNetworkError) as e:
+            raise ScraperNetworkError(f"There are some network issues: {e}") from e
 
     async def _get_weibo_info_webpage(self) -> dict:
         url = WEIBO_WEB_HOST + self.id
@@ -125,11 +127,13 @@ class WeiboDataProcessor(DataProcessor):
                 response.raise_for_status()
                 ajax_json = response.json()
             if not ajax_json or ajax_json.get("ok") == 0:
-                raise ConnectionError("API returned ok=0 or empty response")
+                raise ScraperParseError("Weibo API returned ok=0 or empty response")
             logger.debug(f"weibo info by api: {ajax_json}")
             return ajax_json
+        except (ScraperParseError, ScraperNetworkError):
+            raise
         except Exception as e:
-            raise ConnectionError(f"Failed to get weibo info by api: {e}")
+            raise ScraperNetworkError(f"Failed to get weibo info by api: {e}") from e
 
     async def _get_long_weibo_info_api(self) -> dict:
         ajax_json = await get_response_json(
@@ -173,7 +177,7 @@ class WeiboDataProcessor(DataProcessor):
                 #     raise Exception("Still a long text weibo, should go long text api.")
                 text = longtext_info.get("text")
                 if not text:
-                    raise Exception(
+                    raise ScraperParseError(
                         "Failed to get longtext of weibo by webpage scraping."
                     )
             except Exception as e:
@@ -466,7 +470,7 @@ class WeiboDataProcessor(DataProcessor):
         elif method == "lxml":
             return WeiboDataProcessor._weibo_html_text_clean_lxml(text)
         else:
-            raise ValueError("method must be bs4 or lxml")
+            raise ScraperError("method must be bs4 or lxml")
 
     @staticmethod
     def _weibo_html_text_clean_bs4(text):

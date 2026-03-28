@@ -9,6 +9,7 @@ import httpx
 
 from fastfetchbot_shared.config import settings as shared_settings
 from fastfetchbot_shared.utils.logger import logger
+from fastfetchbot_shared.exceptions import ScraperError, ScraperParseError, ExternalServiceError
 
 XHS_API_URL = "https://edith.xiaohongshu.com"
 XHS_WEB_URL = "https://www.xiaohongshu.com"
@@ -22,10 +23,10 @@ def parse_xhs_note_url(note_url: str) -> Dict[str, str]:
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     path_parts = [part for part in parsed.path.split("/") if part]
     if not path_parts:
-        raise ValueError(f"Invalid XHS note URL: {note_url}")
+        raise ScraperParseError(f"Invalid XHS note URL: {note_url}")
     note_id = path_parts[-1]
     if note_id in {"explore", "discovery", "item"}:
-        raise ValueError(f"Invalid XHS note URL path: {note_url}")
+        raise ScraperParseError(f"Invalid XHS note URL path: {note_url}")
     return {
         "note_id": note_id,
         "xsec_token": query.get("xsec_token", ""),
@@ -52,7 +53,7 @@ class XhsSinglePostAdapter:
         self.cookies = cookies.strip()
         self.sign_server_endpoint = (sign_server_endpoint or shared_settings.SIGN_SERVER_URL).rstrip("/")
         if not self.sign_server_endpoint:
-            raise ValueError(
+            raise ExternalServiceError(
                 "XhsSinglePostAdapter requires a sign server URL. "
                 "Set shared_settings.SIGN_SERVER_URL in the environment or pass sign_server_endpoint explicitly."
             )
@@ -100,12 +101,12 @@ class XhsSinglePostAdapter:
         resp.raise_for_status()
         body = resp.json()
         if not body.get("isok"):
-            raise RuntimeError(f"XHS sign server returned error: {body}")
+            raise ExternalServiceError(f"XHS sign server returned error: {body}")
         sign = body.get("data", {}) or {}
         required = ["x_s", "x_t", "x_s_common", "x_b3_traceid"]
         missing = [key for key in required if key not in sign]
         if missing:
-            raise RuntimeError(f"XHS sign response missing fields: {missing}")
+            raise ExternalServiceError(f"XHS sign response missing fields: {missing}")
         headers = self._base_headers()
         headers.update(
             {
@@ -147,7 +148,7 @@ class XhsSinglePostAdapter:
                 xsec_source=url_info["xsec_source"],
             )
         if note is None:
-            raise RuntimeError(f"Cannot fetch note detail from API or HTML: {url_info['note_id']}")
+            raise ScraperError(f"Cannot fetch note detail from API or HTML: {url_info['note_id']}")
 
         result: Dict[str, Any] = {"platform": "xhs", "note": note, "comments": [], "url": get_pure_url(note_url)}
         if with_comments:
@@ -191,18 +192,18 @@ class XhsSinglePostAdapter:
         try:
             body = resp.json()
         except json.JSONDecodeError as exc:
-            raise RuntimeError(f"XHS API returned non-JSON: status={resp.status_code}") from exc
+            raise ScraperParseError(f"XHS API returned non-JSON: status={resp.status_code}") from exc
 
         if resp.status_code in (461, 471):
             verify_type = resp.headers.get("Verifytype", "")
             verify_uuid = resp.headers.get("Verifyuuid", "")
-            raise RuntimeError(
+            raise ScraperError(
                 f"XHS blocked by captcha: verify_type={verify_type}, verify_uuid={verify_uuid}"
             )
 
         if body.get("success"):
             return body.get("data", {}) or {}
-        raise RuntimeError(f"XHS API error: status={resp.status_code}, body={body}")
+        raise ScraperParseError(f"XHS API error: status={resp.status_code}, body={body}")
 
     async def _fetch_note_by_api(
             self,
@@ -536,7 +537,7 @@ class XhsSinglePostAdapter:
 
         final_url = str(resp.url)
         if XHS_WEB_URL not in final_url and "xiaohongshu.com" not in final_url:
-            raise RuntimeError(
+            raise ScraperError(
                 f"Short URL did not redirect to xiaohongshu.com: {note_url} -> {final_url}"
             )
         return final_url

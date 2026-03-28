@@ -1,6 +1,5 @@
 import json
 import re
-import traceback
 from typing import Dict, Optional, Any
 from urllib.parse import urlparse
 
@@ -18,6 +17,7 @@ from fastfetchbot_shared.utils.parse import (
 from fastfetchbot_shared.utils.network import get_selector, get_redirect_url, get_response_json, get_random_user_agent, \
     get_content_async, get_response
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
+from fastfetchbot_shared.exceptions import ScraperError, ScraperParseError
 from fastfetchbot_shared.services.scrapers.config import settings, JINJA2_ENV
 from .config import (
     SHORT_LIMIT,
@@ -176,12 +176,12 @@ class Zhihu(MetadataItem):
                 if self.title != "":
                     break
             except Exception as e:
-                traceback.print_exc()
+                logger.exception(f"Zhihu scraper method {method} failed")
                 if method == ALL_METHODS[-1]:
-                    print("all methods failed")
-                    raise e
+                    logger.error("All Zhihu scraper methods failed")
+                    raise
                 else:
-                    print(
+                    logger.warning(
                         f"zhihu {self.zhihu_type} {self.method} failed, try the next method"
                     )
                 continue
@@ -299,7 +299,7 @@ class Zhihu(MetadataItem):
                     answer_data = _parse_answer_api_json_data(json_data)
                     logger.debug(f"answer data: {answer_data}")
                 except Exception as e:
-                    raise Exception("Cannot get the answer by API")
+                    raise ScraperParseError("Cannot get the answer by API") from e
             elif self.method == "fxzhihu":
                 try:
                     resp = await get_response(url=self.request_url, headers=self.headers, client=self.httpx_client)
@@ -308,7 +308,7 @@ class Zhihu(MetadataItem):
                     answer_data = _parse_answer_api_json_data(json_data)
                     logger.debug(f"answer data: {answer_data}")
                 except Exception as e:
-                    raise Exception("Cannot get the answer by fxzhihu, error: " + str(e))
+                    raise ScraperError("Cannot get the answer by fxzhihu, error: " + str(e)) from e
             elif self.method == "json":
                 try:
                     selector = await get_selector(self.request_url, headers=self.headers)
@@ -317,9 +317,9 @@ class Zhihu(MetadataItem):
                     json_data = json_data["initialState"]["entities"]
                     answer_data = self._parse_answer_json_data(json_data)
                 except Exception as e:
-                    raise Exception("Cannot get the selector")
+                    raise ScraperParseError("Cannot get the selector") from e
             if answer_data == {}:
-                raise Exception("Cannot get the answer")
+                raise ScraperError("Cannot get the answer")
             self._resolve_answer_json_data(answer_data)
             # Apply FxZhihu-style content processing for api method
             if self.method == "api":
@@ -350,11 +350,11 @@ class Zhihu(MetadataItem):
                 if self.author_url == "https://www.zhihu.com/people/":
                     self.author_url = ""
             except Exception as e:
-                raise Exception("Cannot get the answer")
+                raise ScraperError("Cannot get the answer") from e
         if (
                 self.title == ""
         ):  # TODO: this is not a good way to check if the scraping is successful. To be improved.
-            raise Exception("Cannot get the answer")
+            raise ScraperError("Cannot get the answer")
 
     async def _get_zhihu_status(self):
         """
@@ -390,8 +390,8 @@ class Zhihu(MetadataItem):
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
-            except:
-                raise Exception("zhihu request failed")
+            except Exception as e:
+                raise ScraperError("zhihu request failed") from e
             if self.method == "json":
                 def _process_picture(pictures, content_attr):
                     if not hasattr(self, content_attr):
@@ -516,8 +516,8 @@ class Zhihu(MetadataItem):
                         self.retweet_html = str(
                             html.tostring(pic_html, pretty_print=True)
                         ).replace("b'<div", "<div")
-                        print(type(self.retweet_html))
-                        print(self.retweet_html)
+                        logger.debug(f"retweet_html type: {type(self.retweet_html)}")
+                        logger.debug(self.retweet_html)
                     else:
                         self.retweet_html = str(
                             etree.tostring(
@@ -528,7 +528,7 @@ class Zhihu(MetadataItem):
                             ),
                             encoding="utf-8",
                         )
-                        print(self.retweet_html)
+                        logger.debug(self.retweet_html)
                 self.author = selector.xpath(
                     'string(//div[@class="AuthorInfo"]//meta[@itemprop="name"]/@content)'
                 )
@@ -559,12 +559,12 @@ class Zhihu(MetadataItem):
                     self.raw_content = fix_images_and_links(self.raw_content)
                     self.raw_content = unmask_zhihu_links(self.raw_content)
             except Exception as e:
-                raise Exception("zhihu request failed")
+                raise ScraperError("zhihu request failed")
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
             except Exception as e:
-                raise Exception("zhihu request failed")
+                raise ScraperError("zhihu request failed")
             if self.method == "json":
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
                 json_data = json.loads(json_data)
@@ -818,7 +818,7 @@ class Zhihu(MetadataItem):
                 "origin_pin_comment_count": pins."{self.status_id}".originPin.commentCount
                 }}"""
         result = jmespath.search(expression, data)
-        print(result)
+        logger.debug(result)
         author_url_token = result["author_url_token"]
         expression = f"""{{
                         "author": users."{author_url_token}".name
