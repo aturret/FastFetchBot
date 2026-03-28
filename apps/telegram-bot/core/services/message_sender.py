@@ -169,11 +169,14 @@ async def send_item_message(
 
 
 async def send_debug_channel(message: str) -> None:
+    import html as html_module
     from core.config import TELEBOT_DEBUG_CHANNEL
     application = _get_application()
     if TELEBOT_DEBUG_CHANNEL is not None:
         await application.bot.send_message(
-            chat_id=TELEBOT_DEBUG_CHANNEL, text=message, parse_mode=ParseMode.HTML
+            chat_id=TELEBOT_DEBUG_CHANNEL,
+            text=html_module.escape(message),
+            parse_mode=ParseMode.HTML,
         )
 
 

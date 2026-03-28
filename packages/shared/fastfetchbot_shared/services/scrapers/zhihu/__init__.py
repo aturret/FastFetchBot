@@ -559,12 +559,12 @@ class Zhihu(MetadataItem):
                     self.raw_content = fix_images_and_links(self.raw_content)
                     self.raw_content = unmask_zhihu_links(self.raw_content)
             except Exception as e:
-                raise ScraperError("zhihu request failed")
+                raise ScraperError("zhihu request failed") from e
         else:
             try:
                 selector = await get_selector(self.request_url, headers=self.headers)
             except Exception as e:
-                raise ScraperError("zhihu request failed")
+                raise ScraperError("zhihu request failed") from e
             if self.method == "json":
                 json_data = selector.xpath('string(//script[@id="js-initialData"])')
                 json_data = json.loads(json_data)
