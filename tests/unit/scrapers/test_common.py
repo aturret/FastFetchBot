@@ -6,6 +6,7 @@ import pytest
 
 from fastfetchbot_shared.models.url_metadata import UrlMetadata
 from fastfetchbot_shared.services.scrapers.common import InfoExtractService
+from fastfetchbot_shared.exceptions import ScraperError
 
 
 # ---------------------------------------------------------------------------
@@ -215,3 +216,19 @@ class TestProcessItem:
         svc = InfoExtractService(url_metadata=make_url_metadata())
         result = await svc.process_item({"title": "clean"})
         assert result["title"] == "clean"
+
+
+# ---------------------------------------------------------------------------
+# _resolve_scraper_class
+# ---------------------------------------------------------------------------
+
+class TestResolveScraperClass:
+    def test_known_category_returns_class(self, make_url_metadata):
+        svc = InfoExtractService(url_metadata=make_url_metadata(source="twitter"))
+        cls = svc._resolve_scraper_class("twitter")
+        assert cls is not None
+
+    def test_unknown_category_raises_scraper_error(self, make_url_metadata):
+        svc = InfoExtractService(url_metadata=make_url_metadata())
+        with pytest.raises(ScraperError, match="No scraper registered"):
+            svc._resolve_scraper_class("tiktok")

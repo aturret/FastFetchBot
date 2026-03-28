@@ -19,6 +19,7 @@ from fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar import (
     XHS_WEB_URL,
 )
 from fastfetchbot_shared.models.metadata_item import MessageType, MediaFile
+from fastfetchbot_shared.exceptions import ScraperError, ScraperParseError, ExternalServiceError
 
 
 # ---------------------------------------------------------------------------
@@ -48,19 +49,19 @@ class TestParseXhsNoteUrl:
         assert result["note_id"] == "note456"
 
     def test_empty_path_raises(self):
-        with pytest.raises(ValueError, match="Invalid XHS note URL"):
+        with pytest.raises(ScraperParseError, match="Invalid XHS note URL"):
             parse_xhs_note_url("https://www.xiaohongshu.com/")
 
     def test_explore_only_raises(self):
-        with pytest.raises(ValueError, match="Invalid XHS note URL path"):
+        with pytest.raises(ScraperParseError, match="Invalid XHS note URL path"):
             parse_xhs_note_url("https://www.xiaohongshu.com/explore")
 
     def test_discovery_only_raises(self):
-        with pytest.raises(ValueError, match="Invalid XHS note URL path"):
+        with pytest.raises(ScraperParseError, match="Invalid XHS note URL path"):
             parse_xhs_note_url("https://www.xiaohongshu.com/discovery")
 
     def test_item_only_raises(self):
-        with pytest.raises(ValueError, match="Invalid XHS note URL path"):
+        with pytest.raises(ScraperParseError, match="Invalid XHS note URL path"):
             parse_xhs_note_url("https://www.xiaohongshu.com/item")
 
 
@@ -101,7 +102,7 @@ class TestXhsSinglePostAdapterInit:
 
     @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "")
     def test_no_sign_server_raises(self):
-        with pytest.raises(ValueError, match="sign server URL"):
+        with pytest.raises(ExternalServiceError, match="sign server URL"):
             XhsSinglePostAdapter(cookies="c=1", sign_server_endpoint="")
 
     @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "http://fallback:8989")
@@ -193,7 +194,7 @@ class TestSignHeaders:
         adapter._http = AsyncMock()
         adapter._http.post = AsyncMock(return_value=mock_resp)
 
-        with pytest.raises(RuntimeError, match="sign server returned error"):
+        with pytest.raises(ExternalServiceError, match="sign server returned error"):
             await adapter._sign_headers("/api/test")
 
     @pytest.mark.asyncio
@@ -210,7 +211,7 @@ class TestSignHeaders:
         adapter._http = AsyncMock()
         adapter._http.post = AsyncMock(return_value=mock_resp)
 
-        with pytest.raises(RuntimeError, match="missing fields"):
+        with pytest.raises(ExternalServiceError, match="missing fields"):
             await adapter._sign_headers("/api/test")
 
     @pytest.mark.asyncio
@@ -224,7 +225,7 @@ class TestSignHeaders:
         adapter._http = AsyncMock()
         adapter._http.post = AsyncMock(return_value=mock_resp)
 
-        with pytest.raises(RuntimeError, match="missing fields"):
+        with pytest.raises(ExternalServiceError, match="missing fields"):
             await adapter._sign_headers("/api/test")
 
     @pytest.mark.asyncio
@@ -273,7 +274,7 @@ class TestParseApiResponse:
         resp = MagicMock(spec=httpx.Response)
         resp.status_code = 200
         resp.json.side_effect = json.JSONDecodeError("err", "", 0)
-        with pytest.raises(RuntimeError, match="non-JSON"):
+        with pytest.raises(ScraperParseError, match="non-JSON"):
             XhsSinglePostAdapter._parse_api_response(resp)
 
     def test_captcha_461(self):
@@ -281,7 +282,7 @@ class TestParseApiResponse:
             461, {"success": False},
             headers={"Verifytype": "captcha", "Verifyuuid": "uuid1"},
         )
-        with pytest.raises(RuntimeError, match="captcha"):
+        with pytest.raises(ScraperError, match="captcha"):
             XhsSinglePostAdapter._parse_api_response(resp)
 
     def test_captcha_471(self):
@@ -289,12 +290,12 @@ class TestParseApiResponse:
             471, {"success": False},
             headers={"Verifytype": "sms", "Verifyuuid": "uuid2"},
         )
-        with pytest.raises(RuntimeError, match="captcha"):
+        with pytest.raises(ScraperError, match="captcha"):
             XhsSinglePostAdapter._parse_api_response(resp)
 
     def test_api_error_not_success(self):
         resp = self._make_response(200, {"success": False, "msg": "error"})
-        with pytest.raises(RuntimeError, match="XHS API error"):
+        with pytest.raises(ScraperParseError, match="XHS API error"):
             XhsSinglePostAdapter._parse_api_response(resp)
 
 
@@ -951,7 +952,7 @@ class TestFetchPost:
         adapter._fetch_note_by_html = AsyncMock(return_value=None)
 
         url = f"{XHS_WEB_URL}/explore/n1"
-        with pytest.raises(RuntimeError, match="Cannot fetch note"):
+        with pytest.raises(ScraperError, match="Cannot fetch note"):
             await adapter.fetch_post(note_url=url)
 
     @pytest.mark.asyncio
@@ -1292,7 +1293,7 @@ class TestGetRedirectionUrl:
             mock_client.__aexit__ = AsyncMock(return_value=None)
             MockClient.return_value = mock_client
 
-            with pytest.raises(RuntimeError, match="did not redirect to xiaohongshu.com"):
+            with pytest.raises(ScraperError, match="did not redirect to xiaohongshu.com"):
                 await adapter._get_redirection_url("https://xhslink.com/abc")
 
 

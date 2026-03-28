@@ -24,6 +24,7 @@ from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from typing import Dict
 
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
+from fastfetchbot_shared.exceptions import ScraperError, ScraperNetworkError, ScraperParseError
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ class TestWeiboHtmlTextClean:
 
     def test_invalid_method_raises(self):
         from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboDataProcessor
-        with pytest.raises(ValueError, match="method must be bs4 or lxml"):
+        with pytest.raises(ScraperError, match="method must be bs4 or lxml"):
             WeiboDataProcessor._weibo_html_text_clean("<p>test</p>", method="invalid")
 
 
@@ -803,7 +804,7 @@ class TestGetWeiboInfo:
             mock_env.get_template.return_value = mock_template
             from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboDataProcessor
             wp = WeiboDataProcessor(url="https://m.weibo.cn/detail/123")
-        with pytest.raises(ValueError, match="method must be webpage or api"):
+        with pytest.raises(ScraperError, match="method must be webpage or api"):
             await wp._get_weibo_info(method="invalid")
 
     @pytest.mark.asyncio
@@ -827,7 +828,7 @@ class TestGetWeiboInfo:
             from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboDataProcessor
             wp = WeiboDataProcessor(url="https://m.weibo.cn/detail/123")
         with patch.object(wp, "_get_weibo_info_api", new_callable=AsyncMock, side_effect=ConnectionError("net fail")):
-            with pytest.raises(ConnectionError, match="network issues"):
+            with pytest.raises(ScraperNetworkError, match="network issues"):
                 await wp._get_weibo_info(method="api")
 
 
@@ -960,7 +961,7 @@ class TestGetWeiboInfoApi:
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
         with patch("fastfetchbot_shared.services.scrapers.weibo.scraper.httpx.AsyncClient", return_value=mock_client):
-            with pytest.raises(ConnectionError):
+            with pytest.raises(ScraperParseError):
                 await wp._get_weibo_info_api()
 
     @pytest.mark.asyncio
@@ -983,7 +984,7 @@ class TestGetWeiboInfoApi:
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
         with patch("fastfetchbot_shared.services.scrapers.weibo.scraper.httpx.AsyncClient", return_value=mock_client):
-            with pytest.raises(ConnectionError):
+            with pytest.raises(ScraperParseError):
                 await wp._get_weibo_info_api()
 
     @pytest.mark.asyncio
@@ -1004,7 +1005,7 @@ class TestGetWeiboInfoApi:
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
         with patch("fastfetchbot_shared.services.scrapers.weibo.scraper.httpx.AsyncClient", return_value=mock_client):
-            with pytest.raises(ConnectionError):
+            with pytest.raises(ScraperNetworkError):
                 await wp._get_weibo_info_api()
 
 
@@ -1083,7 +1084,7 @@ class TestGetWeibo:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise ConnectionError("api fail")
+                raise ScraperNetworkError("api fail")
             return weibo_info
 
         with patch.object(wp, "_get_weibo_info", new_callable=AsyncMock, side_effect=side_effect):
@@ -1100,12 +1101,12 @@ class TestGetWeibo:
             from fastfetchbot_shared.services.scrapers.weibo.scraper import WeiboDataProcessor
             wp = WeiboDataProcessor(url="https://m.weibo.cn/detail/123")
 
-        with patch.object(wp, "_get_weibo_info", new_callable=AsyncMock, side_effect=ConnectionError("fail")):
-            with pytest.raises(ConnectionError):
+        with patch.object(wp, "_get_weibo_info", new_callable=AsyncMock, side_effect=ScraperNetworkError("fail")):
+            with pytest.raises(ScraperNetworkError):
                 await wp._get_weibo()
 
     @pytest.mark.asyncio
-    async def test_process_item_exception_caught(self):
+    async def test_process_item_exception_reraised(self):
         with patch("fastfetchbot_shared.services.scrapers.weibo.scraper.JINJA2_ENV") as mock_env:
             mock_template = MagicMock()
             mock_template.render.return_value = "<p>rendered</p>"
@@ -1115,8 +1116,8 @@ class TestGetWeibo:
 
         with patch.object(wp, "_get_weibo_info", new_callable=AsyncMock, return_value={"id": "123"}):
             with patch.object(wp, "_process_weibo_item", new_callable=AsyncMock, side_effect=Exception("process fail")):
-                # Should not raise, exception is caught and logged
-                await wp._get_weibo()
+                with pytest.raises(Exception, match="process fail"):
+                    await wp._get_weibo()
 
 
 # ---------------------------------------------------------------------------
