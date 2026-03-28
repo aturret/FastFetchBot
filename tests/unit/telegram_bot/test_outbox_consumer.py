@@ -136,7 +136,39 @@ class TestConsumeLoopSuccessItem:
 
 class TestConsumeLoopError:
     @pytest.mark.asyncio
-    async def test_sends_error_to_chat(self, mock_redis):
+    async def test_sends_error_to_debug_channel(self, mock_redis):
+        payload = _make_payload(error="scraper failed", chat_id=99, job_id="j42")
+        call_count = 0
+
+        async def brpop_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return ("scrape:outbox", payload)
+            raise asyncio.CancelledError()
+
+        mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
+
+        with patch(
+            "core.services.outbox_consumer.aioredis.from_url",
+            return_value=mock_redis,
+        ), patch(
+            "core.services.outbox_consumer.send_debug_channel",
+            new_callable=AsyncMock,
+        ) as mock_debug:
+            from core.services.outbox_consumer import _consume_loop
+
+            await _consume_loop()
+
+            mock_debug.assert_awaited_once()
+            msg = mock_debug.call_args[0][0]
+            assert "scraper failed" in msg
+            assert "j42" in msg
+            assert "99" in msg
+
+    @pytest.mark.asyncio
+    async def test_does_not_send_error_to_user_chat(self, mock_redis):
+        """Scrape errors should NOT notify the user."""
         payload = _make_payload(error="scraper failed", chat_id=99)
         call_count = 0
 
@@ -153,14 +185,18 @@ class TestConsumeLoopError:
             "core.services.outbox_consumer.aioredis.from_url",
             return_value=mock_redis,
         ), patch(
-            "core.services.outbox_consumer._send_error_to_chat",
+            "core.services.outbox_consumer.send_debug_channel",
             new_callable=AsyncMock,
-        ) as mock_err:
+        ), patch(
+            "core.services.outbox_consumer.send_item_message",
+            new_callable=AsyncMock,
+        ) as mock_send:
             from core.services.outbox_consumer import _consume_loop
 
             await _consume_loop()
 
-            mock_err.assert_awaited_once_with(99, "scraper failed")
+            # User should receive no message at all
+            mock_send.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -220,43 +256,6 @@ class TestConsumeLoopEdgeCases:
             await _consume_loop()
 
         assert call_count == 3  # 2 None returns, then cancel
-
-
-# ---------------------------------------------------------------------------
-# _send_error_to_chat
-# ---------------------------------------------------------------------------
-
-
-class TestSendErrorToChat:
-    @pytest.mark.asyncio
-    async def test_sends_error_message(self):
-        mock_bot = AsyncMock()
-        mock_app = MagicMock()
-        mock_app.bot = mock_bot
-
-        # _send_error_to_chat uses: from core.services.bot_app import application
-        with patch("core.services.bot_app.application", mock_app):
-            from core.services.outbox_consumer import _send_error_to_chat
-
-            await _send_error_to_chat(42, "something went wrong")
-
-        mock_bot.send_message.assert_awaited_once()
-        call_kwargs = mock_bot.send_message.call_args.kwargs
-        assert call_kwargs["chat_id"] == 42
-        assert "something went wrong" in call_kwargs["text"]
-
-    @pytest.mark.asyncio
-    async def test_handles_send_failure_gracefully(self):
-        mock_bot = AsyncMock()
-        mock_bot.send_message = AsyncMock(side_effect=RuntimeError("telegram down"))
-        mock_app = MagicMock()
-        mock_app.bot = mock_bot
-
-        with patch("core.services.bot_app.application", mock_app):
-            from core.services.outbox_consumer import _send_error_to_chat
-
-            # Should not raise
-            await _send_error_to_chat(42, "error")
 
 
 # ---------------------------------------------------------------------------
