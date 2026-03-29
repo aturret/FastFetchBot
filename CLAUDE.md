@@ -13,10 +13,17 @@ FastFetchBot/
 │       ├── config.py         # URL patterns, shared env vars
 │       ├── models/           # UrlMetadata, MetadataItem, NamedBytesIO, etc.
 │       ├── utils/            # parse, image, logger, network, cookie
-│       └── services/
+│       ├── database/
+│       │   ├── base.py, engine.py, session.py  # SQLAlchemy (user settings)
+│       │   ├── models/user_setting.py          # UserSetting SQLAlchemy model
+│       │   └── mongodb/                        # Beanie ODM (scraped content)
+│       │       ├── connection.py   # init_mongodb(), close_mongodb(), save_instances()
+│       │       ├── cache.py        # find_cached(), save_metadata() — URL-based cache with TTL + versioning
+│       │       └── models/metadata.py  # Metadata Document, DatabaseMediaFile
+│       ���── services/
 │           ├── scrapers/     # All platform scrapers + ScraperManager + InfoExtractService
 │           │   ├── config.py # ALL scraper env vars (platform creds, Firecrawl, Zyte, Telegraph tokens)
-│           │   ├── common.py # Core InfoExtractService (scraping only, no API dependencies)
+│           │   ├── common.py # Core InfoExtractService (scraping + MongoDB cache lookup)
 │           │   ├── scraper_manager.py
 │           │   ├── scraper.py          # Base Scraper + DataProcessor ABCs
 │           │   ├── templates/          # 13 Jinja2 templates for platform output formatting
@@ -50,7 +57,9 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 - **`main.py`** — FastAPI app setup, Sentry integration, lifecycle management
 - **`config.py`** — API-only env vars: BASE_URL, API_KEY, DATABASE_ON, MongoDB, Celery, AWS S3, Inoreader, locale/i18n. **No scraper credentials** (those live in `fastfetchbot_shared.services.scrapers.config`)
 - **`routers/`** — `scraper.py` (generic endpoint), `scraper_routers.py` (platform-specific), `inoreader.py`, `wechat.py`
-- **`services/scrapers/common.py`** — `InfoExtractService` (enriched): extends core `InfoExtractService` from shared with Telegraph publishing, PDF export, DB storage, and video download (youtube/bilibili)
+- **`services/scrapers/common.py`** — `InfoExtractService` (enriched): extends core `InfoExtractService` from shared with Telegraph publishing, PDF export, DB storage (via `save_metadata()`), and video download (youtube/bilibili). Defaults `database_cache_ttl` from `settings.DATABASE_CACHE_TTL`. Skips enrichment on cache hits via `_cached` flag
+- **`database.py`** — Thin wrapper delegating to `fastfetchbot_shared.database.mongodb` (init/close/save)
+- **`models/database_model.py`** — Re-export wrapper for `Metadata` from shared
 - **`services/file_export/`** — PDF generation, audio transcription (OpenAI), video download
 - **`services/amazon/s3.py`** — S3 storage integration
 - **`services/telegraph/`** — Re-export wrapper: `from fastfetchbot_shared.services.telegraph import Telegraph`
@@ -59,19 +68,27 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 
 - **`main.py`** — Entry point
 - **`api_client.py`** — HTTP client calling the API server
-- **`handlers/`** — `messages.py`, `buttons.py`, `url_process.py`
-- **`services/`** — `bot_app.py`, `message_sender.py`, `constants.py`
+- **`queue_client.py`** — ARQ Redis client for enqueuing scrape jobs (queue mode)
+- **`handlers/`** — `messages.py`, `buttons.py`, `url_process.py`, `commands.py` (start, /settings with inline toggles)
+- **`services/`** — `bot_app.py`, `message_sender.py`, `user_settings.py` (get/toggle `auto_fetch_in_dm` and `force_refresh_cache`), `constants.py`
 - **`webhook/server.py`** — Webhook/polling server
 - **`templates/`** — Jinja2 templates for bot messages
 
 ### Shared Library (`packages/shared/fastfetchbot_shared/`)
 
 - **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
-- **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py`, `telegraph_item.py`, `url_metadata.py`
+- **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py` (MediaFile, MetadataItem, MessageType), `telegraph_item.py`, `url_metadata.py`
 - **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`, `cookie.py`
+- **`database/`** — Dual database layer:
+  - **SQLAlchemy** (user settings): `base.py`, `engine.py`, `session.py`, `models/user_setting.py` — `UserSetting` model with `auto_fetch_in_dm` and `force_refresh_cache` toggles. Supports SQLite (dev) and PostgreSQL (prod) via `SETTINGS_DATABASE_URL`. Alembic migrations in `packages/shared/alembic/`
+  - **`database/mongodb/`** — Beanie ODM for scraped content persistence, shared across API and async worker:
+    - **`connection.py`** — `init_mongodb(mongodb_url, db_name)`, `close_mongodb()`, `save_instances()`. Parameterized — each app passes its own config at startup
+    - **`cache.py`** — MongoDB-backed URL cache: `find_cached(url, ttl_seconds)` returns the latest versioned document if within TTL (0 = never expire); `save_metadata(metadata_item)` auto-increments `version` for the same URL before inserting
+    - **`models/metadata.py`** — `Metadata(Document)` with fields: title, url, author, content, media_files, telegraph_url, timestamp, version, etc. `DatabaseMediaFile(MediaFile)` extends the scraper `MediaFile` dataclass with `file_key` for S3 storage. Compound index on `(url, version)` for efficient cache lookups. `@before_event(Insert)` hook auto-computes text lengths and converts `MediaFile` → `DatabaseMediaFile`
+    - **`__init__.py`** — Re-exports: `init_mongodb`, `close_mongodb`, `save_instances`, `find_cached`, `save_metadata`, `Metadata`, `DatabaseMediaFile`
 - **`services/scrapers/`** — All platform scrapers, fully decoupled from FastAPI:
   - **`config.py`** — All scraper env vars: platform credentials (Twitter, Bluesky, Weibo, XHS, Zhihu, Reddit, Instagram), Firecrawl/Zyte config, OpenAI key, Telegraph tokens, `JINJA2_ENV`, cookie file loading. Configurable `CONF_DIR` for cookie/config files
-  - **`common.py`** — Core `InfoExtractService`: routes URLs to the correct scraper, returns raw metadata. No Telegraph/PDF/DB dependencies
+  - **`common.py`** — Core `InfoExtractService`: routes URLs to the correct scraper, returns raw metadata. Includes MongoDB cache lookup at the top of `get_item()` when `store_database=True` and `database_cache_ttl >= 0`. Cache hits return a dict with `_cached=True` so callers can skip enrichment. Uses lazy imports for `find_cached` to avoid import-time beanie dependency
   - **`scraper.py`** — Base `Scraper` and `DataProcessor` abstract classes
   - **`scraper_manager.py`** — `ScraperManager` with lazy initialization for bluesky, weibo, and general scrapers
   - **`templates/`** — 13 Jinja2 templates for platform-specific output formatting (bundled via `__file__`-relative paths)
@@ -84,7 +101,7 @@ The shared scrapers library can be used standalone without the API server:
 from fastfetchbot_shared.services.scrapers import InfoExtractService, ScraperManager
 ```
 
-Optional dependencies are grouped under `fastfetchbot-shared[scrapers]` (Jinja2, atproto, asyncpraw, firecrawl-py, etc.).
+Optional dependencies are grouped under `fastfetchbot-shared[scrapers]` (Jinja2, atproto, asyncpraw, firecrawl-py, etc.) and `fastfetchbot-shared[mongodb]` (beanie, motor).
 
 ## Development Commands
 
@@ -161,8 +178,30 @@ See `template.env` for a complete reference. Key variables:
 - See `template.env` for all platform-specific variables (Twitter, Weibo, Xiaohongshu, Reddit, Instagram, Bluesky, etc.)
 
 ### Database
-- Optional MongoDB integration (`DATABASE_ON=true`)
-- Uses Beanie ODM for async operations
+
+**MongoDB** (scraped content — optional, feature-gated):
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_ON` | `false` | Enable MongoDB storage of scraped metadata |
+| `DATABASE_CACHE_TTL` | `86400` | Cache TTL in seconds. `0` = never expire (always use cache) |
+| `MONGODB_HOST` | `localhost` | MongoDB host |
+| `MONGODB_PORT` | `27017` | MongoDB port |
+| `MONGODB_USERNAME` | `""` | MongoDB username (async worker only; included in derived URL if set) |
+| `MONGODB_PASSWORD` | `""` | MongoDB password (async worker only) |
+| `MONGODB_URL` | derived | Full MongoDB URI. Overrides host/port/credentials if set explicitly |
+
+MongoDB models and connection logic live in `packages/shared/fastfetchbot_shared/database/mongodb/`. Both the API server and async worker use the same shared ODM layer. The `Metadata` Beanie Document stores scraped content with versioning — each re-scrape of the same URL increments the `version` field. The cache system (`find_cached` / `save_metadata`) queries the latest version and checks TTL before deciding to re-scrape.
+
+**SQLite/PostgreSQL** (user settings — always enabled for the Telegram bot):
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SETTINGS_DATABASE_URL` | `sqlite+aiosqlite:///data/fastfetchbot.db` | SQLAlchemy connection URL. Use `postgresql+asyncpg://...` for production |
+
+Alembic migrations live in `packages/shared/alembic/`. Run with:
+```bash
+cd packages/shared
+SETTINGS_DATABASE_URL="postgresql+asyncpg://user:pass@host:5432/db" uv run alembic upgrade head
+```
 
 ## CI/CD
 
