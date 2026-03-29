@@ -56,3 +56,17 @@ class WorkerSettings:
 
     # Health-check the Redis connection every 30s to prevent stale connections
     health_check_interval = 30
+
+    @staticmethod
+    async def on_startup(ctx: dict) -> None:
+        if settings.DATABASE_ON:
+            from fastfetchbot_shared.database.mongodb import init_mongodb
+
+            await init_mongodb(settings.MONGODB_URL)
+
+    @staticmethod
+    async def on_shutdown(ctx: dict) -> None:
+        if settings.DATABASE_ON:
+            from fastfetchbot_shared.database.mongodb import close_mongodb
+
+            await close_mongodb()

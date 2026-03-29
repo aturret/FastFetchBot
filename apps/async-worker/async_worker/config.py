@@ -26,6 +26,8 @@ class AsyncWorkerSettings(BaseSettings):
     # MongoDB
     MONGODB_HOST: str = "localhost"
     MONGODB_PORT: int = 27017
+    MONGODB_USERNAME: str = ""
+    MONGODB_PASSWORD: str = ""
     MONGODB_URL: str = ""
 
     # Timeout
@@ -34,7 +36,10 @@ class AsyncWorkerSettings(BaseSettings):
     @model_validator(mode="after")
     def _resolve_derived(self) -> "AsyncWorkerSettings":
         if not self.MONGODB_URL:
-            self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
+            if self.MONGODB_USERNAME and self.MONGODB_PASSWORD:
+                self.MONGODB_URL = f"mongodb://{self.MONGODB_USERNAME}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}"
+            else:
+                self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
         return self
 
 
