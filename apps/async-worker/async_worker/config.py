@@ -22,6 +22,7 @@ class AsyncWorkerSettings(BaseSettings):
     STORE_TELEGRAPH: bool = True
     STORE_DOCUMENT: bool = False
     DATABASE_ON: bool = False
+    DATABASE_CACHE_TTL: int = 86400  # seconds; 0 = never expire
 
     # MongoDB
     MONGODB_HOST: str = "localhost"

@@ -52,18 +52,21 @@ async def scrape_and_enrich(
             url_metadata=url_metadata,
             store_telegraph=False,  # We handle enrichment separately
             store_document=False,
+            store_database=settings.DATABASE_ON,
+            database_cache_ttl=settings.DATABASE_CACHE_TTL,
             celery_app=celery_app,
             timeout=settings.DOWNLOAD_VIDEO_TIMEOUT,
             **kwargs,
         )
         metadata_item = await service.get_item()
 
-        # Enrich: Telegraph, PDF
-        metadata_item = await enrichment.enrich(
-            metadata_item,
-            store_telegraph=store_telegraph,
-            store_document=store_document,
-        )
+        # Skip enrichment if result came from cache
+        if not metadata_item.pop("_cached", False):
+            metadata_item = await enrichment.enrich(
+                metadata_item,
+                store_telegraph=store_telegraph,
+                store_document=store_document,
+            )
 
         logger.info(f"[{job_id}] Scrape completed successfully")
 

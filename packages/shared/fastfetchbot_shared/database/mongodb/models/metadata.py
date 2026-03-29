@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from beanie import Document, Insert, before_event
+from pymongo import DESCENDING
 
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 from fastfetchbot_shared.utils.logger import logger
@@ -34,6 +35,12 @@ class Metadata(Document):
     telegraph_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     scrape_status: bool = False
+    version: int = Field(default=1, ge=1)
+
+    class Settings:
+        indexes = [
+            [("url", DESCENDING), ("version", DESCENDING)],
+        ]
 
     @before_event(Insert)
     def prepare_for_insert(self):

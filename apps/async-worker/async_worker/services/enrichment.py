@@ -65,14 +65,12 @@ async def enrich(
         except Exception as e:
             logger.error(f"Error exporting PDF: {e}")
 
-    # MongoDB persistence
+    # MongoDB persistence (versioned)
     if store_database:
         try:
-            from fastfetchbot_shared.database.mongodb import save_instances
-            from fastfetchbot_shared.database.mongodb.models.metadata import Metadata
+            from fastfetchbot_shared.database.mongodb.cache import save_metadata
 
-            logger.info("Storing metadata in MongoDB")
-            await save_instances(Metadata.model_construct(**metadata_item))
+            await save_metadata(metadata_item)
         except Exception as e:
             logger.error(f"Error saving to MongoDB: {e}")
 

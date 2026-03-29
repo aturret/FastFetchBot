@@ -54,6 +54,7 @@ class InfoExtractService(object):
             store_database: Optional[bool] = False,
             store_telegraph: Optional[bool] = True,
             store_document: Optional[bool] = False,
+            database_cache_ttl: int = -1,
             **kwargs,
     ):
         url_metadata = url_metadata.to_dict()
@@ -65,6 +66,7 @@ class InfoExtractService(object):
         self.store_database = store_database
         self.store_telegraph = store_telegraph
         self.store_document = store_document
+        self.database_cache_ttl = database_cache_ttl
 
     @property
     def category(self) -> str:
@@ -79,6 +81,20 @@ class InfoExtractService(object):
         raise ScraperError(f"No scraper registered for category: {category}")
 
     async def get_item(self, metadata_item: Optional[dict] = None) -> dict:
+        # Cache lookup: skip scraping entirely if a valid cached document exists
+        if self.store_database and self.database_cache_ttl >= 0:
+            try:
+                from fastfetchbot_shared.database.mongodb.cache import find_cached
+
+                cached = await find_cached(self.url, self.database_cache_ttl)
+                if cached is not None:
+                    logger.info("Cache hit, returning cached metadata")
+                    result = cached.model_dump(mode="json", exclude={"id", "revision_id"})
+                    result["_cached"] = True
+                    return result
+            except Exception as e:
+                logger.error(f"Cache lookup failed, proceeding with scrape: {e}")
+
         if not metadata_item:
             try:
                 if self.category in ["bluesky", "weibo", "other", "unknown"]:
