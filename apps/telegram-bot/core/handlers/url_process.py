@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 
 from core.services.message_sender import send_item_message
-from core.services.user_settings import get_auto_fetch_in_dm
+from core.services.user_settings import get_auto_fetch_in_dm, get_force_refresh_cache
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS
 from fastfetchbot_shared.utils.logger import logger
 from core.config import (
@@ -79,10 +79,12 @@ async def _fetch_and_send(
 async def https_url_process(update: Update, context: CallbackContext) -> None:
     message = update.message
 
-    # Check user's auto-fetch preference
-    auto_fetch = await get_auto_fetch_in_dm(message.from_user.id)
+    # Check user's preferences
+    user_id = message.from_user.id
+    auto_fetch = await get_auto_fetch_in_dm(user_id)
+    force_refresh = await get_force_refresh_cache(user_id)
     if auto_fetch:
-        await _auto_fetch_urls(message)
+        await _auto_fetch_urls(message, force_refresh_cache=force_refresh)
         return
 
     welcome_message = await message.reply_text(
@@ -110,6 +112,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
                     chat_id=message.chat_id,
                     source=url_metadata.get("source", ""),
                     content_type=url_metadata.get("content_type", ""),
+                    force_refresh_cache=force_refresh,
                 )
             await process_message.edit_text(
                 text=f"For the {i + 1} th url, no supported url found."
@@ -261,7 +264,7 @@ async def https_url_process(update: Update, context: CallbackContext) -> None:
             await process_message.delete()
 
 
-async def _auto_fetch_urls(message) -> None:
+async def _auto_fetch_urls(message, force_refresh_cache: bool = False) -> None:
     """Auto-fetch all URLs in a DM message without showing action buttons."""
     url_dict = message.parse_entities(types=["url"])
     for i, url in enumerate(url_dict.values()):
@@ -274,6 +277,7 @@ async def _auto_fetch_urls(message) -> None:
                 chat_id=message.chat_id,
                 source=url_metadata.get("source", ""),
                 content_type=url_metadata.get("content_type", ""),
+                force_refresh_cache=force_refresh_cache,
             )
         elif url_metadata["source"] == "unknown" or url_metadata["source"] == "banned":
             logger.debug(f"for the {i + 1}th url {url}, no supported url found.")
@@ -284,6 +288,7 @@ async def _auto_fetch_urls(message) -> None:
                 chat_id=message.chat_id,
                 source=url_metadata.get("source", ""),
                 content_type=url_metadata.get("content_type", ""),
+                force_refresh_cache=force_refresh_cache,
             )
         if url_metadata.get("source") in VIDEO_WEBSITE_PATTERNS.keys():
             await _fetch_and_send(
@@ -291,6 +296,7 @@ async def _auto_fetch_urls(message) -> None:
                 chat_id=message.chat_id,
                 source=url_metadata.get("source", ""),
                 content_type=url_metadata.get("content_type", ""),
+                force_refresh_cache=force_refresh_cache,
             )
 
 
