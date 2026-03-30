@@ -157,6 +157,13 @@ class TestSaveInstances:
         mock_doc_type.insert_many.assert_awaited_once_with(docs)
 
     @pytest.mark.asyncio
+    async def test_empty_list_is_noop(self):
+        from fastfetchbot_shared.database.mongodb.connection import save_instances
+
+        # Should return early without error
+        await save_instances([])
+
+    @pytest.mark.asyncio
     async def test_raises_type_error_for_invalid_type(self):
         from fastfetchbot_shared.database.mongodb.connection import save_instances
 

@@ -32,6 +32,8 @@ async def save_instances(instances: Union[Document, List[Document]], *args) -> N
         instance_type = type(instances)
         await instance_type.insert(instances)
     elif isinstance(instances, list):
+        if not instances:
+            return
         instance_type = type(instances[0])
         await instance_type.insert_many(instances)
     else:

@@ -175,19 +175,22 @@ class TestSaveMetadata:
         MockMetadata.find.assert_called()
 
     @pytest.mark.asyncio
-    async def test_empty_url_defaults_to_empty_string(self):
-        mock_find = _make_find_chain(None)
+    async def test_missing_url_raises_value_error(self):
+        from fastfetchbot_shared.database.mongodb.cache import save_metadata
 
-        with patch(
-            "fastfetchbot_shared.database.mongodb.cache.Metadata"
-        ) as MockMetadata:
-            MockMetadata.find.return_value = mock_find
-            MockMetadata.model_construct.return_value = MagicMock()
-            MockMetadata.insert = AsyncMock()
+        with pytest.raises(ValueError, match="non-empty 'url'"):
+            await save_metadata({"title": "No URL"})
 
-            from fastfetchbot_shared.database.mongodb.cache import save_metadata
+    @pytest.mark.asyncio
+    async def test_empty_url_raises_value_error(self):
+        from fastfetchbot_shared.database.mongodb.cache import save_metadata
 
-            item = {"title": "No URL"}  # url key missing
-            await save_metadata(item)
+        with pytest.raises(ValueError, match="non-empty 'url'"):
+            await save_metadata({"url": "", "title": "Empty URL"})
 
-        assert item["version"] == 1
+    @pytest.mark.asyncio
+    async def test_whitespace_only_url_raises_value_error(self):
+        from fastfetchbot_shared.database.mongodb.cache import save_metadata
+
+        with pytest.raises(ValueError, match="non-empty 'url'"):
+            await save_metadata({"url": "   ", "title": "Whitespace URL"})

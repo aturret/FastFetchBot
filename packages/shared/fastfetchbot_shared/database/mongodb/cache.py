@@ -51,11 +51,17 @@ async def save_metadata(metadata_item: dict) -> Metadata:
 
     Args:
         metadata_item: Scraper output dict (MetadataItem fields).
+            Must contain a non-empty ``url`` key.
 
     Returns:
         The inserted Metadata document.
+
+    Raises:
+        ValueError: If ``url`` is missing or empty.
     """
     url = metadata_item.get("url", "")
+    if not url or not url.strip():
+        raise ValueError("metadata_item must contain a non-empty 'url'")
 
     latest = await (
         Metadata.find(Metadata.url == url)

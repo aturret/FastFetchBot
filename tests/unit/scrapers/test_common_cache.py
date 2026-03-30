@@ -83,7 +83,7 @@ class TestGetItemCacheLookup:
         assert result["_cached"] is True
         assert result["title"] == "Cached Title"
         mock_cached_doc.model_dump.assert_called_once_with(
-            mode="json", exclude={"id", "revision_id"}
+            mode="json", exclude={"id"}
         )
 
     @pytest.mark.asyncio

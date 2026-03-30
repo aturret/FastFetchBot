@@ -20,7 +20,7 @@ FastFetchBot/
 │       │       ├── connection.py   # init_mongodb(), close_mongodb(), save_instances()
 │       │       ├── cache.py        # find_cached(), save_metadata() — URL-based cache with TTL + versioning
 │       │       └── models/metadata.py  # Metadata Document, DatabaseMediaFile
-│       ���── services/
+│       └── services/
 │           ├── scrapers/     # All platform scrapers + ScraperManager + InfoExtractService
 │           │   ├── config.py # ALL scraper env vars (platform creds, Firecrawl, Zyte, Telegraph tokens)
 │           │   ├── common.py # Core InfoExtractService (scraping + MongoDB cache lookup)

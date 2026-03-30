@@ -89,7 +89,7 @@ class InfoExtractService(object):
                 cached = await find_cached(self.url, self.database_cache_ttl)
                 if cached is not None:
                     logger.info("Cache hit, returning cached metadata")
-                    result = cached.model_dump(mode="json", exclude={"id", "revision_id"})
+                    result = cached.model_dump(mode="json", exclude={"id"})
                     result["_cached"] = True
                     return result
             except Exception as e:
