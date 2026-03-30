@@ -28,6 +28,7 @@ class ApiSettings(BaseSettings):
 
     # MongoDB
     DATABASE_ON: bool = False
+    DATABASE_CACHE_TTL: int = 86400  # seconds; 0 = never expire
     MONGODB_PORT: int = 27017
     MONGODB_HOST: str = "localhost"
     MONGODB_URL: str = ""

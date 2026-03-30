@@ -20,6 +20,7 @@ async def scrape_and_enrich(
     bot_id: int | str | None = None,
     store_telegraph: bool | None = None,
     store_document: bool | None = None,
+    force_refresh_cache: bool = False,
     **kwargs,
 ) -> dict:
     """ARQ task: scrape a URL, enrich the result, and push to the outbox.
@@ -36,6 +37,7 @@ async def scrape_and_enrich(
                 bot's outbox queue (``scrape:outbox:{bot_id}``).
         store_telegraph: Override Telegraph publishing flag.
         store_document: Override PDF export flag.
+        force_refresh_cache: If True, bypass the database cache and re-scrape.
         **kwargs: Extra arguments passed to the scraper.
     """
     if job_id is None:
@@ -52,18 +54,21 @@ async def scrape_and_enrich(
             url_metadata=url_metadata,
             store_telegraph=False,  # We handle enrichment separately
             store_document=False,
+            store_database=settings.DATABASE_ON,
+            database_cache_ttl=-1 if force_refresh_cache else settings.DATABASE_CACHE_TTL,
             celery_app=celery_app,
             timeout=settings.DOWNLOAD_VIDEO_TIMEOUT,
             **kwargs,
         )
         metadata_item = await service.get_item()
 
-        # Enrich: Telegraph, PDF
-        metadata_item = await enrichment.enrich(
-            metadata_item,
-            store_telegraph=store_telegraph,
-            store_document=store_document,
-        )
+        # Skip enrichment if result came from cache
+        if not metadata_item.pop("_cached", False):
+            metadata_item = await enrichment.enrich(
+                metadata_item,
+                store_telegraph=store_telegraph,
+                store_document=store_document,
+            )
 
         logger.info(f"[{job_id}] Scrape completed successfully")
 

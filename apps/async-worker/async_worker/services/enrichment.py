@@ -10,6 +10,7 @@ async def enrich(
     metadata_item: dict,
     store_telegraph: bool | None = None,
     store_document: bool | None = None,
+    store_database: bool | None = None,
 ) -> dict:
     """Apply enrichment steps to a scraped metadata item.
 
@@ -20,6 +21,8 @@ async def enrich(
         store_telegraph = settings.STORE_TELEGRAPH
     if store_document is None:
         store_document = settings.STORE_DOCUMENT
+    if store_database is None:
+        store_database = settings.DATABASE_ON
 
     # Force Telegraph for long messages
     if metadata_item.get("message_type") == MessageType.LONG:
@@ -61,6 +64,15 @@ async def enrich(
             )
         except Exception as e:
             logger.error(f"Error exporting PDF: {e}")
+
+    # MongoDB persistence (versioned)
+    if store_database:
+        try:
+            from fastfetchbot_shared.database.mongodb.cache import save_metadata
+
+            await save_metadata(metadata_item)
+        except Exception as e:
+            logger.error(f"Error saving to MongoDB: {e}")
 
     metadata_item["title"] = metadata_item["title"].strip()
     return metadata_item

@@ -19,6 +19,7 @@ services:
     depends_on:
       - telegram-bot-api
       - redis
+      # - mongodb  # Uncomment when using MongoDB for scraped content caching
 
   telegram-bot:
     image: ghcr.io/aturret/fastfetchbot-telegram-bot:latest
@@ -86,6 +87,22 @@ services:
     ports:
       - 6379:6379
 
+  # Uncomment to enable MongoDB for scraped content caching.
+  # Set DATABASE_ON=true in your .env file to activate the cache system.
+  # Also set MONGODB_URL=mongodb://fastfetchbot:fastfetchbot@mongodb:27017
+  # or set MONGODB_HOST=mongodb, MONGODB_USERNAME=fastfetchbot, MONGODB_PASSWORD=fastfetchbot.
+  # mongodb:
+  #   image: mongo:7-jammy
+  #   container_name: fastfetchbot-mongodb
+  #   restart: always
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=fastfetchbot
+  #     - MONGO_INITDB_ROOT_PASSWORD=fastfetchbot
+  #   ports:
+  #     - 27017:27017
+
   async-worker:
     image: ghcr.io/aturret/fastfetchbot-async-worker:latest
     # build:
@@ -104,6 +121,7 @@ services:
       - ./conf:/app/conf
     depends_on:
       - redis
+      # - mongodb  # Uncomment when using MongoDB for scraped content caching
 
   worker:
     image: ghcr.io/aturret/fastfetchbot-worker:latest
@@ -129,5 +147,6 @@ volumes:
   telegram-bot-api-data-cache:
   telegram_bot_data:
   # postgres_data:  # Uncomment when using PostgreSQL
+  # mongodb_data:  # Uncomment when using MongoDB
   redis_data:
   shared_files:

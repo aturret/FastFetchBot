@@ -21,6 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 postgres = ["asyncpg>=0.30.0"]
 migrate = ["alembic>=1.15.0"]
+mongodb = ["beanie>=1.29.0", "motor>=3.3.0"]
 scrapers = [
     "jinja2>=3.1.6",
     "jmespath>=1.0.1",

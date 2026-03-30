@@ -10,6 +10,7 @@ from telegram.ext import (
 from fastfetchbot_shared.models.metadata_item import MessageType
 from core import api_client
 from core.services.message_sender import send_item_message
+from core.services.user_settings import get_force_refresh_cache
 from fastfetchbot_shared.utils.logger import logger
 from core.config import settings, TELEGRAM_CHANNEL_ID
 
@@ -56,6 +57,11 @@ async def buttons_process(update: Update, context: CallbackContext) -> None:
         if data["type"] == "video":
             await query.answer("Video processing...")
         extra_args = data["extra_args"] if "extra_args" in data else {}
+
+        # Look up user's force_refresh_cache preference
+        force_refresh = await get_force_refresh_cache(query.from_user.id)
+        if force_refresh:
+            extra_args["force_refresh_cache"] = True
 
         if settings.SCRAPE_MODE == "queue":
             from core import queue_client

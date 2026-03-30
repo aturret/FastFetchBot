@@ -813,10 +813,9 @@ source = { virtual = "apps/api" }
 dependencies = [
     { name = "aioboto3" },
     { name = "babel" },
-    { name = "beanie" },
     { name = "celery", extra = ["redis"] },
     { name = "fastapi" },
-    { name = "fastfetchbot-shared", extra = ["scrapers"] },
+    { name = "fastfetchbot-shared", extra = ["mongodb", "scrapers"] },
     { name = "gunicorn" },
     { name = "pillow" },
     { name = "pydub" },
@@ -829,10 +828,9 @@ dependencies = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.4.0" },
     { name = "babel", specifier = ">=2.17.0" },
-    { name = "beanie", specifier = ">=1.29.0" },
     { name = "celery", extras = ["redis"], specifier = ">=5.4.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
-    { name = "fastfetchbot-shared", extras = ["scrapers"], editable = "packages/shared" },
+    { name = "fastfetchbot-shared", extras = ["scrapers", "mongodb"], editable = "packages/shared" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pydub", specifier = ">=0.25.1" },
@@ -847,18 +845,16 @@ version = "0.1.0"
 source = { virtual = "apps/async-worker" }
 dependencies = [
     { name = "arq" },
-    { name = "beanie" },
     { name = "celery", extra = ["redis"] },
-    { name = "fastfetchbot-shared", extra = ["scrapers"] },
+    { name = "fastfetchbot-shared", extra = ["mongodb", "scrapers"] },
     { name = "redis", extra = ["hiredis"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "arq", specifier = ">=0.26.1" },
-    { name = "beanie", specifier = ">=1.29.0" },
     { name = "celery", extras = ["redis"], specifier = ">=5.4.0" },
-    { name = "fastfetchbot-shared", extras = ["scrapers"], editable = "packages/shared" },
+    { name = "fastfetchbot-shared", extras = ["scrapers", "mongodb"], editable = "packages/shared" },
     { name = "redis", extras = ["hiredis"], specifier = ">=5.0.0" },
 ]
 
@@ -907,6 +903,10 @@ dependencies = [
 migrate = [
     { name = "alembic" },
 ]
+mongodb = [
+    { name = "beanie" },
+    { name = "motor" },
+]
 postgres = [
     { name = "asyncpg" },
 ]
@@ -932,6 +932,7 @@ requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.30.0" },
     { name = "asyncpraw", marker = "extra == 'scrapers'", specifier = ">=7.8.1" },
     { name = "atproto", marker = "extra == 'scrapers'", specifier = ">=0.0.61" },
+    { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=1.29.0" },
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "fake-useragent", specifier = ">=1.5.1" },
     { name = "firecrawl-py", marker = "extra == 'scrapers'", specifier = ">=4.13.0" },
@@ -942,6 +943,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "markdown", marker = "extra == 'scrapers'", specifier = ">=3.8" },
+    { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
     { name = "openai", marker = "extra == 'scrapers'", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "playwright", specifier = ">=1.52.0" },
@@ -953,7 +955,7 @@ requires-dist = [
     { name = "twitter-api-client-v2", marker = "extra == 'scrapers'", specifier = ">=0.1.1" },
     { name = "zyte-api", marker = "extra == 'scrapers'", specifier = ">=0.8.1" },
 ]
-provides-extras = ["postgres", "migrate", "scrapers"]
+provides-extras = ["postgres", "migrate", "mongodb", "scrapers"]
 
 [[package]]
 name = "fastfetchbot-telegram-bot"

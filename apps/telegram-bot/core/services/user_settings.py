@@ -50,3 +50,32 @@ async def toggle_auto_fetch_in_dm(user_id: int) -> bool:
         else:
             user_setting.auto_fetch_in_dm = not user_setting.auto_fetch_in_dm
         return user_setting.auto_fetch_in_dm
+
+
+async def get_force_refresh_cache(user_id: int) -> bool:
+    """Return the user's force_refresh_cache preference. Defaults to False."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(UserSetting.force_refresh_cache).where(
+                UserSetting.telegram_user_id == user_id
+            )
+        )
+        value = result.scalar_one_or_none()
+    return value if value is not None else False
+
+
+async def toggle_force_refresh_cache(user_id: int) -> bool:
+    """Toggle force_refresh_cache for the given user. Returns the new value."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(UserSetting).where(UserSetting.telegram_user_id == user_id)
+        )
+        user_setting = result.scalar_one_or_none()
+        if user_setting is None:
+            user_setting = UserSetting(
+                telegram_user_id=user_id, force_refresh_cache=True
+            )
+            session.add(user_setting)
+        else:
+            user_setting.force_refresh_cache = not user_setting.force_refresh_cache
+        return user_setting.force_refresh_cache
