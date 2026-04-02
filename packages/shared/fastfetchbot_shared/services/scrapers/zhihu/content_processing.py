@@ -6,10 +6,14 @@ from bs4 import BeautifulSoup
 def fix_images_and_links(html: str) -> str:
     """
     Port of FxZhihu's fixImagesAndLinks:
+    - Remove <noscript> tags containing images (fallbacks for lazy-loaded imgs)
     - Replace data-actualsrc with src on img tags
     - Remove <u> tags preserving text content
     """
     soup = BeautifulSoup(html, "html.parser")
+    for noscript in soup.find_all("noscript"):
+        if noscript.find("img"):
+            noscript.decompose()
     for img in soup.find_all("img"):
         actualsrc = img.get("data-actualsrc")
         if actualsrc:
