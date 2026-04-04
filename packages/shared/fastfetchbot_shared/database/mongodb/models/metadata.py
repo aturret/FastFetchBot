@@ -1,4 +1,5 @@
 from typing import Optional, Any
+from dataclasses import asdict
 from datetime import datetime
 
 from pydantic import Field
@@ -41,6 +42,9 @@ class Metadata(Document):
         indexes = [
             [("url", DESCENDING), ("version", DESCENDING)],
         ]
+        bson_encoders = {
+            DatabaseMediaFile: asdict,
+        }
 
     @before_event(Insert)
     def prepare_for_insert(self):

@@ -44,6 +44,12 @@ def _get_application():
     return application
 
 
+def _log_file_id_task_exception(task: asyncio.Task):
+    """Callback for fire-and-forget file_id capture tasks."""
+    if not task.cancelled() and task.exception():
+        logger.opt(exception=task.exception()).error("Error in file_id capture task")
+
+
 async def send_item_message(
         data: dict, chat_id: Union[int, str] = None, message: Message = None,
         message_id: int = None,
@@ -74,12 +80,13 @@ async def send_item_message(
         if len(data["media_files"]) > 0:
             # if the message type is short and there are some media files, send media group
             reply_to_message_id = None
-            media_message_group, file_message_group = await media_files_packaging(
+            media_message_group, file_message_group, uncached_media_info = await media_files_packaging(
                 media_files=data["media_files"], data=data
             )
             if (
                     len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
+                all_sent_messages = []
                 for i, media_group in enumerate(media_message_group):
                     caption_text = (
                         caption_text
@@ -98,11 +105,24 @@ async def send_item_message(
                         write_timeout=settings.TELEBOT_WRITE_TIMEOUT,
                         reply_to_message_id=_reply_to,
                     )
+                    all_sent_messages.extend(sent_media_files_message)
                     if sent_media_files_message is tuple:
                         reply_to_message_id = sent_media_files_message[0].message_id
                     elif sent_media_files_message is Message:
                         reply_to_message_id = sent_media_files_message.message_id
                     logger.debug(f"sent media files message: {sent_media_files_message}")
+                # Background file_id capture: extract file_ids from sent messages
+                has_uncached = any(info is not None for info in uncached_media_info)
+                if settings.SCRAPE_MODE == "queue" and has_uncached and all_sent_messages:
+                    from core.services.file_id_capture import capture_and_push_file_ids
+                    task = asyncio.create_task(
+                        capture_and_push_file_ids(
+                            uncached_info=uncached_media_info,
+                            sent_messages=tuple(all_sent_messages),
+                            metadata_url=data.get("url", ""),
+                        )
+                    )
+                    task.add_done_callback(_log_file_id_task_exception)
             else:
                 sent_message = await application.bot.send_message(
                     chat_id=chat_id,
@@ -200,17 +220,16 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
     sending them by send_media_group method or send_document method.
     :param data: (dict) metadata of the item
     :param media_files: (list) a list of media files,
-    :return: (tuple) a tuple of media group and file group
-        media_message_group: (list) a list of media items, the type of each item is InputMediaPhoto or InputMediaVideo
-        file_group: (list) a list of file items, the type of each item is InputFile
-    TODO: It's not a good practice for this function. This method will still download all the media files even when
-        media files are too large and it can be memory consuming even if we use a database to store the media files.
-        The function should be optimized to resolve the media files one group by one group and send each group
-        immediately after it is resolved.
-        This processing method should be optimized in the future.
+    :return: (tuple) a tuple of (media_message_group, file_message_group, uncached_media_info)
+        media_message_group: (list) a list of media groups, each is a list of InputMedia* items
+        file_message_group: (list) a list of file groups, each is a list of InputMediaDocument items
+        uncached_media_info: (list) parallel to flattened media groups — each entry is
+            {"url": str, "media_type": str} for items that were downloaded (need file_id capture),
+            or None for items served from cached file_id
     """
     media_counter, file_counter = 0, 0
     media_message_group, media_group, file_message_group, file_group = [], [], [], []
+    uncached_media_info = []
     for (
             media_item
     ) in media_files:  # To traverse all media items in the media files list
@@ -225,6 +244,27 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             file_message_group.append(file_group)
             file_group = []
             file_counter = 0
+        # Check for cached telegram file_id — skip download entirely if available
+        file_id = media_item.get("telegram_file_id")
+        if file_id:
+            media_type = media_item["media_type"]
+            if media_type == "image":
+                media_group.append(InputMediaPhoto(file_id))
+            elif media_type == "gif":
+                media_group.append(InputMediaAnimation(file_id))
+            elif media_type == "video":
+                media_group.append(InputMediaVideo(file_id, supports_streaming=True))
+            elif media_type == "audio":
+                media_group.append(InputMediaAudio(file_id))
+            elif media_type == "document":
+                file_group.append(InputMediaDocument(file_id, parse_mode=ParseMode.HTML))
+                file_counter += 1
+            uncached_media_info.append(None)
+            media_counter += 1
+            logger.info(
+                f"get the {media_counter}th media item (cached file_id), type: {media_type}, url: {media_item['url']}"
+            )
+            continue
         if not (
                 media_item["media_type"] in ["image", "gif", "video"]
                 and data["message_type"] == "long"
@@ -343,6 +383,10 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
                 )
                 file_counter += 1
+            uncached_media_info.append({
+                "url": media_item["url"],
+                "media_type": media_item["media_type"],
+            })
             media_counter += 1
             logger.info(
                 f"get the {media_counter}th media item,type: {media_item['media_type']}, url: {media_item['url']}"
@@ -352,4 +396,4 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
         media_message_group.append(media_group)
     if len(file_group) > 0:
         file_message_group.append(file_group)
-    return media_message_group, file_message_group
+    return media_message_group, file_message_group, uncached_media_info

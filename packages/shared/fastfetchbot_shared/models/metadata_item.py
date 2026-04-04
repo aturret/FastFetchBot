@@ -42,6 +42,7 @@ class MediaFile:
     url: str
     original_url: Optional[str] = None
     caption: Optional[str] = None
+    telegram_file_id: Optional[str] = None
 
     @staticmethod
     def from_dict(obj: Any) -> "MediaFile":
@@ -49,13 +50,16 @@ class MediaFile:
         media_type = from_str(obj.get("media_type"))
         url = from_str(obj.get("url"))
         caption = from_str(obj.get("caption"))
-        return MediaFile(media_type, url, caption)
+        telegram_file_id = obj.get("telegram_file_id")
+        return MediaFile(media_type, url, caption=caption, telegram_file_id=telegram_file_id)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["media_type"] = from_str(self.media_type)
         result["url"] = from_str(self.url)
         result["caption"] = self.caption
+        if self.telegram_file_id is not None:
+            result["telegram_file_id"] = self.telegram_file_id
         return result
 
 

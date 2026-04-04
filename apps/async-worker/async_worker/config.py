@@ -34,6 +34,9 @@ class AsyncWorkerSettings(BaseSettings):
     # Timeout
     DOWNLOAD_VIDEO_TIMEOUT: int = 600
 
+    # Runtime flag (not loaded from env; set at startup)
+    file_id_consumer_ready: bool = False
+
     @model_validator(mode="after")
     def _resolve_derived(self) -> "AsyncWorkerSettings":
         if not self.MONGODB_URL:
