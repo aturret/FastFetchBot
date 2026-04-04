@@ -321,6 +321,133 @@ class TestConsumeLoop:
             assert call_args["metadata_url"] == "https://example.com/post/1"
 
     @pytest.mark.asyncio
+    async def test_malformed_json_goes_to_dlq(self, mock_redis):
+        """Malformed JSON should be moved to the dead-letter queue, not requeued."""
+        call_count = 0
+
+        async def brpop_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return ("fileid:updates", "NOT-VALID-JSON{{{")
+            raise asyncio.CancelledError()
+
+        mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
+
+        with patch(
+            "async_worker.services.file_id_consumer.aioredis.from_url",
+            return_value=mock_redis,
+        ):
+            from async_worker.services.file_id_consumer import _consume_loop
+
+            await _consume_loop()
+
+        # Should have pushed to DLQ, not the main queue
+        mock_redis.lpush.assert_awaited_once()
+        dlq_key = mock_redis.lpush.call_args[0][0]
+        assert dlq_key == "fileid:updates:dlq"
+
+    @pytest.mark.asyncio
+    async def test_transient_error_requeues_payload(self, mock_redis):
+        """A DB/IO error during processing should requeue the payload for retry."""
+        payload = _make_payload()
+        call_count = 0
+
+        async def brpop_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return ("fileid:updates", payload)
+            raise asyncio.CancelledError()
+
+        mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
+
+        with patch(
+            "async_worker.services.file_id_consumer.aioredis.from_url",
+            return_value=mock_redis,
+        ), patch(
+            "async_worker.services.file_id_consumer._process_file_id_update",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("MongoDB down"),
+        ):
+            from async_worker.services.file_id_consumer import _consume_loop
+
+            await _consume_loop()
+
+        # Should have requeued to the main queue with _retry_count stamped
+        mock_redis.lpush.assert_awaited_once()
+        requeue_key = mock_redis.lpush.call_args[0][0]
+        assert requeue_key == "fileid:updates"
+        requeued = json.loads(mock_redis.lpush.call_args[0][1])
+        assert requeued["_retry_count"] == 1
+        assert requeued["metadata_url"] == "https://example.com/post/1"
+
+    @pytest.mark.asyncio
+    async def test_max_retries_exceeded_goes_to_dlq(self, mock_redis):
+        """After _MAX_RETRIES failures, the payload should go to DLQ."""
+        payload_dict = json.loads(_make_payload())
+        payload_dict["_retry_count"] = 3  # already at max
+        payload = json.dumps(payload_dict, ensure_ascii=False)
+        call_count = 0
+
+        async def brpop_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return ("fileid:updates", payload)
+            raise asyncio.CancelledError()
+
+        mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
+
+        with patch(
+            "async_worker.services.file_id_consumer.aioredis.from_url",
+            return_value=mock_redis,
+        ), patch(
+            "async_worker.services.file_id_consumer._process_file_id_update",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("still failing"),
+        ):
+            from async_worker.services.file_id_consumer import _consume_loop
+
+            await _consume_loop()
+
+        # Should go to DLQ, not requeued
+        mock_redis.lpush.assert_awaited_once()
+        dlq_key = mock_redis.lpush.call_args[0][0]
+        assert dlq_key == "fileid:updates:dlq"
+
+    @pytest.mark.asyncio
+    async def test_shutdown_requeues_in_flight_payload(self, mock_redis):
+        """If CancelledError hits after BRPOP but before processing completes,
+        the payload should be requeued."""
+        payload = _make_payload()
+
+        async def brpop_side_effect(*args, **kwargs):
+            return ("fileid:updates", payload)
+
+        mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
+
+        async def process_side_effect(p):
+            raise asyncio.CancelledError()
+
+        with patch(
+            "async_worker.services.file_id_consumer.aioredis.from_url",
+            return_value=mock_redis,
+        ), patch(
+            "async_worker.services.file_id_consumer._process_file_id_update",
+            new_callable=AsyncMock,
+            side_effect=process_side_effect,
+        ):
+            from async_worker.services.file_id_consumer import _consume_loop
+
+            await _consume_loop()
+
+        # Payload should have been requeued before shutdown
+        mock_redis.lpush.assert_awaited_once()
+        requeue_key = mock_redis.lpush.call_args[0][0]
+        assert requeue_key == "fileid:updates"
+
+    @pytest.mark.asyncio
     async def test_brpop_none_continues(self, mock_redis):
         call_count = 0
 
