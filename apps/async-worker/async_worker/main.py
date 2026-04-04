@@ -64,8 +64,18 @@ class WorkerSettings:
 
             await init_mongodb(settings.MONGODB_URL)
 
+            from async_worker.services import file_id_consumer
+
+            await file_id_consumer.start()
+            settings.file_id_consumer_ready = True
+
     @staticmethod
     async def on_shutdown(ctx: dict) -> None:
+        if settings.file_id_consumer_ready:
+            from async_worker.services import file_id_consumer
+
+            await file_id_consumer.stop()
+
         if settings.DATABASE_ON:
             from fastfetchbot_shared.database.mongodb import close_mongodb
 

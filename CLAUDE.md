@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with four microservices: a FastAPI server (API), a Telegram Bot client, a Celery worker for file operations, and an ARQ-based async worker for off-path scraping. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
+FastFetchBot is a social media content fetching service built as a **UV workspace monorepo** with four microservices: a FastAPI server (API), a Telegram Bot client, a Celery worker for file operations, and an ARQ-based async worker for off-path scraping and file_id persistence. It scrapes and archives content from various social media platforms including Twitter, Weibo, Xiaohongshu, Reddit, Bluesky, Instagram, Zhihu, Douban, YouTube, and Bilibili.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ FastFetchBot/
 ├── apps/api/                 # FastAPI server: enriched service, routing, storage
 ├── apps/telegram-bot/        # Telegram Bot: webhook/polling, message handling
 ├── apps/worker/              # Celery worker: sync file operations (video, PDF, audio)
-├── apps/async-worker/        # ARQ async worker: off-path scraping + enrichment
+├── apps/async-worker/        # ARQ async worker: off-path scraping + enrichment + file_id persistence
 ├── pyproject.toml            # Root workspace configuration
 └── uv.lock                   # Lockfile for the entire workspace
 ```
@@ -70,21 +70,27 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 - **`api_client.py`** — HTTP client calling the API server
 - **`queue_client.py`** — ARQ Redis client for enqueuing scrape jobs (queue mode)
 - **`handlers/`** — `messages.py`, `buttons.py`, `url_process.py`, `commands.py` (start, /settings with inline toggles)
-- **`services/`** — `bot_app.py`, `message_sender.py`, `user_settings.py` (get/toggle `auto_fetch_in_dm` and `force_refresh_cache`), `constants.py`
+- **`services/`** — `bot_app.py`, `message_sender.py` (media packaging with file_id shortcut + background file_id capture), `file_id_capture.py` (extracts file_ids from sent messages, pushes to Redis for async worker persistence), `user_settings.py` (get/toggle `auto_fetch_in_dm` and `force_refresh_cache`), `constants.py`
 - **`webhook/server.py`** — Webhook/polling server
 - **`templates/`** — Jinja2 templates for bot messages
+
+### Async Worker (`apps/async-worker/async_worker/`)
+
+- **`main.py`** — ARQ worker entry point with `on_startup`/`on_shutdown` hooks for MongoDB and file_id consumer lifecycle
+- **`config.py`** — `AsyncWorkerSettings` with MongoDB, Redis, and runtime flags (`file_id_consumer_ready`)
+- **`services/file_id_consumer.py`** — Background Redis BRPOP consumer for `fileid:updates` queue. Receives file_id payloads from the Telegram bot, matches media URLs to the latest `Metadata` document in MongoDB, and persists `telegram_file_id` values. Lifecycle managed via `start()`/`stop()` during worker startup/shutdown when `DATABASE_ON` is true
 
 ### Shared Library (`packages/shared/fastfetchbot_shared/`)
 
 - **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
-- **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py` (MediaFile, MetadataItem, MessageType), `telegraph_item.py`, `url_metadata.py`
+- **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py` (MediaFile with optional `telegram_file_id` for Telegram file_id caching, MetadataItem, MessageType), `telegraph_item.py`, `url_metadata.py`
 - **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`, `cookie.py`
 - **`database/`** — Dual database layer:
   - **SQLAlchemy** (user settings): `base.py`, `engine.py`, `session.py`, `models/user_setting.py` — `UserSetting` model with `auto_fetch_in_dm` and `force_refresh_cache` toggles. Supports SQLite (dev) and PostgreSQL (prod) via `SETTINGS_DATABASE_URL`. Alembic migrations in `packages/shared/alembic/`
   - **`database/mongodb/`** — Beanie ODM for scraped content persistence, shared across API and async worker:
     - **`connection.py`** — `init_mongodb(mongodb_url, db_name)`, `close_mongodb()`, `save_instances()`. Parameterized — each app passes its own config at startup
     - **`cache.py`** — MongoDB-backed URL cache: `find_cached(url, ttl_seconds)` returns the latest versioned document if within TTL (0 = never expire); `save_metadata(metadata_item)` auto-increments `version` for the same URL before inserting
-    - **`models/metadata.py`** — `Metadata(Document)` with fields: title, url, author, content, media_files, telegraph_url, timestamp, version, etc. `DatabaseMediaFile(MediaFile)` extends the scraper `MediaFile` dataclass with `file_key` for S3 storage. Compound index on `(url, version)` for efficient cache lookups. `@before_event(Insert)` hook auto-computes text lengths and converts `MediaFile` → `DatabaseMediaFile`
+    - **`models/metadata.py`** — `Metadata(Document)` with fields: title, url, author, content, media_files, telegraph_url, timestamp, version, etc. `DatabaseMediaFile(MediaFile)` extends the scraper `MediaFile` dataclass with `file_key` for S3 storage and inherits `telegram_file_id` for Telegram file_id caching. Compound index on `(url, version)` for efficient cache lookups. `@before_event(Insert)` hook auto-computes text lengths and converts `MediaFile` → `DatabaseMediaFile`. Custom `bson_encoders = {DatabaseMediaFile: asdict}` ensures proper BSON serialization of pydantic dataclasses
     - **`__init__.py`** — Re-exports: `init_mongodb`, `close_mongodb`, `save_instances`, `find_cached`, `save_metadata`, `Metadata`, `DatabaseMediaFile`
 - **`services/scrapers/`** — All platform scrapers, fully decoupled from FastAPI:
   - **`config.py`** — All scraper env vars: platform credentials (Twitter, Bluesky, Weibo, XHS, Zhihu, Reddit, Instagram), Firecrawl/Zyte config, OpenAI key, Telegraph tokens, `JINJA2_ENV`, cookie file loading. Configurable `CONF_DIR` for cookie/config files
@@ -191,6 +197,13 @@ See `template.env` for a complete reference. Key variables:
 | `MONGODB_URL` | derived | Full MongoDB URI. Overrides host/port/credentials if set explicitly |
 
 MongoDB models and connection logic live in `packages/shared/fastfetchbot_shared/database/mongodb/`. Both the API server and async worker use the same shared ODM layer. The `Metadata` Beanie Document stores scraped content with versioning — each re-scrape of the same URL increments the `version` field. The cache system (`find_cached` / `save_metadata`) queries the latest version and checks TTL before deciding to re-scrape.
+
+**Telegram file_id caching** — automatic when `DATABASE_ON` is true and `SCRAPE_MODE` is `queue`:
+- When the bot sends media to users, it extracts Telegram `file_id` values from the `send_media_group` response
+- File_ids are pushed to Redis queue `fileid:updates` via the bot's `file_id_capture` module (fire-and-forget background task)
+- The async worker's `file_id_consumer` processes the queue and persists file_ids to the corresponding `Metadata.media_files[*].telegram_file_id` in MongoDB
+- On subsequent cache hits, `media_files_packaging` uses stored file_ids directly via `InputMediaPhoto(file_id)` etc., skipping HTTP download entirely
+- The bot has no direct MongoDB access — all database writes go through the async worker via Redis
 
 **SQLite/PostgreSQL** (user settings — always enabled for the Telegram bot):
 | Variable | Default | Description |
