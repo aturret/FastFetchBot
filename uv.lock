@@ -876,7 +876,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2.15.0" },
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "weasyprint", specifier = ">=65.1" },
-    { name = "yt-dlp", extras = ["default"], specifier = ">=2026.3.17" },
+    { name = "yt-dlp", extras = ["default"], git = "https://github.com/AmSach/yt-dlp.git?rev=fix%2Fbilibili-www-referer" },
 ]
 
 [[package]]
@@ -2492,15 +2492,11 @@ wheels = [
 [[package]]
 name = "yt-dlp"
 version = "2026.3.17"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8b/34/7c6b4e3f89cb6416d2cd7ab6dab141a1df97ab0fb22d15816db2c92148c9/yt_dlp-2026.3.17.tar.gz", hash = "sha256:ba7aa31d533f1ffccfe70e421596d7ca8ff0bf1398dc6bb658b7d9dec057d2c9", size = 3119221, upload-time = "2026-03-17T23:43:00.244Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/13/5093bcb954878e50f7217fd2ab94282b53934022e4e4a03265582da83bf5/yt_dlp-2026.3.17-py3-none-any.whl", hash = "sha256:32992db94303a8a5d211a183f2174834fe7f8c29d83ed2e7a324eae97a8f26d8", size = 3315134, upload-time = "2026-03-17T23:42:57.863Z" },
-]
+source = { git = "https://github.com/AmSach/yt-dlp.git?rev=fix%2Fbilibili-www-referer#e497c437a7372d8b9fb94be03dd1db9c67156ea8" }
 
 [package.optional-dependencies]
 default = [
-    { name = "brotli", marker = "implementation_name == 'cpython'" },
+    { name = "brotli", marker = "implementation_name == 'cpython' and sys_platform != 'ios'" },
     { name = "brotlicffi", marker = "implementation_name != 'cpython'" },
     { name = "certifi" },
     { name = "mutagen" },
