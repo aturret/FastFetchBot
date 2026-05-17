@@ -3,7 +3,7 @@ import secrets
 from typing import Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
-from pydantic import Field, computed_field, model_validator
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,21 +65,11 @@ class TelegramBotSettings(BaseSettings):
     OUTBOX_REDIS_URL: str = "redis://localhost:6379/3"
     OUTBOX_QUEUE_KEY: str = "scrape:outbox"
 
-    # Database
-    ITEM_DATABASE_ON: bool = False
-    MONGODB_PORT: int = 27017
-    MONGODB_HOST: str = "localhost"
-    MONGODB_URL: str = ""
+    # User settings database
     SETTINGS_DATABASE_URL: str = "sqlite+aiosqlite:///data/fastfetchbot.db"
 
     # Template language
     TEMPLATE_LANGUAGE: str = "zh_CN"
-
-    @model_validator(mode="after")
-    def _resolve_derived(self) -> "TelegramBotSettings":
-        if not self.MONGODB_URL:
-            self.MONGODB_URL = f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}"
-        return self
 
     @computed_field
     @property

@@ -956,7 +956,6 @@ source = { virtual = "apps/telegram-bot" }
 dependencies = [
     { name = "aiofiles" },
     { name = "arq" },
-    { name = "beanie" },
     { name = "fastfetchbot-shared", extra = ["migrate", "postgres"] },
     { name = "httpx" },
     { name = "jinja2" },
@@ -970,7 +969,6 @@ dependencies = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "arq", specifier = ">=0.26.1" },
-    { name = "beanie", specifier = ">=1.29.0" },
     { name = "fastfetchbot-shared", extras = ["postgres", "migrate"], editable = "packages/shared" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
