@@ -24,9 +24,6 @@ async def lifespan(app):
     from fastfetchbot_shared.database import init_db, close_db
 
     # -- startup --
-    if settings.ITEM_DATABASE_ON:
-        from core import database
-        await database.startup()
     await init_db()
     if settings.TELEGRAM_BOT_TOKEN:
         await startup()
@@ -46,9 +43,6 @@ async def lifespan(app):
     if settings.TELEGRAM_BOT_TOKEN:
         await shutdown()
     await close_db()
-    if settings.ITEM_DATABASE_ON:
-        from core import database
-        await database.shutdown()
 
 
 def _log_task_exception(task: asyncio.Task):

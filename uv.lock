@@ -730,7 +730,7 @@ dependencies = [
     { name = "fake-useragent" },
     { name = "fastapi" },
     { name = "fastfetchbot-file-export" },
-    { name = "fastfetchbot-shared", extra = ["postgres"] },
+    { name = "fastfetchbot-shared", extra = ["mongodb", "postgres"] },
     { name = "firecrawl-py" },
     { name = "gunicorn" },
     { name = "html-telegraph-poster-v2" },
@@ -777,7 +777,7 @@ requires-dist = [
     { name = "fake-useragent", specifier = ">=2.2.0,<3.0.0" },
     { name = "fastapi", specifier = ">=0.136.1,<0.137.0" },
     { name = "fastfetchbot-file-export", editable = "packages/file-export" },
-    { name = "fastfetchbot-shared", extras = ["postgres"], editable = "packages/shared" },
+    { name = "fastfetchbot-shared", extras = ["postgres", "mongodb"], editable = "packages/shared" },
     { name = "firecrawl-py", specifier = ">=4.24.0,<5.0.0" },
     { name = "gunicorn", specifier = ">=25.3.0,<26.0.0" },
     { name = "html-telegraph-poster-v2", specifier = ">=0.2.5,<0.3.0" },
@@ -956,7 +956,6 @@ source = { virtual = "apps/telegram-bot" }
 dependencies = [
     { name = "aiofiles" },
     { name = "arq" },
-    { name = "beanie" },
     { name = "fastfetchbot-shared", extra = ["migrate", "postgres"] },
     { name = "httpx" },
     { name = "jinja2" },
@@ -970,7 +969,6 @@ dependencies = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "arq", specifier = ">=0.26.1" },
-    { name = "beanie", specifier = ">=1.29.0" },
     { name = "fastfetchbot-shared", extras = ["postgres", "migrate"], editable = "packages/shared" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
