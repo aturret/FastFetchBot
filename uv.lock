@@ -823,31 +823,23 @@ version = "0.1.0"
 source = { virtual = "apps/api" }
 dependencies = [
     { name = "aioboto3" },
-    { name = "babel" },
     { name = "celery", extra = ["redis"] },
     { name = "fastapi" },
     { name = "fastfetchbot-shared", extra = ["mongodb", "scrapers"] },
     { name = "gunicorn" },
-    { name = "pillow" },
-    { name = "pydub" },
     { name = "sentry-sdk", extra = ["fastapi"] },
     { name = "uvicorn" },
-    { name = "xhtml2pdf" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.4.0" },
-    { name = "babel", specifier = ">=2.17.0" },
     { name = "celery", extras = ["redis"], specifier = ">=5.4.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "fastfetchbot-shared", extras = ["scrapers", "mongodb"], editable = "packages/shared" },
     { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "pillow", specifier = ">=10.0.0" },
-    { name = "pydub", specifier = ">=0.25.1" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.27.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
-    { name = "xhtml2pdf", specifier = ">=0.2.17" },
 ]
 
 [[package]]
@@ -928,9 +920,7 @@ scrapers = [
     { name = "html-telegraph-poster-v2" },
     { name = "jinja2" },
     { name = "jmespath" },
-    { name = "markdown" },
     { name = "openai" },
-    { name = "tenacity" },
     { name = "twitter-api-client-v2" },
     { name = "zyte-api" },
 ]
@@ -953,7 +943,6 @@ requires-dist = [
     { name = "jmespath", marker = "extra == 'scrapers'", specifier = ">=1.0.1" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "lxml", specifier = ">=5.4.0" },
-    { name = "markdown", marker = "extra == 'scrapers'", specifier = ">=3.8" },
     { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
     { name = "openai", marker = "extra == 'scrapers'", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -962,7 +951,6 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
-    { name = "tenacity", marker = "extra == 'scrapers'", specifier = ">=9.1.2" },
     { name = "twitter-api-client-v2", marker = "extra == 'scrapers'", specifier = ">=0.1.1" },
     { name = "zyte-api", marker = "extra == 'scrapers'", specifier = ">=0.8.1" },
 ]
