@@ -7,7 +7,7 @@ dependencies = [
     "fastapi>=0.115.12",
     "sentry-sdk[fastapi]>=2.27.0",
     "gunicorn>=23.0.0",
-    "uvicorn>=0.34.2",
+    "uvicorn>=0.34.2,<0.47.0",
     "aioboto3>=13.4.0",
     "celery[redis]>=5.4.0",
 ]
