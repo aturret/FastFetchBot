@@ -754,11 +754,6 @@ dependencies = [
     { name = "zyte-api" },
 ]
 
-[package.optional-dependencies]
-windows = [
-    { name = "python-magic-bin" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "black" },
@@ -797,7 +792,6 @@ requires-dist = [
     { name = "playwright", specifier = ">=1.59.0,<2.0.0" },
     { name = "pydub", specifier = ">=0.25.1,<0.26.0" },
     { name = "python-magic", specifier = ">=0.4.27,<0.5.0" },
-    { name = "python-magic-bin", marker = "extra == 'windows'", specifier = ">=0.4.14,<0.5.0" },
     { name = "python-telegram-bot", extras = ["callback-data", "rate-limiter"], specifier = ">=22.7,<23.0" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.60.0,<3.0.0" },
     { name = "tenacity", specifier = ">=9.1.2,<10.0.0" },
@@ -806,7 +800,6 @@ requires-dist = [
     { name = "xhtml2pdf", specifier = ">=0.2.17,<0.3.0" },
     { name = "zyte-api", specifier = ">=0.10.0,<0.11.0" },
 ]
-provides-extras = ["windows"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -823,31 +816,23 @@ version = "0.1.0"
 source = { virtual = "apps/api" }
 dependencies = [
     { name = "aioboto3" },
-    { name = "babel" },
     { name = "celery", extra = ["redis"] },
     { name = "fastapi" },
     { name = "fastfetchbot-shared", extra = ["mongodb", "scrapers"] },
     { name = "gunicorn" },
-    { name = "pillow" },
-    { name = "pydub" },
     { name = "sentry-sdk", extra = ["fastapi"] },
     { name = "uvicorn" },
-    { name = "xhtml2pdf" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=13.4.0" },
-    { name = "babel", specifier = ">=2.17.0" },
     { name = "celery", extras = ["redis"], specifier = ">=5.4.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "fastfetchbot-shared", extras = ["scrapers", "mongodb"], editable = "packages/shared" },
     { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "pillow", specifier = ">=10.0.0" },
-    { name = "pydub", specifier = ">=0.25.1" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.27.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
-    { name = "xhtml2pdf", specifier = ">=0.2.17" },
 ]
 
 [[package]]
@@ -928,9 +913,7 @@ scrapers = [
     { name = "html-telegraph-poster-v2" },
     { name = "jinja2" },
     { name = "jmespath" },
-    { name = "markdown" },
     { name = "openai" },
-    { name = "tenacity" },
     { name = "twitter-api-client-v2" },
     { name = "zyte-api" },
 ]
@@ -953,7 +936,6 @@ requires-dist = [
     { name = "jmespath", marker = "extra == 'scrapers'", specifier = ">=1.0.1" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "lxml", specifier = ">=5.4.0" },
-    { name = "markdown", marker = "extra == 'scrapers'", specifier = ">=3.8" },
     { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
     { name = "openai", marker = "extra == 'scrapers'", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -962,7 +944,6 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
-    { name = "tenacity", marker = "extra == 'scrapers'", specifier = ">=9.1.2" },
     { name = "twitter-api-client-v2", marker = "extra == 'scrapers'", specifier = ">=0.1.1" },
     { name = "zyte-api", marker = "extra == 'scrapers'", specifier = ">=0.8.1" },
 ]
@@ -1953,16 +1934,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/db/0b3e28ac047452d079d375ec6798bf76a036a08182dbb39ed38116a49130/python-magic-0.4.27.tar.gz", hash = "sha256:c1ba14b08e4a5f5c31a302b7721239695b2f0f058d125bd5ce1ee36b9d9d3c3b", size = 14677, upload-time = "2022-06-07T20:16:59.508Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/73/9f872cb81fc5c3bb48f7227872c28975f998f3e7c2b1c16e95e6432bbb90/python_magic-0.4.27-py2.py3-none-any.whl", hash = "sha256:c212960ad306f700aa0d01e5d7a325d20548ff97eb9920dcd29513174f0294d3", size = 13840, upload-time = "2022-06-07T20:16:57.763Z" },
-]
-
-[[package]]
-name = "python-magic-bin"
-version = "0.4.14"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/2c/bbe8ad26591745da2c4692ea571145fb027c8ee1a0540407aa327684c4ce/python_magic_bin-0.4.14-py2.py3-none-macosx_10_6_intel.whl", hash = "sha256:7b1743b3dbf16601d6eedf4e7c2c9a637901b0faaf24ad4df4d4527e7d8f66a4", size = 334318, upload-time = "2017-10-02T16:30:13.6Z" },
-    { url = "https://files.pythonhosted.org/packages/5a/5d/10b9ac745d9fd2f7151a2ab901e6bb6983dbd70e87c71111f54859d1ca2e/python_magic_bin-0.4.14-py2.py3-none-win32.whl", hash = "sha256:34a788c03adde7608028203e2dbb208f1f62225ad91518787ae26d603ae68892", size = 397784, upload-time = "2017-10-02T16:30:15.806Z" },
-    { url = "https://files.pythonhosted.org/packages/07/c2/094e3d62b906d952537196603a23aec4bcd7c6126bf80eb14e6f9f4be3a2/python_magic_bin-0.4.14-py2.py3-none-win_amd64.whl", hash = "sha256:90be6206ad31071a36065a2fc169c5afb5e0355cbe6030e87641c6c62edc2b69", size = 409299, upload-time = "2017-10-02T16:30:18.545Z" },
 ]
 
 [[package]]

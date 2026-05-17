@@ -8,10 +8,6 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.27.0",
     "gunicorn>=23.0.0",
     "uvicorn>=0.34.2",
-    "babel>=2.17.0",
-    "pillow>=10.0.0",
-    "pydub>=0.25.1",
-    "xhtml2pdf>=0.2.17",
     "aioboto3>=13.4.0",
     "celery[redis]>=5.4.0",
 ]
