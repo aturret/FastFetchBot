@@ -9,10 +9,28 @@ from fastfetchbot_shared.utils.logger import logger
 _client: AsyncMongoClient | None = None
 
 
+class MongoInitError(RuntimeError):
+    """Raised when MongoDB initialization fails."""
+
+
 async def init_mongodb(mongodb_url: str, db_name: str = "telegram_bot") -> None:
     global _client
-    _client = AsyncMongoClient(mongodb_url)
-    await init_beanie(database=_client[db_name], document_models=document_list)
+    if _client is not None:
+        logger.debug("MongoDB already initialized; skipping initialization")
+        return
+
+    client = AsyncMongoClient(mongodb_url)
+    try:
+        await init_beanie(database=client[db_name], document_models=document_list)
+    except Exception as e:
+        logger.exception("Failed to initialize MongoDB")
+        try:
+            await client.close()
+        except Exception:
+            logger.exception("Failed to close MongoDB client after initialization failure")
+        raise MongoInitError("failed to initialize MongoDB") from e
+
+    _client = client
     logger.info(f"MongoDB initialized: {db_name}")
 
 
