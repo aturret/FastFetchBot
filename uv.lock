@@ -901,7 +901,7 @@ migrate = [
 ]
 mongodb = [
     { name = "beanie" },
-    { name = "motor" },
+    { name = "pymongo" },
 ]
 postgres = [
     { name = "asyncpg" },
@@ -926,7 +926,7 @@ requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.30.0" },
     { name = "asyncpraw", marker = "extra == 'scrapers'", specifier = ">=7.8.1" },
     { name = "atproto", marker = "extra == 'scrapers'", specifier = ">=0.0.61" },
-    { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=1.29.0" },
+    { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=2.1.0,<3.0.0" },
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "fake-useragent", specifier = ">=1.5.1" },
     { name = "firecrawl-py", marker = "extra == 'scrapers'", specifier = ">=4.13.0" },
@@ -936,12 +936,12 @@ requires-dist = [
     { name = "jmespath", marker = "extra == 'scrapers'", specifier = ">=1.0.1" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "lxml", specifier = ">=5.4.0" },
-    { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
     { name = "openai", marker = "extra == 'scrapers'", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "playwright", specifier = ">=1.52.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
+    { name = "pymongo", marker = "extra == 'mongodb'", specifier = ">=4.16.0" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
     { name = "twitter-api-client-v2", marker = "extra == 'scrapers'", specifier = ">=0.1.1" },
@@ -974,7 +974,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "python-telegram-bot", extras = ["callback-data", "rate-limiter"], specifier = ">=22.7" },
     { name = "redis", extras = ["hiredis"], specifier = ">=5.0.0" },
-    { name = "starlette", specifier = ">=1.0.0" },
+    { name = "starlette", specifier = ">=0.45.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
 ]
 
@@ -1399,18 +1399,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2f/e1/78ee7a023dac597a5825441ebd17170785a9dab23de95d2c7508ade94e0e/markupsafe-3.0.3-cp312-cp312-win32.whl", hash = "sha256:d88b440e37a16e651bda4c7c2b930eb586fd15ca7406cb39e211fcff3bf3017d", size = 14540, upload-time = "2025-09-27T18:36:38.761Z" },
     { url = "https://files.pythonhosted.org/packages/aa/5b/bec5aa9bbbb2c946ca2733ef9c4ca91c91b6a24580193e891b5f7dbe8e1e/markupsafe-3.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:26a5784ded40c9e318cfc2bdb30fe164bdb8665ded9cd64d500a34fb42067b1c", size = 15105, upload-time = "2025-09-27T18:36:39.701Z" },
     { url = "https://files.pythonhosted.org/packages/e5/f1/216fc1bbfd74011693a4fd837e7026152e89c4bcf3e77b6692fba9923123/markupsafe-3.0.3-cp312-cp312-win_arm64.whl", hash = "sha256:35add3b638a5d900e807944a078b51922212fb3dedb01633a8defc4b01a3c85f", size = 13906, upload-time = "2025-09-27T18:36:40.689Z" },
-]
-
-[[package]]
-name = "motor"
-version = "3.7.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pymongo" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/93/ae/96b88362d6a84cb372f7977750ac2a8aed7b2053eed260615df08d5c84f4/motor-3.7.1.tar.gz", hash = "sha256:27b4d46625c87928f331a6ca9d7c51c2f518ba0e270939d395bc1ddc89d64526", size = 280997, upload-time = "2025-05-14T18:56:33.653Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/9a/35e053d4f442addf751ed20e0e922476508ee580786546d699b0567c4c67/motor-3.7.1-py3-none-any.whl", hash = "sha256:8a63b9049e38eeeb56b4fdd57c3312a6d1f25d01db717fe7d82222393c410298", size = 74996, upload-time = "2025-05-14T18:56:31.665Z" },
 ]
 
 [[package]]

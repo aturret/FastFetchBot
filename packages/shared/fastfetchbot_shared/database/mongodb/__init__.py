@@ -2,6 +2,7 @@ from fastfetchbot_shared.database.mongodb.connection import (
     init_mongodb,
     close_mongodb,
     save_instances,
+    MongoInitError,
 )
 from fastfetchbot_shared.database.mongodb.models.metadata import (
     DatabaseMediaFile,
@@ -16,6 +17,7 @@ __all__ = [
     "init_mongodb",
     "close_mongodb",
     "save_instances",
+    "MongoInitError",
     "find_cached",
     "save_metadata",
     "DatabaseMediaFile",

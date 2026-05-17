@@ -3,7 +3,7 @@
 Only tests pure logic (prepare_for_insert, from_dict, DatabaseMediaFile).
 Does NOT require a running MongoDB instance.
 
-NOTE: Beanie Document.__init__ calls get_motor_collection() which requires
+NOTE: Beanie Document.__init__ touches the configured database collection, which requires
 init_beanie(). We use model_construct() to bypass validation and init for
 most tests, since we're testing business logic not Beanie integration.
 """
@@ -60,7 +60,7 @@ class TestDatabaseMediaFile:
 
 
 def _make_metadata(**kwargs):
-    """Create a Metadata via model_construct (bypasses Beanie motor check)."""
+    """Create a Metadata via model_construct (bypasses Beanie collection check)."""
     defaults = {
         "url": "https://example.com",
         "title": "untitled",

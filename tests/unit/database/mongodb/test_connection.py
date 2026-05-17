@@ -22,17 +22,17 @@ def _reset_client():
 
 class TestInitMongodb:
     @pytest.mark.asyncio
-    async def test_creates_motor_client_and_calls_init_beanie(self):
+    async def test_creates_pymongo_client_and_calls_init_beanie(self):
         with patch(
-            "fastfetchbot_shared.database.mongodb.connection.AsyncIOMotorClient"
-        ) as MockMotor, patch(
+            "fastfetchbot_shared.database.mongodb.connection.AsyncMongoClient"
+        ) as MockMongo, patch(
             "fastfetchbot_shared.database.mongodb.connection.init_beanie",
             new_callable=AsyncMock,
         ) as mock_init_beanie:
             mock_client = MagicMock()
             mock_db = MagicMock()
             mock_client.__getitem__ = MagicMock(return_value=mock_db)
-            MockMotor.return_value = mock_client
+            MockMongo.return_value = mock_client
 
             from fastfetchbot_shared.database.mongodb.connection import (
                 init_mongodb,
@@ -41,7 +41,7 @@ class TestInitMongodb:
 
             await init_mongodb("mongodb://localhost:27017", "test_db")
 
-            MockMotor.assert_called_once_with("mongodb://localhost:27017")
+            MockMongo.assert_called_once_with("mongodb://localhost:27017")
             mock_client.__getitem__.assert_called_once_with("test_db")
             mock_init_beanie.assert_awaited_once_with(
                 database=mock_db, document_models=document_list
@@ -50,14 +50,14 @@ class TestInitMongodb:
     @pytest.mark.asyncio
     async def test_default_db_name_is_telegram_bot(self):
         with patch(
-            "fastfetchbot_shared.database.mongodb.connection.AsyncIOMotorClient"
-        ) as MockMotor, patch(
+            "fastfetchbot_shared.database.mongodb.connection.AsyncMongoClient"
+        ) as MockMongo, patch(
             "fastfetchbot_shared.database.mongodb.connection.init_beanie",
             new_callable=AsyncMock,
         ):
             mock_client = MagicMock()
             mock_client.__getitem__ = MagicMock(return_value=MagicMock())
-            MockMotor.return_value = mock_client
+            MockMongo.return_value = mock_client
 
             from fastfetchbot_shared.database.mongodb.connection import init_mongodb
 
@@ -68,14 +68,14 @@ class TestInitMongodb:
     @pytest.mark.asyncio
     async def test_sets_module_level_client(self):
         with patch(
-            "fastfetchbot_shared.database.mongodb.connection.AsyncIOMotorClient"
-        ) as MockMotor, patch(
+            "fastfetchbot_shared.database.mongodb.connection.AsyncMongoClient"
+        ) as MockMongo, patch(
             "fastfetchbot_shared.database.mongodb.connection.init_beanie",
             new_callable=AsyncMock,
         ):
             mock_client = MagicMock()
             mock_client.__getitem__ = MagicMock(return_value=MagicMock())
-            MockMotor.return_value = mock_client
+            MockMongo.return_value = mock_client
 
             from fastfetchbot_shared.database.mongodb import connection
             from fastfetchbot_shared.database.mongodb.connection import init_mongodb
@@ -83,6 +83,57 @@ class TestInitMongodb:
             await init_mongodb("mongodb://localhost:27017")
 
             assert connection._client is mock_client
+
+    @pytest.mark.asyncio
+    async def test_returns_early_when_client_already_exists(self):
+        from fastfetchbot_shared.database.mongodb import connection
+        from fastfetchbot_shared.database.mongodb.connection import init_mongodb
+
+        existing_client = MagicMock()
+        connection._client = existing_client
+
+        with patch(
+            "fastfetchbot_shared.database.mongodb.connection.AsyncMongoClient"
+        ) as MockMongo, patch(
+            "fastfetchbot_shared.database.mongodb.connection.init_beanie",
+            new_callable=AsyncMock,
+        ) as mock_init_beanie:
+            await init_mongodb("mongodb://localhost:27017")
+
+        MockMongo.assert_not_called()
+        mock_init_beanie.assert_not_awaited()
+        assert connection._client is existing_client
+
+    @pytest.mark.asyncio
+    async def test_init_failure_closes_client_and_raises_mongo_init_error(self):
+        with patch(
+            "fastfetchbot_shared.database.mongodb.connection.AsyncMongoClient"
+        ) as MockMongo, patch(
+            "fastfetchbot_shared.database.mongodb.connection.init_beanie",
+            new_callable=AsyncMock,
+        ) as mock_init_beanie, patch(
+            "fastfetchbot_shared.database.mongodb.connection.logger"
+        ) as mock_logger:
+            error = RuntimeError("boom")
+            mock_init_beanie.side_effect = error
+            mock_client = MagicMock()
+            mock_client.close = AsyncMock()
+            mock_client.__getitem__ = MagicMock(return_value=MagicMock())
+            MockMongo.return_value = mock_client
+
+            from fastfetchbot_shared.database.mongodb import connection
+            from fastfetchbot_shared.database.mongodb.connection import (
+                MongoInitError,
+                init_mongodb,
+            )
+
+            with pytest.raises(MongoInitError) as exc_info:
+                await init_mongodb("mongodb://localhost:27017")
+
+        assert exc_info.value.__cause__ is error
+        mock_client.close.assert_awaited_once()
+        mock_logger.exception.assert_called_with("Failed to initialize MongoDB")
+        assert connection._client is None
 
 
 # ---------------------------------------------------------------------------
@@ -97,11 +148,12 @@ class TestCloseMongodb:
         from fastfetchbot_shared.database.mongodb.connection import close_mongodb
 
         mock_client = MagicMock()
+        mock_client.close = AsyncMock()
         connection._client = mock_client
 
         await close_mongodb()
 
-        mock_client.close.assert_called_once()
+        mock_client.close.assert_awaited_once()
         assert connection._client is None
 
     @pytest.mark.asyncio

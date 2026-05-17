@@ -1,25 +1,43 @@
 from typing import Union, List
 
-from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie, Document
+from pymongo import AsyncMongoClient
 
 from fastfetchbot_shared.database.mongodb.models.metadata import document_list
 from fastfetchbot_shared.utils.logger import logger
 
-_client: AsyncIOMotorClient | None = None
+_client: AsyncMongoClient | None = None
+
+
+class MongoInitError(RuntimeError):
+    """Raised when MongoDB initialization fails."""
 
 
 async def init_mongodb(mongodb_url: str, db_name: str = "telegram_bot") -> None:
     global _client
-    _client = AsyncIOMotorClient(mongodb_url)
-    await init_beanie(database=_client[db_name], document_models=document_list)
+    if _client is not None:
+        logger.debug("MongoDB already initialized; skipping initialization")
+        return
+
+    client = AsyncMongoClient(mongodb_url)
+    try:
+        await init_beanie(database=client[db_name], document_models=document_list)
+    except Exception as e:
+        logger.exception("Failed to initialize MongoDB")
+        try:
+            await client.close()
+        except Exception:
+            logger.exception("Failed to close MongoDB client after initialization failure")
+        raise MongoInitError("failed to initialize MongoDB") from e
+
+    _client = client
     logger.info(f"MongoDB initialized: {db_name}")
 
 
 async def close_mongodb() -> None:
     global _client
     if _client is not None:
-        _client.close()
+        await _client.close()
         _client = None
         logger.info("MongoDB connection closed")
 
