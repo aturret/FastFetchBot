@@ -72,7 +72,9 @@ async def save_metadata(metadata_item: dict) -> Metadata:
     new_version = (latest.version + 1) if latest else 1
     metadata_item["version"] = new_version
 
-    doc = Metadata.model_construct(**metadata_item)
+    document_data = dict(metadata_item)
+    document_data["published_timestamp"] = document_data.pop("timestamp", None)
+    doc = Metadata.model_construct(**document_data)
     await Metadata.insert(doc)
 
     logger.info(f"Saved metadata for {url} (version={new_version})")

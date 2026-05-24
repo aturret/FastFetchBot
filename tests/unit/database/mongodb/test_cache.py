@@ -132,8 +132,38 @@ class TestSaveMetadata:
 
         assert item["version"] == 1
         MockMetadata.model_construct.assert_called_once()
+        assert (
+            MockMetadata.model_construct.call_args.kwargs["published_timestamp"]
+            is None
+        )
+        assert "timestamp" not in MockMetadata.model_construct.call_args.kwargs
         MockMetadata.insert.assert_awaited_once_with(mock_constructed)
         assert result is mock_constructed
+
+    @pytest.mark.asyncio
+    async def test_maps_metadata_timestamp_to_published_timestamp(self):
+        mock_find = _make_find_chain(None)
+
+        with patch(
+            "fastfetchbot_shared.database.mongodb.cache.Metadata"
+        ) as MockMetadata:
+            MockMetadata.find.return_value = mock_find
+            MockMetadata.model_construct.return_value = MagicMock()
+            MockMetadata.insert = AsyncMock()
+
+            from fastfetchbot_shared.database.mongodb.cache import save_metadata
+
+            item = {
+                "url": "https://example.com",
+                "title": "Test",
+                "timestamp": 1704067200,
+            }
+            await save_metadata(item)
+
+        construct_kwargs = MockMetadata.model_construct.call_args.kwargs
+        assert construct_kwargs["published_timestamp"] == 1704067200
+        assert "timestamp" not in construct_kwargs
+        assert item["timestamp"] == 1704067200
 
     @pytest.mark.asyncio
     async def test_increments_version_from_existing(self):

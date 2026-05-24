@@ -11,7 +11,10 @@ from fastfetchbot_shared.services.scrapers.config import settings
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
 from fastfetchbot_shared.services.scrapers.general import GeneralItem
-from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+    wrap_text_into_html,
+)
 from fastfetchbot_shared.utils.logger import logger
 
 GENERAL_TEXT_LIMIT = 800
@@ -67,6 +70,7 @@ class BaseGeneralDataProcessor(DataProcessor):
         markdown_content: str,
         html_content: str,
         og_image: Optional[str] = None,
+        timestamp: Optional[int] = None,
     ) -> None:
         """
         Common method to build item data from scraped content.
@@ -79,6 +83,13 @@ class BaseGeneralDataProcessor(DataProcessor):
             "author": author or self.url_parser.netloc,
             "author_url": f"{self.url_parser.scheme}://{self.url_parser.netloc}",
             "scraper_type": self.scraper_type,
+            "timestamp": (
+                timestamp
+                if not isinstance(timestamp, bool)
+                and isinstance(timestamp, int)
+                and timestamp > 0
+                else None
+            ),
         }
 
         # Process text content - use description or first part of markdown

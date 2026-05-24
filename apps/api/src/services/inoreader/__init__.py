@@ -30,10 +30,13 @@ class Inoreader(MetadataItem):
             self.category = data.get("category", "")
             self.raw_content = data.get("content", "")
             self.content = self.raw_content
+            self.timestamp = _parse_inoreader_timestamp(data.get("timestamp"))
         if kwargs.get("category"):
             self.category = kwargs["category"]
         self.media_files = []
         self.message_type = MessageType.LONG
+        if not hasattr(self, "timestamp"):
+            self.timestamp = None
 
     def _from_data(self, data: dict):
         self.title = data.get("title", "")
@@ -43,6 +46,7 @@ class Inoreader(MetadataItem):
         self.category = data.get("category", "")
         self.raw_content = data.get("content", "")
         self.content = self.raw_content
+        self.timestamp = _parse_inoreader_timestamp(data.get("timestamp"))
 
     async def get_item(self, api: bool = False) -> dict:
         if api:
@@ -161,3 +165,9 @@ class Inoreader(MetadataItem):
                 headers=headers,
             )
             return resp
+
+
+def _parse_inoreader_timestamp(timestamp: int | None) -> int | None:
+    if isinstance(timestamp, bool) or not isinstance(timestamp, int) or timestamp <= 0:
+        return None
+    return timestamp

@@ -10,7 +10,10 @@ from fastfetchbot_shared.services.scrapers.general.firecrawl_schema import (
 from fastfetchbot_shared.services.scrapers.scraper import DataProcessor
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 from fastfetchbot_shared.utils.logger import logger
-from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+    wrap_text_into_html,
+)
 
 # HTML tags to exclude from Firecrawl output at the source
 FIRECRAWL_EXCLUDE_TAGS = [

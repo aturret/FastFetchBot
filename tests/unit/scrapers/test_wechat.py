@@ -43,6 +43,7 @@ class TestWechatDataParse:
         html_str = """
         <html>
         <body>
+        <script>var ct = "1704067200";</script>
         <div id="js_article">
             <h1 id="activity-name">  Test Title\n  </h1>
             <a id="js_name">  Test Author\n  </a>
@@ -56,6 +57,7 @@ class TestWechatDataParse:
         assert result["title"] == "Test Title"
         assert result["author"] == "Test Author"
         assert "Test content paragraph" in result["content"]
+        assert "timestamp" not in result
 
     def test_strips_newlines_and_whitespace(self):
         html_str = """

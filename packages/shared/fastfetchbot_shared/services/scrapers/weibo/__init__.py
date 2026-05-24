@@ -44,6 +44,7 @@ class Weibo(MetadataItem):
             media_files=weibo_item.media_files,
             category=weibo_item.category,
             message_type=weibo_item.message_type,
+            timestamp=weibo_item.timestamp,
             id=weibo_item.id,
         )
 
@@ -51,4 +52,3 @@ class Weibo(MetadataItem):
         result: dict = super().to_dict()
         result["id"] = self.id
         return result
-

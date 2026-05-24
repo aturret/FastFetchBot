@@ -30,6 +30,7 @@ class Threads(MetadataItem):
         self.code = urlparse(url).path.split("/")[2]
         self.pics_url = []
         self.videos_url = []
+        self.timestamp = None
 
     async def get_item(self) -> dict:
         await self.get_threads()
@@ -115,6 +116,7 @@ class Threads(MetadataItem):
             self.title = thread["username"] + "'s Threads"
             self.author = thread["username"]
             self.author_url = f"https://threads.net/@{thread['username']}"
+            self.timestamp = thread["published_on"]
             created_at = unix_timestamp_to_utc(thread["published_on"])
             reply_count = thread["reply_count"]
             like_count = thread["like_count"]

@@ -11,6 +11,7 @@ from fastfetchbot_shared.models.url_metadata import UrlMetadata
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS
 
 TELEGRAM_TEXT_LIMIT = 900
+BEIJING_TZ = datetime.timezone(datetime.timedelta(hours=8))
 
 mimetypes.init()
 
@@ -47,8 +48,9 @@ def format_telegram_short_text(soup: BeautifulSoup) -> BeautifulSoup:
 def unix_timestamp_to_utc(timestamp: int) -> str | None:
     if not timestamp:
         return None
-    utc_time = datetime.datetime.utcfromtimestamp(timestamp)
-    beijing_time = utc_time + datetime.timedelta(hours=8)
+    beijing_time = datetime.datetime.fromtimestamp(
+        timestamp, datetime.timezone.utc
+    ).astimezone(BEIJING_TZ)
     return beijing_time.strftime("%Y-%m-%d %H:%M")
 
 

@@ -32,6 +32,7 @@ class Bluesky(MetadataItem):
             media_files=bluesky_item.media_files,
             category=bluesky_item.category,
             message_type=bluesky_item.message_type,
+            timestamp=bluesky_item.timestamp,
             cid=bluesky_item.cid,
             author_did=bluesky_item.author_did,
         )

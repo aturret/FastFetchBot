@@ -7,7 +7,9 @@ from html import escape
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MessageType, MediaFile
 from fastfetchbot_shared.utils.network import get_response
-from fastfetchbot_shared.utils.parse import get_html_text_length
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+)
 from fastfetchbot_shared.utils.logger import logger
 from .config import API_HEADERS_LIST, ALL_SCRAPERS
 from fastfetchbot_shared.services.scrapers.config import settings
@@ -23,6 +25,7 @@ class Instagram(MetadataItem):
             "/", ""
         )
         self.message_type = MessageType.SHORT
+        self.timestamp = None
 
     async def get_item(self):
         await self.get_instagram()
@@ -115,6 +118,9 @@ class Instagram(MetadataItem):
         )
         ins_info["content"] = ""
         ins_info["text"] = ins_text_data
+        ins_info["timestamp"] = _parse_instagram_timestamp(
+            ins_data.get("taken_at_timestamp") or ins_data.get("taken_at")
+        )
         ins_info["author"] = ins_data["owner"]["username"]
         if ins_data["owner"]["full_name"]:
             ins_info["author"] += "(" + ins_data["owner"]["full_name"] + ")"
@@ -190,6 +196,10 @@ class Instagram(MetadataItem):
         )
         ins_info["content"] = ""
         ins_info["text"] = ins_text_data
+        ins_info["timestamp"] = _parse_instagram_timestamp(
+            ins_data["items"][0].get("taken_at")
+            or ins_data["items"][0].get("taken_at_timestamp")
+        )
         ins_info["author"] = ins_data["items"][0]["user"]["username"]
         if ins_data["items"][0]["user"]["full_name"]:
             ins_info["author"] += "(" + ins_data["items"][0]["user"]["full_name"] + ")"
@@ -269,3 +279,17 @@ class Instagram(MetadataItem):
 
     async def _get_story_info(self):
         pass
+
+
+def _parse_instagram_timestamp(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        timestamp = int(value)
+    except (TypeError, ValueError):
+        return None
+    if timestamp <= 0:
+        return None
+    if timestamp > 10_000_000_000:
+        timestamp //= 1000
+    return timestamp

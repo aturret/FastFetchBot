@@ -90,6 +90,7 @@ class InfoExtractService(object):
                 if cached is not None:
                     logger.info("Cache hit, returning cached metadata")
                     result = cached.model_dump(mode="json", exclude={"id"})
+                    result["timestamp"] = result.pop("published_timestamp", None)
                     result["_cached"] = True
                     return result
             except Exception as e:

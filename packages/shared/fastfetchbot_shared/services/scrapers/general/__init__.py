@@ -27,6 +27,7 @@ class GeneralItem(MetadataItem):
             media_files=metadata_item.media_files,
             category=metadata_item.category,
             message_type=metadata_item.message_type,
+            timestamp=metadata_item.timestamp,
             id=obj.get("id", ""),
             raw_content=obj.get("raw_content", ""),
             scraper_type=obj.get("scraper_type", ""),

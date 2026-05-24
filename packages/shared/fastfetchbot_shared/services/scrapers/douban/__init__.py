@@ -6,7 +6,10 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from lxml import etree
 
-from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+    wrap_text_into_html,
+)
 from fastfetchbot_shared.utils.network import get_selector, HEADERS
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
@@ -57,6 +60,7 @@ class Douban(MetadataItem):
         self.text_group: Optional[str] = None
         self.raw_content: Optional[str] = None
         self.date: Optional[str] = None
+        self.timestamp: Optional[int] = None
         # reqeust fields
         self.headers = HEADERS
         self.headers["Cookie"] = kwargs.get("cookie", "")

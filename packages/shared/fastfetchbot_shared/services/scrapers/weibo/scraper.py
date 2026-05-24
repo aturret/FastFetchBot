@@ -1,4 +1,6 @@
 import json
+import datetime
+from email.utils import parsedate_to_datetime
 from typing import Optional, Any, Union
 from urllib.parse import urlparse
 
@@ -12,7 +14,10 @@ from fastfetchbot_shared.exceptions import ScraperError, ScraperNetworkError, Sc
 from fastfetchbot_shared.services.scrapers.scraper import Scraper, DataProcessor
 from fastfetchbot_shared.services.scrapers.weibo import Weibo
 from fastfetchbot_shared.utils.network import get_response_json, get_random_user_agent
-from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+    wrap_text_into_html,
+)
 from .config import (
     AJAX_HOST,
     AJAX_LONGTEXT_HOST,
@@ -153,6 +158,7 @@ class WeiboDataProcessor(DataProcessor):
             "author_url": weibo_info.get("author_url"),
             "title": weibo_info.get("author") + "的微博",
             "date": weibo_info.get("created", None),
+            "timestamp": _parse_weibo_created_at(weibo_info.get("created")),
             "source": weibo_info.get("source", None),
             "region_name": weibo_info.get("region_name", None),
             "attitudes_count": self._string_to_int(weibo_info.get("attitudes_count", 0)),
@@ -523,3 +529,15 @@ class WeiboScraper(Scraper):
 
     async def get_processor_by_url(self, url) -> DataProcessor:
         return WeiboDataProcessor(url, cookies=self.weibo_cookies)
+
+
+def _parse_weibo_created_at(created_at: str | None) -> int | None:
+    if not created_at:
+        return None
+    try:
+        parsed = parsedate_to_datetime(created_at)
+    except (TypeError, ValueError, IndexError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return int(parsed.timestamp())

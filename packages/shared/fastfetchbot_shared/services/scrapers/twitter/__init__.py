@@ -1,5 +1,7 @@
 # TODO: https://rapidapi.com/Glavier/api/twitter135
 import asyncio
+import datetime
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -7,7 +9,10 @@ import httpx
 import jmespath
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
-from fastfetchbot_shared.utils.parse import get_html_text_length, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    get_html_text_length,
+    wrap_text_into_html,
+)
 from fastfetchbot_shared.exceptions import ScraperError, ScraperParseError
 from twitter.scraper import Scraper
 from .config import (
@@ -40,6 +45,7 @@ class Twitter(MetadataItem):
         self.media_files: list[MediaFile] = []
         self.category = "twitter"
         self.message_type = MessageType.SHORT
+        self.timestamp = None
         # auxiliary fields
         self.tid = urlparse(url).path.split("/")[-1]
         self.text_group = ""
@@ -168,6 +174,7 @@ class Twitter(MetadataItem):
             self.author = tweet["name"]
             self.author_url = f"https://twitter.com/{tweet['username']}"
             self.date = tweet["date"]
+            self.timestamp = _parse_twitter_created_at(tweet["date"])
         tweet_info = self.parse_single_tweet_Twitter135(tweet, retweeted=retweeted)
         self.text_group += tweet_info["text_group"]
         self.content_group += tweet_info["content_group"]
@@ -324,6 +331,18 @@ def _find_article_media_url(article: Dict, media_id: str) -> str:
             url = media_info.get("original_img_url", "")
             return url
     return ""
+
+
+def _parse_twitter_created_at(created_at: str | None) -> int | None:
+    if not created_at:
+        return None
+    try:
+        parsed = parsedate_to_datetime(created_at)
+    except (TypeError, ValueError, IndexError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return int(parsed.timestamp())
 
 
 def _apply_inline_formatting(

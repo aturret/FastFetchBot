@@ -34,6 +34,7 @@ class Metadata(Document):
     source: Optional[str] = None
     media_files: Optional[list[DatabaseMediaFile]] = None
     telegraph_url: Optional[str] = None
+    published_timestamp: Optional[int] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     scrape_status: bool = False
     version: int = Field(default=1, ge=1)

@@ -1,3 +1,5 @@
+import datetime
+
 from zyte_api import AsyncZyteAPI
 
 from fastfetchbot_shared.services.scrapers.config import settings
@@ -59,6 +61,11 @@ class ZyteDataProcessor(BaseGeneralDataProcessor):
         # Extract main image
         main_image = article.get("mainImage", {})
         og_image = main_image.get("url") if main_image else None
+        timestamp = _parse_zyte_date_published(
+            article.get("datePublished")
+            or article.get("date_published")
+            or article.get("publishedDate")
+        )
 
         await self._build_item_data(
             title=title,
@@ -67,6 +74,7 @@ class ZyteDataProcessor(BaseGeneralDataProcessor):
             markdown_content=markdown_content,
             html_content=html_content,
             og_image=og_image,
+            timestamp=timestamp,
         )
 
 
@@ -77,3 +85,15 @@ class ZyteScraper(BaseGeneralScraper):
 
     async def get_processor_by_url(self, url: str) -> DataProcessor:
         return ZyteDataProcessor(url)
+
+
+def _parse_zyte_date_published(value: str | None) -> int | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return int(parsed.timestamp())

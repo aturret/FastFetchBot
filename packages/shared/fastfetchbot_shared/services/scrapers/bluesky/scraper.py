@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -119,6 +120,7 @@ class BlueskyDataProcessor(DataProcessor):
             "category": "bluesky",
             "media_files": [],
             "created_at": created_at,
+            "timestamp": _parse_bluesky_created_at(created_at),
             "author_did": author_did,
         }
 
@@ -190,3 +192,15 @@ class BlueskyScraper(Scraper):
         except Exception as e:
             logger.error(f"Error while getting post data: {e}")
             raise
+
+
+def _parse_bluesky_created_at(created_at: str | None) -> int | None:
+    if not created_at:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return int(parsed.timestamp())
