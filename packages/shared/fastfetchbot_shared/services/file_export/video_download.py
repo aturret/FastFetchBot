@@ -6,12 +6,18 @@ and timeout are injected — no app-specific config imports.
 """
 
 import asyncio
+import datetime
+import re
 from urllib.parse import urlparse, parse_qs
 
 import httpx
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MessageType, MediaFile
-from fastfetchbot_shared.utils.parse import unix_timestamp_to_utc, second_to_time, wrap_text_into_html
+from fastfetchbot_shared.utils.parse import (
+    second_to_time,
+    unix_timestamp_to_utc,
+    wrap_text_into_html,
+)
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
 
@@ -58,6 +64,7 @@ class VideoDownloader(MetadataItem):
         self.category = category
         self.media_files = []
         self.created = None
+        self.timestamp = None
         self.duration = None
         self.celery_app = celery_app
         self.timeout = timeout
@@ -219,6 +226,7 @@ class VideoDownloader(MetadataItem):
         if len(meta_info["description"]) > 800:
             meta_info["description"] = meta_info["description"][:800] + "..."
         self.created = meta_info["upload_date"]
+        self.timestamp = meta_info.get("timestamp")
         self.duration = meta_info["duration"]
         self.text = video_info_template.render(
             data={
@@ -250,6 +258,7 @@ class VideoDownloader(MetadataItem):
             "playback_data": f"\u89c6\u9891\u64ad\u653e\u91cf\uff1a{video_info['view_count']} \u8bc4\u8bba\u6570\uff1a{video_info['comment_count']}",
             "author_avatar": video_info["thumbnail"],
             "upload_date": str(video_info["upload_date"]),
+            "timestamp": _parse_youtube_upload_date(video_info["upload_date"]),
             "duration": second_to_time(round(video_info["duration"])),
         }
 
@@ -266,5 +275,26 @@ class VideoDownloader(MetadataItem):
             "description": video_info["description"],
             "playback_data": f"\u89c6\u9891\u64ad\u653e\u91cf\uff1a{video_info['view_count']} \u5f39\u5e55\u6570\uff1a{video_info['comment_count']} \u70b9\u8d5e\u6570\uff1a{video_info['like_count']}",
             "upload_date": unix_timestamp_to_utc(video_info["timestamp"]),
+            "timestamp": _parse_bilibili_timestamp(video_info["timestamp"]),
             "duration": second_to_time(round(video_info["duration"])),
         }
+
+
+def _parse_youtube_upload_date(upload_date: str | int | None) -> int | None:
+    if upload_date is None:
+        return None
+    upload_date_text = str(upload_date).strip()
+    if not re.fullmatch(r"\d{8}", upload_date_text):
+        return None
+    try:
+        parsed = datetime.datetime.strptime(upload_date_text, "%Y%m%d")
+    except ValueError:
+        return None
+    parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return int(parsed.timestamp())
+
+
+def _parse_bilibili_timestamp(timestamp: int | None) -> int | None:
+    if isinstance(timestamp, bool) or not isinstance(timestamp, int) or timestamp <= 0:
+        return None
+    return timestamp

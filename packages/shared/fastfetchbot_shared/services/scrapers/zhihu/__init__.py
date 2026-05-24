@@ -90,6 +90,12 @@ def _fix_json_quotes(raw_str):
     return raw_str
 
 
+def _parse_zhihu_timestamp(timestamp: Any) -> int | None:
+    if isinstance(timestamp, bool) or not isinstance(timestamp, int) or timestamp <= 0:
+        return None
+    return timestamp
+
+
 class Zhihu(MetadataItem):
     def __init__(self, url: str, data: Optional[Any] = None, **kwargs):
         # metadata fields
@@ -112,6 +118,7 @@ class Zhihu(MetadataItem):
         self.raw_content = ""
         self.date = ""
         self.updated = ""
+        self.timestamp = None
         self.retweet_html = ""
         self.upvote: int = 0
         self.retweeted: bool = False
@@ -374,6 +381,7 @@ class Zhihu(MetadataItem):
                 self.raw_content = unmask_zhihu_links(self.raw_content)
             self.media_files.extend(data["media_files"])
             self.date = unix_timestamp_to_utc(data["created"])
+            self.timestamp = _parse_zhihu_timestamp(data["created"])
             self.updated = unix_timestamp_to_utc(data["updated"])
             self.upvote = data["like_count"]
             if data["origin_pin_id"]:
@@ -464,6 +472,7 @@ class Zhihu(MetadataItem):
                 )
                 self.raw_content = status_data["content"]
                 self.date = unix_timestamp_to_utc(status_data["created"])
+                self.timestamp = _parse_zhihu_timestamp(status_data["created"])
                 self.updated = unix_timestamp_to_utc(status_data["updated"])
                 self.upvote = status_data["like_count"]
                 self.comment_count = status_data["comment_count"]
@@ -549,6 +558,7 @@ class Zhihu(MetadataItem):
                 self.upvote = json_data["voteup_count"]
                 self.comment_count = json_data.get("comment_count", 0)
                 self.date = unix_timestamp_to_utc(json_data.get("created", 0))
+                self.timestamp = _parse_zhihu_timestamp(json_data.get("created", 0))
                 self.updated = unix_timestamp_to_utc(json_data.get("updated", 0))
                 if json_data.get("column"):
                     self.column = json_data["column"].get("title", "")
@@ -579,6 +589,7 @@ class Zhihu(MetadataItem):
                 self.upvote = article_data["voteup_count"]
                 self.comment_count = article_data["comment_count"]
                 self.date = unix_timestamp_to_utc(article_data["created"])
+                self.timestamp = _parse_zhihu_timestamp(article_data["created"])
                 self.updated = unix_timestamp_to_utc(article_data["updated"])
                 self.column = article_data["column"]
                 self.column_url = article_data["column_url"]
@@ -711,6 +722,7 @@ class Zhihu(MetadataItem):
                           ) or ""
         self.raw_content = answer_data["content"] or ""
         self.date = unix_timestamp_to_utc(answer_data["created"] or "") or ""
+        self.timestamp = _parse_zhihu_timestamp(answer_data["created"] or "")
         self.updated = unix_timestamp_to_utc(answer_data["updated"] or "") or ""
         self.comment_count = answer_data["comment_count"] or 0
         self.upvote = answer_data["voteup_count"] or 0

@@ -19,6 +19,7 @@ class Reddit(MetadataItem):
         self.category = "reddit"
         self.media_files = []
         self.message_type = MessageType.LONG
+        self.timestamp = None
 
     async def get_item(self) -> dict:
         await self.get_reddit()
@@ -47,7 +48,8 @@ class Reddit(MetadataItem):
         self.author = reddit_data["author"].name
         self.author_url = f"https://www.reddit.com/user/{self.author}"
         self.raw_content = reddit_data["selftext_html"] or ""
-        self.created = unix_timestamp_to_utc(int(reddit_data["created_utc"]))
+        self.timestamp = int(reddit_data["created_utc"])
+        self.created = unix_timestamp_to_utc(self.timestamp)
         self.score = reddit_data["score"]
         self.comments_count = reddit_data["num_comments"]
         self.upvote_ratio = reddit_data["upvote_ratio"]

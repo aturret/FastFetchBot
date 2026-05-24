@@ -20,6 +20,12 @@ def from_str(x: Any) -> str:
     return x
 
 
+def from_optional_int(x: Any) -> Optional[int]:
+    if isinstance(x, bool) or not isinstance(x, int) or x <= 0:
+        return None
+    return x
+
+
 def from_list(f: Callable[[Any], T], x: Any) -> List[T]:
     assert isinstance(x, list)
     return [f(y) for y in x]
@@ -75,6 +81,7 @@ class MetadataItem:
     author_url: Optional[str]
     category: str
     message_type: Optional[MessageType]
+    timestamp: Optional[int] = None
 
     @staticmethod
     def from_dict(obj: Any) -> "MetadataItem":
@@ -89,6 +96,7 @@ class MetadataItem:
         author_url = from_str(obj.get("author_url"))
         category = from_str(obj.get("category"))
         message_type = MessageType(obj.get("message_type"))
+        timestamp = from_optional_int(obj.get("timestamp"))
         return MetadataItem(
             url,
             telegraph_url,
@@ -100,21 +108,29 @@ class MetadataItem:
             author_url,
             category,
             message_type,
+            timestamp,
         )
 
     def to_dict(self) -> dict:
+        timestamp = from_optional_int(getattr(self, "timestamp", None))
+        message_type = getattr(self, "message_type", None)
+        message_type_value = (
+            message_type.value if isinstance(message_type, MessageType) else message_type
+        )
         result: dict = {
-            "url": from_str(self.url),
-            "telegraph_url": "", "content": from_str(self.content),
-            "text": from_str(self.text),
+            "url": from_str(getattr(self, "url", "")),
+            "telegraph_url": "",
+            "content": from_str(getattr(self, "content", "")),
+            "text": from_str(getattr(self, "text", "")),
             "media_files": from_list(
-                lambda x: to_class(MediaFile, x), self.media_files
+                lambda x: to_class(MediaFile, x), getattr(self, "media_files", [])
             ),
-            "author": from_str(self.author),
-            "title": from_str(self.title),
-            "author_url": from_str(self.author_url),
-            "category": from_str(self.category),
-            "message_type": self.message_type.value
+            "author": from_str(getattr(self, "author", "")),
+            "title": from_str(getattr(self, "title", "")),
+            "author_url": from_str(getattr(self, "author_url", "")),
+            "category": from_str(getattr(self, "category", "")),
+            "message_type": message_type_value,
+            "timestamp": timestamp,
         }
         return result
 

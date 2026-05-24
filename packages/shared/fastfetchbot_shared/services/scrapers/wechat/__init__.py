@@ -19,6 +19,7 @@ class Wechat(MetadataItem):
         self.media_files: list[MediaFile] = []
         self.category = "wechat"
         self.message_type = MessageType.LONG
+        self.timestamp = None
         # auxiliary fields
         self.sid = ""
         self.official_account = ""
@@ -52,6 +53,8 @@ class Wechat(MetadataItem):
             ),
         }
         for k, v in meta_data.items():
+            if v is None:
+                continue
             new_string = v.replace("\n", "")
             meta_data[k] = new_string.strip()
         return meta_data

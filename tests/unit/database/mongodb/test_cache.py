@@ -121,8 +121,7 @@ class TestSaveMetadata:
             "fastfetchbot_shared.database.mongodb.cache.Metadata"
         ) as MockMetadata:
             MockMetadata.find.return_value = mock_find
-            mock_constructed = MagicMock()
-            MockMetadata.model_construct.return_value = mock_constructed
+            mock_document = MockMetadata.return_value
             MockMetadata.insert = AsyncMock()
 
             from fastfetchbot_shared.database.mongodb.cache import save_metadata
@@ -131,9 +130,38 @@ class TestSaveMetadata:
             result = await save_metadata(item)
 
         assert item["version"] == 1
-        MockMetadata.model_construct.assert_called_once()
-        MockMetadata.insert.assert_awaited_once_with(mock_constructed)
-        assert result is mock_constructed
+        MockMetadata.assert_called_once()
+        assert (
+            MockMetadata.call_args.kwargs["published_timestamp"]
+            is None
+        )
+        assert "timestamp" not in MockMetadata.call_args.kwargs
+        MockMetadata.insert.assert_awaited_once_with(mock_document)
+        assert result is mock_document
+
+    @pytest.mark.asyncio
+    async def test_maps_metadata_timestamp_to_published_timestamp(self):
+        mock_find = _make_find_chain(None)
+
+        with patch(
+            "fastfetchbot_shared.database.mongodb.cache.Metadata"
+        ) as MockMetadata:
+            MockMetadata.find.return_value = mock_find
+            MockMetadata.insert = AsyncMock()
+
+            from fastfetchbot_shared.database.mongodb.cache import save_metadata
+
+            item = {
+                "url": "https://example.com",
+                "title": "Test",
+                "timestamp": 1704067200,
+            }
+            await save_metadata(item)
+
+        construct_kwargs = MockMetadata.call_args.kwargs
+        assert construct_kwargs["published_timestamp"] == 1704067200
+        assert "timestamp" not in construct_kwargs
+        assert item["timestamp"] == 1704067200
 
     @pytest.mark.asyncio
     async def test_increments_version_from_existing(self):
@@ -144,8 +172,6 @@ class TestSaveMetadata:
             "fastfetchbot_shared.database.mongodb.cache.Metadata"
         ) as MockMetadata:
             MockMetadata.find.return_value = mock_find
-            mock_constructed = MagicMock()
-            MockMetadata.model_construct.return_value = mock_constructed
             MockMetadata.insert = AsyncMock()
 
             from fastfetchbot_shared.database.mongodb.cache import save_metadata
@@ -163,7 +189,6 @@ class TestSaveMetadata:
             "fastfetchbot_shared.database.mongodb.cache.Metadata"
         ) as MockMetadata:
             MockMetadata.find.return_value = mock_find
-            MockMetadata.model_construct.return_value = MagicMock()
             MockMetadata.insert = AsyncMock()
 
             from fastfetchbot_shared.database.mongodb.cache import save_metadata
@@ -173,6 +198,27 @@ class TestSaveMetadata:
 
         # Verify the find was called (to look up existing version)
         MockMetadata.find.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_invalid_document_is_not_inserted(self):
+        mock_find = _make_find_chain(None)
+
+        with patch(
+            "fastfetchbot_shared.database.mongodb.cache.Metadata"
+        ) as MockMetadata, patch(
+            "fastfetchbot_shared.database.mongodb.cache.logger"
+        ) as mock_logger:
+            MockMetadata.find.return_value = mock_find
+            MockMetadata.side_effect = ValueError("bad payload")
+            MockMetadata.insert = AsyncMock()
+
+            from fastfetchbot_shared.database.mongodb.cache import save_metadata
+
+            with pytest.raises(ValueError, match="invalid metadata document"):
+                await save_metadata({"url": "https://example.com", "title": "Test"})
+
+        mock_logger.error.assert_called_once()
+        MockMetadata.insert.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_missing_url_raises_value_error(self):

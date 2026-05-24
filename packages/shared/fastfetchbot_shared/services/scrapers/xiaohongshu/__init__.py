@@ -30,6 +30,7 @@ class Xiaohongshu(MetadataItem):
         self.like_count = None
         self.updated = None
         self.created = None
+        self.timestamp = None
         self.raw_content = None
 
     async def get_item(self) -> dict:
@@ -59,11 +60,11 @@ class Xiaohongshu(MetadataItem):
         self.raw_content = json_data.get("desc", "")
         raw_time = json_data.get("time", 0)
         raw_updated = json_data.get("last_update_time", 0)
-        self.created = (
-            unix_timestamp_to_utc(int(raw_time) / 1000) if raw_time else None
-        )
+        self.timestamp = _parse_xiaohongshu_timestamp(raw_time)
+        updated_timestamp = _parse_xiaohongshu_timestamp(raw_updated)
+        self.created = unix_timestamp_to_utc(self.timestamp) if self.timestamp else None
         self.updated = (
-            unix_timestamp_to_utc(int(raw_updated) / 1000) if raw_updated else None
+            unix_timestamp_to_utc(updated_timestamp) if updated_timestamp else None
         )
         self.like_count = json_data.get("liked_count")
         self.collected_count = json_data.get("collected_count")
@@ -92,3 +93,15 @@ class Xiaohongshu(MetadataItem):
                     f'<p><video src="{media_file.url}" controls="controls"></video></p>'
                 )
         self.content = content_template.render(data=data)
+
+
+def _parse_xiaohongshu_timestamp(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        timestamp = int(value)
+    except (TypeError, ValueError):
+        return None
+    if timestamp <= 0:
+        return None
+    return timestamp // 1000 if timestamp > 10_000_000_000 else timestamp

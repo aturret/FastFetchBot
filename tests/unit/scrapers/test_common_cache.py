@@ -69,6 +69,9 @@ class TestGetItemCacheLookup:
             "title": "Cached Title",
             "url": "https://example.com/post/1",
             "media_files": [],
+            "content": "<p>Cached body</p>",
+            "timestamp": "2026-01-01T00:00:00",
+            "published_timestamp": 1704067200,
         }
 
         svc = make_service(store_database=True, database_cache_ttl=3600)
@@ -82,6 +85,9 @@ class TestGetItemCacheLookup:
 
         assert result["_cached"] is True
         assert result["title"] == "Cached Title"
+        assert result["timestamp"] == 1704067200
+        assert result["content"] == "<p>Cached body</p>"
+        assert "published_timestamp" not in result
         mock_cached_doc.model_dump.assert_called_once_with(
             mode="json", exclude={"id"}
         )
