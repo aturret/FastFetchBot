@@ -276,3 +276,4 @@ apps/worker/celerybeat-schedule.db
 /apps/api/conf/*
 !/apps/api/conf/
 !/apps/api/conf/.gitkeep
+.idea/FastFetchBot.iml
