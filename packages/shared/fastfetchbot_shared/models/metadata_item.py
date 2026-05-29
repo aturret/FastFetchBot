@@ -49,6 +49,9 @@ class MediaFile:
     original_url: Optional[str] = None
     caption: Optional[str] = None
     telegram_file_id: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    duration: Optional[int] = None
 
     @staticmethod
     def from_dict(obj: Any) -> "MediaFile":
@@ -57,7 +60,18 @@ class MediaFile:
         url = from_str(obj.get("url"))
         caption = from_str(obj.get("caption"))
         telegram_file_id = obj.get("telegram_file_id")
-        return MediaFile(media_type, url, caption=caption, telegram_file_id=telegram_file_id)
+        width = from_optional_int(obj.get("width"))
+        height = from_optional_int(obj.get("height"))
+        duration = from_optional_int(obj.get("duration"))
+        return MediaFile(
+            media_type,
+            url,
+            caption=caption,
+            telegram_file_id=telegram_file_id,
+            width=width,
+            height=height,
+            duration=duration,
+        )
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -66,6 +80,15 @@ class MediaFile:
         result["caption"] = self.caption
         if self.telegram_file_id is not None:
             result["telegram_file_id"] = self.telegram_file_id
+        width = from_optional_int(self.width)
+        height = from_optional_int(self.height)
+        duration = from_optional_int(self.duration)
+        if width is not None:
+            result["width"] = width
+        if height is not None:
+            result["height"] = height
+        if duration is not None:
+            result["duration"] = duration
         return result
 
 
@@ -115,7 +138,9 @@ class MetadataItem:
         timestamp = from_optional_int(getattr(self, "timestamp", None))
         message_type = getattr(self, "message_type", None)
         message_type_value = (
-            message_type.value if isinstance(message_type, MessageType) else message_type
+            message_type.value
+            if isinstance(message_type, MessageType)
+            else message_type
         )
         result: dict = {
             "url": from_str(getattr(self, "url", "")),

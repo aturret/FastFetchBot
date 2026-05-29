@@ -6,8 +6,10 @@ from telegram import Message
 
 from core.config import settings
 from fastfetchbot_shared.utils.logger import logger
+from fastfetchbot_shared.utils.number import positive_int
 
 FILEID_QUEUE_KEY = "fileid:updates"
+VIDEO_METADATA_FIELDS = ("width", "height", "duration")
 
 _redis: aioredis.Redis | None = None
 
@@ -34,6 +36,18 @@ def extract_file_id(message: Message, media_type: str) -> Optional[str]:
     return None
 
 
+def _video_metadata_for_update(info: dict, message: Message) -> dict[str, int]:
+    metadata = {}
+    video = getattr(message, "video", None)
+    for field in VIDEO_METADATA_FIELDS:
+        value = positive_int(info.get(field))
+        if value is None and video:
+            value = positive_int(getattr(video, field, None))
+        if value is not None:
+            metadata[field] = value
+    return metadata
+
+
 async def capture_and_push_file_ids(
     uncached_info: list[dict],
     sent_messages: tuple[Message, ...],
@@ -57,21 +71,27 @@ async def capture_and_push_file_ids(
             break
         file_id = extract_file_id(sent_messages[i], info["media_type"])
         if file_id:
-            file_id_updates.append({
+            update = {
                 "url": info["url"],
                 "media_type": info["media_type"],
                 "telegram_file_id": file_id,
-            })
+            }
+            if info["media_type"] == "video":
+                update.update(_video_metadata_for_update(info, sent_messages[i]))
+            file_id_updates.append(update)
 
     if not file_id_updates:
         return
 
     try:
         r = await _get_redis()
-        payload = json.dumps({
-            "metadata_url": metadata_url,
-            "file_id_updates": file_id_updates,
-        }, ensure_ascii=False)
+        payload = json.dumps(
+            {
+                "metadata_url": metadata_url,
+                "file_id_updates": file_id_updates,
+            },
+            ensure_ascii=False,
+        )
         await r.lpush(FILEID_QUEUE_KEY, payload)
         logger.info(f"Pushed {len(file_id_updates)} file_id updates for {metadata_url}")
     except Exception:

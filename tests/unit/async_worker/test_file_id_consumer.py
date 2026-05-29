@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -113,18 +112,68 @@ class TestProcessFileIdUpdate:
             MockMetadata.find = MagicMock(return_value=mock_query)
             MockMetadata.url = "url"
 
-            await _process_file_id_update({
-                "metadata_url": "https://example.com/post/1",
-                "file_id_updates": [
-                    {
-                        "url": "https://img.com/1.jpg",
-                        "media_type": "image",
-                        "telegram_file_id": "AgACAgI123",
-                    },
-                ],
-            })
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/post/1",
+                    "file_id_updates": [
+                        {
+                            "url": "https://img.com/1.jpg",
+                            "media_type": "image",
+                            "telegram_file_id": "AgACAgI123",
+                        },
+                    ],
+                }
+            )
 
         assert mock_mf.telegram_file_id == "AgACAgI123"
+        mock_doc.save.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_updates_video_dimensions_with_file_id(self):
+        from async_worker.services.file_id_consumer import _process_file_id_update
+
+        mock_mf = MagicMock()
+        mock_mf.url = "https://vid.com/v.mp4"
+        mock_mf.telegram_file_id = None
+        mock_mf.width = None
+        mock_mf.height = None
+        mock_mf.duration = None
+
+        mock_doc = MagicMock()
+        mock_doc.media_files = [mock_mf]
+        mock_doc.save = AsyncMock()
+
+        mock_query = MagicMock()
+        mock_query.sort = MagicMock(return_value=mock_query)
+        mock_query.limit = MagicMock(return_value=mock_query)
+        mock_query.first_or_none = AsyncMock(return_value=mock_doc)
+
+        with patch(
+            "fastfetchbot_shared.database.mongodb.models.metadata.Metadata"
+        ) as MockMetadata:
+            MockMetadata.find = MagicMock(return_value=mock_query)
+            MockMetadata.url = "url"
+
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/post/1",
+                    "file_id_updates": [
+                        {
+                            "url": "https://vid.com/v.mp4",
+                            "media_type": "video",
+                            "telegram_file_id": "BAACAgI456",
+                            "width": 720,
+                            "height": 1280,
+                            "duration": 14,
+                        },
+                    ],
+                }
+            )
+
+        assert mock_mf.telegram_file_id == "BAACAgI456"
+        assert mock_mf.width == 720
+        assert mock_mf.height == 1280
+        assert mock_mf.duration == 14
         mock_doc.save.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -150,16 +199,18 @@ class TestProcessFileIdUpdate:
             MockMetadata.find = MagicMock(return_value=mock_query)
             MockMetadata.url = "url"
 
-            await _process_file_id_update({
-                "metadata_url": "https://example.com/post/1",
-                "file_id_updates": [
-                    {
-                        "url": "https://img.com/1.jpg",
-                        "media_type": "image",
-                        "telegram_file_id": "new_id",
-                    },
-                ],
-            })
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/post/1",
+                    "file_id_updates": [
+                        {
+                            "url": "https://img.com/1.jpg",
+                            "media_type": "image",
+                            "telegram_file_id": "new_id",
+                        },
+                    ],
+                }
+            )
 
         # Should not overwrite existing file_id
         assert mock_mf.telegram_file_id == "existing_id"
@@ -189,16 +240,18 @@ class TestProcessFileIdUpdate:
             MockMetadata.find = MagicMock(return_value=mock_query)
             MockMetadata.url = "url"
 
-            await _process_file_id_update({
-                "metadata_url": "https://example.com/post/1",
-                "file_id_updates": [
-                    {
-                        "url": "https://img.com/1.jpg",
-                        "media_type": "image",
-                        "telegram_file_id": "AgACAgI123",
-                    },
-                ],
-            })
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/post/1",
+                    "file_id_updates": [
+                        {
+                            "url": "https://img.com/1.jpg",
+                            "media_type": "image",
+                            "telegram_file_id": "AgACAgI123",
+                        },
+                    ],
+                }
+            )
 
         mock_doc.save.assert_not_awaited()
 
@@ -218,16 +271,18 @@ class TestProcessFileIdUpdate:
             MockMetadata.url = "url"
 
             # Should not raise
-            await _process_file_id_update({
-                "metadata_url": "https://example.com/missing",
-                "file_id_updates": [
-                    {
-                        "url": "https://img.com/1.jpg",
-                        "media_type": "image",
-                        "telegram_file_id": "AgACAgI123",
-                    },
-                ],
-            })
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/missing",
+                    "file_id_updates": [
+                        {
+                            "url": "https://img.com/1.jpg",
+                            "media_type": "image",
+                            "telegram_file_id": "AgACAgI123",
+                        },
+                    ],
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_handles_empty_payload(self):
@@ -264,21 +319,23 @@ class TestProcessFileIdUpdate:
             MockMetadata.find = MagicMock(return_value=mock_query)
             MockMetadata.url = "url"
 
-            await _process_file_id_update({
-                "metadata_url": "https://example.com/post/1",
-                "file_id_updates": [
-                    {
-                        "url": "https://img.com/1.jpg",
-                        "media_type": "image",
-                        "telegram_file_id": "photo_id",
-                    },
-                    {
-                        "url": "https://vid.com/v.mp4",
-                        "media_type": "video",
-                        "telegram_file_id": "video_id",
-                    },
-                ],
-            })
+            await _process_file_id_update(
+                {
+                    "metadata_url": "https://example.com/post/1",
+                    "file_id_updates": [
+                        {
+                            "url": "https://img.com/1.jpg",
+                            "media_type": "image",
+                            "telegram_file_id": "photo_id",
+                        },
+                        {
+                            "url": "https://vid.com/v.mp4",
+                            "media_type": "video",
+                            "telegram_file_id": "video_id",
+                        },
+                    ],
+                }
+            )
 
         assert mock_mf1.telegram_file_id == "photo_id"
         assert mock_mf2.telegram_file_id == "video_id"
@@ -305,13 +362,16 @@ class TestConsumeLoop:
 
         mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
 
-        with patch(
-            "async_worker.services.file_id_consumer.aioredis.from_url",
-            return_value=mock_redis,
-        ), patch(
-            "async_worker.services.file_id_consumer._process_file_id_update",
-            new_callable=AsyncMock,
-        ) as mock_process:
+        with (
+            patch(
+                "async_worker.services.file_id_consumer.aioredis.from_url",
+                return_value=mock_redis,
+            ),
+            patch(
+                "async_worker.services.file_id_consumer._process_file_id_update",
+                new_callable=AsyncMock,
+            ) as mock_process,
+        ):
             from async_worker.services.file_id_consumer import _consume_loop
 
             await _consume_loop()
@@ -362,13 +422,16 @@ class TestConsumeLoop:
 
         mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
 
-        with patch(
-            "async_worker.services.file_id_consumer.aioredis.from_url",
-            return_value=mock_redis,
-        ), patch(
-            "async_worker.services.file_id_consumer._process_file_id_update",
-            new_callable=AsyncMock,
-            side_effect=RuntimeError("MongoDB down"),
+        with (
+            patch(
+                "async_worker.services.file_id_consumer.aioredis.from_url",
+                return_value=mock_redis,
+            ),
+            patch(
+                "async_worker.services.file_id_consumer._process_file_id_update",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("MongoDB down"),
+            ),
         ):
             from async_worker.services.file_id_consumer import _consume_loop
 
@@ -399,13 +462,16 @@ class TestConsumeLoop:
 
         mock_redis.brpop = AsyncMock(side_effect=brpop_side_effect)
 
-        with patch(
-            "async_worker.services.file_id_consumer.aioredis.from_url",
-            return_value=mock_redis,
-        ), patch(
-            "async_worker.services.file_id_consumer._process_file_id_update",
-            new_callable=AsyncMock,
-            side_effect=RuntimeError("still failing"),
+        with (
+            patch(
+                "async_worker.services.file_id_consumer.aioredis.from_url",
+                return_value=mock_redis,
+            ),
+            patch(
+                "async_worker.services.file_id_consumer._process_file_id_update",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("still failing"),
+            ),
         ):
             from async_worker.services.file_id_consumer import _consume_loop
 
@@ -430,13 +496,16 @@ class TestConsumeLoop:
         async def process_side_effect(p):
             raise asyncio.CancelledError()
 
-        with patch(
-            "async_worker.services.file_id_consumer.aioredis.from_url",
-            return_value=mock_redis,
-        ), patch(
-            "async_worker.services.file_id_consumer._process_file_id_update",
-            new_callable=AsyncMock,
-            side_effect=process_side_effect,
+        with (
+            patch(
+                "async_worker.services.file_id_consumer.aioredis.from_url",
+                return_value=mock_redis,
+            ),
+            patch(
+                "async_worker.services.file_id_consumer._process_file_id_update",
+                new_callable=AsyncMock,
+                side_effect=process_side_effect,
+            ),
         ):
             from async_worker.services.file_id_consumer import _consume_loop
 
@@ -482,7 +551,9 @@ class TestStartStop:
         from async_worker.services import file_id_consumer as fic
 
         with patch.object(
-            fic, "_consume_loop", new_callable=AsyncMock,
+            fic,
+            "_consume_loop",
+            new_callable=AsyncMock,
         ):
             await fic.start()
             assert fic._consumer_task is not None

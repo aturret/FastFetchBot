@@ -205,6 +205,15 @@ MongoDB models and connection logic live in `packages/shared/fastfetchbot_shared
 - On subsequent cache hits, `media_files_packaging` uses stored file_ids directly via `InputMediaPhoto(file_id)` etc., skipping HTTP download entirely
 - The bot has no direct MongoDB access — all database writes go through the async worker via Redis
 
+**Future media asset caching plan** — target architecture for decoupling external media handling from the Telegram bot:
+- Current bot-side video probing with `ffprobe` is only a workaround for Telegram iOS aspect-ratio rendering issues. It should not grow into a full media processing pipeline inside `apps/telegram-bot`
+- Move external media download, video probing (`width`, `height`, `duration`), and any future remux/transcode work into the worker layer (`apps/worker` for synchronous heavy I/O, coordinated by API/async-worker as needed)
+- Introduce a durable `MediaAsset` cache backed by MongoDB metadata plus object storage such as S3. Suggested fields: source URL/hash, media type, MIME type, file size, storage key, width, height, duration, processing status, error details, expiration/lifecycle fields, and `telegram_file_id`
+- Let the bot consume prepared media only: prefer `telegram_file_id` first; otherwise use a ready local/object-storage asset with known dimensions; avoid downloading or probing arbitrary remote media in the bot event loop
+- Keep Telegram `file_id` as the highest-priority cache because it avoids both external downloads and object-storage reads on repeated sends
+- Use object storage primarily for first sends, unstable external sources, sources requiring cookies/referer, and cases where media metadata must be known before Telegram upload
+- Add lifecycle cleanup and deduplication by canonical source URL/content hash before enabling long-term object storage caching
+
 **SQLite/PostgreSQL** (user settings — always enabled for the Telegram bot):
 | Variable | Default | Description |
 |----------|---------|-------------|

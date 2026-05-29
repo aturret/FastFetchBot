@@ -30,6 +30,11 @@ from core.services.constants import (
     TELEGRAM_FILE_UPLOAD_LIMIT_LOCAL_API,
     TEMPLATE_TRANSLATION,
 )
+from core.services.video_metadata import (
+    ensure_video_metadata,
+    video_input_kwargs,
+    video_metadata_from_mapping,
+)
 
 environment = JINJA2_ENV
 template = environment.get_template("social_media_message.jinja2")
@@ -41,6 +46,7 @@ template_text = TEMPLATE_TRANSLATION.get(
 def _get_application():
     """Lazy import to avoid circular dependency."""
     from core.services.bot_app import application
+
     return application
 
 
@@ -51,8 +57,10 @@ def _log_file_id_task_exception(task: asyncio.Task):
 
 
 async def send_item_message(
-        data: dict, chat_id: Union[int, str] = None, message: Message = None,
-        message_id: int = None,
+    data: dict,
+    chat_id: Union[int, str] = None,
+    message: Message = None,
+    message_id: int = None,
 ) -> None:
     """
     :param data: (dict) metadata of the item
@@ -67,7 +75,7 @@ async def send_item_message(
     if not chat_id and not message:
         raise ValueError("must provide chat_id or message")
     if (
-            not chat_id
+        not chat_id
     ) and message:  # this function supports direct reply to a message even if the chat_id is None
         chat_id = message.chat.id
     discussion_chat_id = chat_id
@@ -80,11 +88,11 @@ async def send_item_message(
         if len(data["media_files"]) > 0:
             # if the message type is short and there are some media files, send media group
             reply_to_message_id = None
-            media_message_group, file_message_group, uncached_media_info = await media_files_packaging(
-                media_files=data["media_files"], data=data
+            media_message_group, file_message_group, uncached_media_info = (
+                await media_files_packaging(media_files=data["media_files"], data=data)
             )
             if (
-                    len(media_message_group) > 0
+                len(media_message_group) > 0
             ):  # if there are some media groups to send, send it
                 all_sent_messages = []
                 for i, media_group in enumerate(media_message_group):
@@ -110,11 +118,18 @@ async def send_item_message(
                         reply_to_message_id = sent_media_files_message[0].message_id
                     elif sent_media_files_message is Message:
                         reply_to_message_id = sent_media_files_message.message_id
-                    logger.debug(f"sent media files message: {sent_media_files_message}")
+                    logger.debug(
+                        f"sent media files message: {sent_media_files_message}"
+                    )
                 # Background file_id capture: extract file_ids from sent messages
                 has_uncached = any(info is not None for info in uncached_media_info)
-                if settings.SCRAPE_MODE == "queue" and has_uncached and all_sent_messages:
+                if (
+                    settings.SCRAPE_MODE == "queue"
+                    and has_uncached
+                    and all_sent_messages
+                ):
                     from core.services.file_id_capture import capture_and_push_file_ids
+
                     task = asyncio.create_task(
                         capture_and_push_file_ids(
                             uncached_info=uncached_media_info,
@@ -129,9 +144,9 @@ async def send_item_message(
                     text=caption_text,
                     parse_mode=ParseMode.HTML,
                     reply_to_message_id=_reply_to,
-                    disable_web_page_preview=True
-                    if data["message_type"] == MessageType.SHORT
-                    else False,
+                    disable_web_page_preview=(
+                        True if data["message_type"] == MessageType.SHORT else False
+                    ),
                     disable_notification=True,
                 )
             if discussion_chat_id != chat_id:
@@ -145,22 +160,24 @@ async def send_item_message(
                 logger.debug(f"the pinned message: {pinned_message}")
                 if len(media_message_group) > 0:
                     if (
-                            pinned_message.forward_origin.message_id
-                            == sent_media_files_message[-1].message_id
+                        pinned_message.forward_origin.message_id
+                        == sent_media_files_message[-1].message_id
                     ):
                         reply_to_message_id = (
-                                group_chat.pinned_message.id
-                                - len(sent_media_files_message)
-                                + 1
+                            group_chat.pinned_message.id
+                            - len(sent_media_files_message)
+                            + 1
                         )
                     else:
                         reply_to_message_id = group_chat.pinned_message.id + 1
-                elif pinned_message.forward_origin.message_id == sent_message.message_id:
+                elif (
+                    pinned_message.forward_origin.message_id == sent_message.message_id
+                ):
                     reply_to_message_id = group_chat.pinned_message.id
                 else:
                     reply_to_message_id = group_chat.pinned_message.id + 1
             if (
-                    len(file_message_group) > 0
+                len(file_message_group) > 0
             ):  # to send files, the files messages should be replied to the message sent before
                 logger.debug(f"reply_to_message_id: {reply_to_message_id}")
                 for file_group in file_message_group:
@@ -178,9 +195,9 @@ async def send_item_message(
                 text=caption_text,
                 parse_mode=ParseMode.HTML,
                 reply_to_message_id=_reply_to,
-                disable_web_page_preview=True
-                if data["message_type"] == "short"
-                else False,
+                disable_web_page_preview=(
+                    True if data["message_type"] == "short" else False
+                ),
                 disable_notification=True,
             )
     except Exception:
@@ -191,6 +208,7 @@ async def send_item_message(
 async def send_debug_channel(message: str) -> None:
     import html as html_module
     from core.config import TELEBOT_DEBUG_CHANNEL
+
     application = _get_application()
     if TELEBOT_DEBUG_CHANNEL is not None:
         await application.bot.send_message(
@@ -231,7 +249,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
     media_message_group, media_group, file_message_group, file_group = [], [], [], []
     uncached_media_info = []
     for (
-            media_item
+        media_item
     ) in media_files:  # To traverse all media items in the media files list
         # check if we need to create a new media group
         if media_counter == TELEGRAM_SINGLE_MESSAGE_MEDIA_LIMIT:
@@ -253,11 +271,15 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             elif media_type == "gif":
                 media_group.append(InputMediaAnimation(file_id))
             elif media_type == "video":
-                media_group.append(InputMediaVideo(file_id, supports_streaming=True))
+                media_group.append(
+                    InputMediaVideo(file_id, **video_input_kwargs(media_item))
+                )
             elif media_type == "audio":
                 media_group.append(InputMediaAudio(file_id))
             elif media_type == "document":
-                file_group.append(InputMediaDocument(file_id, parse_mode=ParseMode.HTML))
+                file_group.append(
+                    InputMediaDocument(file_id, parse_mode=ParseMode.HTML)
+                )
                 file_counter += 1
             uncached_media_info.append(None)
             media_counter += 1
@@ -266,8 +288,8 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
             )
             continue
         if not (
-                media_item["media_type"] in ["image", "gif", "video"]
-                and data["message_type"] == "long"
+            media_item["media_type"] in ["image", "gif", "video"]
+            and data["message_type"] == "long"
         ):
             # check the url validity
             url_parser = urlparse(media_item["url"])
@@ -298,7 +320,7 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     continue
             # check the file size
             if (
-                    not settings.TELEBOT_API_SERVER
+                not settings.TELEBOT_API_SERVER
             ):  # the official telegram bot api server only supports 50MB file
                 if file_size > TELEGRAM_FILE_UPLOAD_LIMIT:
                     # if the size is over 50MB, skip this file
@@ -322,10 +344,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 )
                 # don't try to resize image if the ratio is too large
                 if (
-                        ratio < 5
-                        or max(img_height, img_width) < settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    ratio < 5
+                    or max(img_height, img_width)
+                    < settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ):
-                    image = image_compressing(image, settings.TELEGRAM_IMAGE_DIMENSION_LIMIT)
+                    image = image_compressing(
+                        image, settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    )
                     with BytesIO() as buffer:
                         # mime_type file format
                         image.save(buffer, format=ext)
@@ -342,9 +367,9 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     f"image size: {file_size}, ratio: {ratio}, width: {img_width}, height: {img_height}"
                 )
                 if (
-                        file_size > settings.TELEGRAM_IMAGE_SIZE_LIMIT
-                        or img_width > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
-                        or img_height > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    file_size > settings.TELEGRAM_IMAGE_SIZE_LIMIT
+                    or img_width > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
+                    or img_height > settings.TELEGRAM_IMAGE_DIMENSION_LIMIT
                 ) and data["category"] not in ["xiaohongshu"]:
                     try:
                         io_object = await download_file_by_metadata_item(
@@ -374,7 +399,10 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                 io_object.name = io_object.name + ".gif"
                 media_group.append(InputMediaAnimation(io_object))
             elif media_item["media_type"] == "video":
-                media_group.append(InputMediaVideo(io_object, supports_streaming=True))
+                await ensure_video_metadata(media_item, io_object)
+                media_group.append(
+                    InputMediaVideo(io_object, **video_input_kwargs(media_item))
+                )
             # TODO: not have any services to store audio files for now, just a placeholder
             elif media_item["media_type"] == "audio":
                 media_group.append(InputMediaAudio(io_object))
@@ -383,10 +411,13 @@ async def media_files_packaging(media_files: list, data: dict) -> tuple:
                     InputMediaDocument(io_object, parse_mode=ParseMode.HTML)
                 )
                 file_counter += 1
-            uncached_media_info.append({
+            uncached_item = {
                 "url": media_item["url"],
                 "media_type": media_item["media_type"],
-            })
+            }
+            if media_item["media_type"] == "video":
+                uncached_item.update(video_metadata_from_mapping(media_item))
+            uncached_media_info.append(uncached_item)
             media_counter += 1
             logger.info(
                 f"get the {media_counter}th media item,type: {media_item['media_type']}, url: {media_item['url']}"

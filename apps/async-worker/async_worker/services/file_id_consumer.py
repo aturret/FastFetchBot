@@ -5,10 +5,12 @@ import redis.asyncio as aioredis
 
 from async_worker.config import settings
 from fastfetchbot_shared.utils.logger import logger
+from fastfetchbot_shared.utils.number import positive_int
 
 FILEID_QUEUE_KEY = "fileid:updates"
 FILEID_DLQ_KEY = "fileid:updates:dlq"
 _MAX_RETRIES = 3
+VIDEO_METADATA_FIELDS = ("width", "height", "duration")
 
 _redis: aioredis.Redis | None = None
 _consumer_task: asyncio.Task | None = None
@@ -44,7 +46,9 @@ async def _consume_loop() -> None:
                     await r.lpush(FILEID_QUEUE_KEY, raw_payload)
                     logger.info("Requeued in-flight payload before shutdown")
                 except Exception:
-                    logger.warning(f"Failed to requeue payload on shutdown: {raw_payload}")
+                    logger.warning(
+                        f"Failed to requeue payload on shutdown: {raw_payload}"
+                    )
             logger.info("file_id consumer cancelled, shutting down")
             break
         except json.JSONDecodeError as e:
@@ -70,11 +74,15 @@ async def _consume_loop() -> None:
                     try:
                         # Stamp retry count so we can detect repeated failures.
                         payload["_retry_count"] = retry_count + 1
-                        await r.lpush(FILEID_QUEUE_KEY, json.dumps(payload, ensure_ascii=False))
+                        await r.lpush(
+                            FILEID_QUEUE_KEY, json.dumps(payload, ensure_ascii=False)
+                        )
                     except Exception:
                         logger.warning(f"Failed to requeue payload: {raw_payload}")
                 else:
-                    logger.error(f"Max retries ({_MAX_RETRIES}) exceeded, moving to DLQ: {raw_payload}")
+                    logger.error(
+                        f"Max retries ({_MAX_RETRIES}) exceeded, moving to DLQ: {raw_payload}"
+                    )
                     try:
                         await r.lpush(FILEID_DLQ_KEY, raw_payload)
                     except Exception:
@@ -93,9 +101,12 @@ async def _process_file_id_update(payload: dict) -> None:
         logger.warning(f"Invalid file_id update payload: {payload}")
         return
 
-    doc = await Metadata.find(
-        Metadata.url == metadata_url
-    ).sort("-version").limit(1).first_or_none()
+    doc = (
+        await Metadata.find(Metadata.url == metadata_url)
+        .sort("-version")
+        .limit(1)
+        .first_or_none()
+    )
 
     if doc is None or not doc.media_files:
         logger.warning(f"No metadata found for file_id update: {metadata_url}")
@@ -104,9 +115,20 @@ async def _process_file_id_update(payload: dict) -> None:
     matched = 0
     for update in updates:
         for mf in doc.media_files:
-            if mf.url == update["url"] and mf.telegram_file_id is None:
-                mf.telegram_file_id = update["telegram_file_id"]
-                matched += 1
+            if mf.url == update["url"]:
+                changed = False
+                if mf.telegram_file_id is None:
+                    mf.telegram_file_id = update["telegram_file_id"]
+                    changed = True
+                if update.get("media_type") == "video":
+                    for field in VIDEO_METADATA_FIELDS:
+                        value = positive_int(update.get(field))
+                        if value is not None and getattr(mf, field, None) != value:
+                            setattr(mf, field, value)
+                            changed = True
+                if changed:
+                    matched += 1
+                break
 
     if matched > 0:
         await doc.save()
