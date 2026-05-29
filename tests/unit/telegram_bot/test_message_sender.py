@@ -326,6 +326,53 @@ class TestMediaFilesPackagingFileIdShortcut:
         mock_probe.assert_awaited_once_with(mock_io)
 
     @pytest.mark.asyncio
+    async def test_probes_video_duration_when_dimensions_already_present(self):
+        from core.services.message_sender import media_files_packaging
+
+        mock_io = MagicMock()
+        mock_io.name = "video.mp4"
+        mock_io.size = 1024
+
+        media_files = [
+            {
+                "media_type": "video",
+                "url": "https://vid.com/v.mp4",
+                "width": 720,
+                "height": 1280,
+            },
+        ]
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
+
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch(
+                "core.services.video_metadata.probe_video_metadata",
+                new_callable=AsyncMock,
+                return_value={"duration": 14},
+            ) as mock_probe,
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
+            mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
+
+        video = media_group[0][0]
+        assert video.width == 720
+        assert video.height == 1280
+        assert video.duration == 14
+        assert uncached[0]["duration"] == 14
+        mock_probe.assert_awaited_once_with(mock_io)
+
+    @pytest.mark.asyncio
     async def test_uses_file_id_for_gif(self):
         from core.services.message_sender import media_files_packaging
 
