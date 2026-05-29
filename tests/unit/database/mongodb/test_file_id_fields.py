@@ -15,7 +15,6 @@ from fastfetchbot_shared.database.mongodb.models.metadata import (
     Metadata,
 )
 
-
 # ---------------------------------------------------------------------------
 # MediaFile.telegram_file_id
 # ---------------------------------------------------------------------------
@@ -72,6 +71,20 @@ class TestMediaFileTelegramFileId:
         assert restored.telegram_file_id == "BAACAgI456"
         assert restored.media_type == "video"
         assert restored.url == "https://vid.com/v.mp4"
+
+    def test_round_trip_with_video_dimensions(self):
+        original = MediaFile(
+            media_type="video",
+            url="https://vid.com/v.mp4",
+            telegram_file_id="BAACAgI456",
+            width=720,
+            height=1280,
+            duration=14,
+        )
+        restored = MediaFile.from_dict(original.to_dict())
+        assert restored.width == 720
+        assert restored.height == 1280
+        assert restored.duration == 14
 
     def test_round_trip_without_file_id(self):
         original = MediaFile(media_type="image", url="https://img.com/1.jpg")

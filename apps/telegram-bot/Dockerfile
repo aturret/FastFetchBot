@@ -25,6 +25,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /usr/local/bin/uv
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         libmagic1 \
+        ffmpeg \
         build-essential
 
 # copy workspace files for dependency resolution
@@ -42,7 +43,8 @@ FROM python-base AS production
 ENV PYTHONPATH=/app/apps/telegram-bot:$PYTHONPATH
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
-        libmagic1
+        libmagic1 \
+        ffmpeg
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY packages/ /app/packages/
 COPY apps/telegram-bot/ /app/apps/telegram-bot/

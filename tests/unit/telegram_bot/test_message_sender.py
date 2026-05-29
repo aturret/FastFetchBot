@@ -17,7 +17,11 @@ class TestMediaFilesPackagingDownloadFailure:
         from core.services.message_sender import media_files_packaging
 
         media_files = [
-            {"media_type": "image", "url": "https://example.com/img.jpg", "caption": ""},
+            {
+                "media_type": "image",
+                "url": "https://example.com/img.jpg",
+                "caption": "",
+            },
         ]
         data = {
             "url": "https://example.com",
@@ -30,7 +34,9 @@ class TestMediaFilesPackagingDownloadFailure:
             new_callable=AsyncMock,
             side_effect=RuntimeError("network error"),
         ):
-            media_group, file_group, uncached = await media_files_packaging(media_files, data)
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
 
         # Media item should be skipped, not crash
         assert media_group == []
@@ -54,7 +60,9 @@ class TestMediaFilesPackagingDownloadFailure:
             new_callable=AsyncMock,
             side_effect=ConnectionError("timeout"),
         ):
-            media_group, file_group, uncached = await media_files_packaging(media_files, data)
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
 
         assert media_group == []
         assert file_group == []
@@ -66,7 +74,9 @@ class TestMediaFilesPackagingDownloadFailure:
 
         mock_io = MagicMock()
         mock_io.name = "media-abc.jpg"
-        mock_io.size = 15 * 1024 * 1024  # 15MB, over image size limit to trigger document path
+        mock_io.size = (
+            15 * 1024 * 1024
+        )  # 15MB, over image size limit to trigger document path
 
         mock_image = MagicMock()
         mock_image.size = (5000, 5000)  # large image to trigger document download
@@ -82,7 +92,11 @@ class TestMediaFilesPackagingDownloadFailure:
             raise RuntimeError("second download failed")
 
         media_files = [
-            {"media_type": "image", "url": "https://example.com/big.jpg", "caption": ""},
+            {
+                "media_type": "image",
+                "url": "https://example.com/big.jpg",
+                "caption": "",
+            },
         ]
         data = {
             "url": "https://example.com",
@@ -90,28 +104,32 @@ class TestMediaFilesPackagingDownloadFailure:
             "message_type": "short",
         }
 
-        with patch(
-            "core.services.message_sender.download_file_by_metadata_item",
-            new_callable=AsyncMock,
-            side_effect=download_side_effect,
-        ), patch(
-            "core.services.message_sender.check_image_type",
-            new_callable=AsyncMock,
-            return_value="jpg",
-        ), patch(
-            "core.services.message_sender.Image"
-        ) as MockImage, patch(
-            "core.services.message_sender.image_compressing",
-            return_value=mock_image,
-        ), patch(
-            "core.services.message_sender.settings"
-        ) as mock_settings:
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                side_effect=download_side_effect,
+            ),
+            patch(
+                "core.services.message_sender.check_image_type",
+                new_callable=AsyncMock,
+                return_value="jpg",
+            ),
+            patch("core.services.message_sender.Image") as MockImage,
+            patch(
+                "core.services.message_sender.image_compressing",
+                return_value=mock_image,
+            ),
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
             MockImage.open.return_value = mock_image
             mock_settings.TELEBOT_API_SERVER = None
             mock_settings.TELEGRAM_IMAGE_DIMENSION_LIMIT = 2000
             mock_settings.TELEGRAM_IMAGE_SIZE_LIMIT = 10 * 1024 * 1024  # 10MB
 
-            media_group, file_group, uncached = await media_files_packaging(media_files, data)
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
 
         # The image media_group should have the photo, but file_group should be empty
         # because the document download failed and was skipped
@@ -138,9 +156,15 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "AgACAgI123",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        media_group, file_group, uncached = await media_files_packaging(media_files, data)
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
 
         assert len(media_group) == 1
         assert len(media_group[0]) == 1
@@ -158,13 +182,195 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "BAACAgI456",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        media_group, file_group, uncached = await media_files_packaging(media_files, data)
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
 
         assert len(media_group) == 1
         assert len(media_group[0]) == 1
         assert uncached == [None]
+
+    @pytest.mark.asyncio
+    async def test_uses_video_dimensions_with_file_id(self):
+        from core.services.message_sender import media_files_packaging
+
+        media_files = [
+            {
+                "media_type": "video",
+                "url": "https://vid.com/v.mp4",
+                "telegram_file_id": "BAACAgI456",
+                "width": 720,
+                "height": 1280,
+                "duration": 14,
+            },
+        ]
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
+
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
+
+        video = media_group[0][0]
+        assert video.media == "BAACAgI456"
+        assert video.width == 720
+        assert video.height == 1280
+        assert video.duration == 14
+        assert uncached == [None]
+
+    @pytest.mark.asyncio
+    async def test_uses_video_dimensions_from_media_item_for_download(self):
+        from core.services.message_sender import media_files_packaging
+
+        mock_io = MagicMock()
+        mock_io.name = "video.mp4"
+        mock_io.size = 1024
+
+        media_files = [
+            {
+                "media_type": "video",
+                "url": "https://vid.com/v.mp4",
+                "width": 720,
+                "height": 1280,
+                "duration": 14,
+            },
+        ]
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
+
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
+            mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
+
+        video = media_group[0][0]
+        assert video.width == 720
+        assert video.height == 1280
+        assert video.duration == 14
+        assert uncached == [
+            {
+                "url": "https://vid.com/v.mp4",
+                "media_type": "video",
+                "width": 720,
+                "height": 1280,
+                "duration": 14,
+            },
+        ]
+
+    @pytest.mark.asyncio
+    async def test_probes_video_dimensions_for_download_when_missing(self):
+        from core.services.message_sender import media_files_packaging
+
+        mock_io = MagicMock()
+        mock_io.name = "video.mp4"
+        mock_io.size = 1024
+
+        media_files = [
+            {
+                "media_type": "video",
+                "url": "https://vid.com/v.mp4",
+            },
+        ]
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
+
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch(
+                "core.services.video_metadata.probe_video_metadata",
+                new_callable=AsyncMock,
+                return_value={"width": 720, "height": 1280, "duration": 14},
+                create=True,
+            ) as mock_probe,
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
+            mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
+
+        video = media_group[0][0]
+        assert video.width == 720
+        assert video.height == 1280
+        assert video.duration == 14
+        assert uncached[0]["width"] == 720
+        assert uncached[0]["height"] == 1280
+        assert uncached[0]["duration"] == 14
+        mock_probe.assert_awaited_once_with(mock_io)
+
+    @pytest.mark.asyncio
+    async def test_probes_video_duration_when_dimensions_already_present(self):
+        from core.services.message_sender import media_files_packaging
+
+        mock_io = MagicMock()
+        mock_io.name = "video.mp4"
+        mock_io.size = 1024
+
+        media_files = [
+            {
+                "media_type": "video",
+                "url": "https://vid.com/v.mp4",
+                "width": 720,
+                "height": 1280,
+            },
+        ]
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
+
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch(
+                "core.services.video_metadata.probe_video_metadata",
+                new_callable=AsyncMock,
+                return_value={"duration": 14},
+            ) as mock_probe,
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
+            mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
+
+        video = media_group[0][0]
+        assert video.width == 720
+        assert video.height == 1280
+        assert video.duration == 14
+        assert uncached[0]["duration"] == 14
+        mock_probe.assert_awaited_once_with(mock_io)
 
     @pytest.mark.asyncio
     async def test_uses_file_id_for_gif(self):
@@ -177,9 +383,15 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "CgACAgI789",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        media_group, file_group, uncached = await media_files_packaging(media_files, data)
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
 
         assert len(media_group) == 1
         assert uncached == [None]
@@ -195,9 +407,15 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "BQACAgI000",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        media_group, file_group, uncached = await media_files_packaging(media_files, data)
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
 
         assert len(file_group) == 1
         assert uncached == [None]
@@ -214,7 +432,11 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "AgACAgI123",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
         with patch(
             "core.services.message_sender.download_file_by_metadata_item",
@@ -239,17 +461,24 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "url": "https://vid.com/v.mp4",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        with patch(
-            "core.services.message_sender.download_file_by_metadata_item",
-            new_callable=AsyncMock,
-            return_value=mock_io,
-        ), patch(
-            "core.services.message_sender.settings"
-        ) as mock_settings:
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
             mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
-            media_group, file_group, uncached = await media_files_packaging(media_files, data)
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
 
         assert len(uncached) == 1
         assert uncached[0] is not None
@@ -277,17 +506,24 @@ class TestMediaFilesPackagingFileIdShortcut:
                 # no telegram_file_id — will be downloaded
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "short"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "short",
+        }
 
-        with patch(
-            "core.services.message_sender.download_file_by_metadata_item",
-            new_callable=AsyncMock,
-            return_value=mock_io,
-        ), patch(
-            "core.services.message_sender.settings"
-        ) as mock_settings:
+        with (
+            patch(
+                "core.services.message_sender.download_file_by_metadata_item",
+                new_callable=AsyncMock,
+                return_value=mock_io,
+            ),
+            patch("core.services.message_sender.settings") as mock_settings,
+        ):
             mock_settings.TELEBOT_API_SERVER = "http://local:8081/bot"
-            media_group, file_group, uncached = await media_files_packaging(media_files, data)
+            media_group, file_group, uncached = await media_files_packaging(
+                media_files, data
+            )
 
         assert len(media_group) == 1  # one group with 2 items
         assert len(media_group[0]) == 2
@@ -308,13 +544,64 @@ class TestMediaFilesPackagingFileIdShortcut:
                 "telegram_file_id": "AgACAgI123",
             },
         ]
-        data = {"url": "https://example.com", "category": "twitter", "message_type": "long"}
+        data = {
+            "url": "https://example.com",
+            "category": "twitter",
+            "message_type": "long",
+        }
 
-        media_group, file_group, uncached = await media_files_packaging(media_files, data)
+        media_group, file_group, uncached = await media_files_packaging(
+            media_files, data
+        )
 
         # Should still use file_id even though message_type is "long"
         assert len(media_group) == 1
         assert uncached == [None]
+
+
+class TestProbeVideoMetadata:
+    @pytest.mark.asyncio
+    async def test_offloads_temp_file_write_to_thread(self):
+        from core.services.video_metadata import probe_video_metadata
+
+        mock_io = MagicMock()
+        mock_io.name = "video.mp4"
+        mock_io.tell.return_value = 0
+
+        temp_file = MagicMock()
+        temp_file.name = "/tmp/video.mp4"
+        temp_file.__enter__.return_value = temp_file
+        temp_file.__exit__.return_value = None
+
+        process = MagicMock()
+        process.returncode = 0
+        process.communicate = AsyncMock(
+            return_value=(b'{"streams":[{"width":720,"height":1280}]}', b"")
+        )
+
+        with (
+            patch(
+                "core.services.video_metadata.shutil.which",
+                return_value="/usr/bin/ffprobe",
+            ),
+            patch(
+                "core.services.video_metadata.tempfile.NamedTemporaryFile",
+                return_value=temp_file,
+            ),
+            patch(
+                "core.services.video_metadata.asyncio.to_thread",
+                new_callable=AsyncMock,
+            ) as mock_to_thread,
+            patch(
+                "core.services.video_metadata.asyncio.create_subprocess_exec",
+                new_callable=AsyncMock,
+                return_value=process,
+            ),
+        ):
+            metadata = await probe_video_metadata(mock_io)
+
+        assert metadata == {"width": 720, "height": 1280}
+        mock_to_thread.assert_awaited_once()
 
 
 class TestSendItemMessageExceptionHandling:
@@ -332,8 +619,15 @@ class TestSendItemMessageExceptionHandling:
         mock_bot.get_chat = AsyncMock(return_value=mock_chat)
         mock_bot.send_message = AsyncMock(side_effect=RuntimeError("telegram API down"))
 
-        with patch("core.services.message_sender._get_application", return_value=mock_app), \
-             patch("core.services.message_sender.send_debug_channel", new_callable=AsyncMock) as mock_debug:
+        with (
+            patch(
+                "core.services.message_sender._get_application", return_value=mock_app
+            ),
+            patch(
+                "core.services.message_sender.send_debug_channel",
+                new_callable=AsyncMock,
+            ) as mock_debug,
+        ):
 
             # Should not raise — the exception is caught and logged
             await send_item_message(

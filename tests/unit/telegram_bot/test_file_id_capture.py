@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -184,6 +183,45 @@ class TestCaptureAndPushFileIds:
         assert payload["file_id_updates"][1]["telegram_file_id"] == "BAACAgI456"
 
     @pytest.mark.asyncio
+    async def test_preserves_video_dimensions_in_file_id_update(self, mock_redis):
+        from core.services.file_id_capture import capture_and_push_file_ids
+
+        msg = MagicMock()
+        msg.video = MagicMock(
+            file_id="BAACAgI456",
+            width=720,
+            height=1280,
+            duration=14,
+        )
+
+        uncached_info = [
+            {
+                "url": "https://vid.com/v.mp4",
+                "media_type": "video",
+                "width": 720,
+                "height": 1280,
+                "duration": 14,
+            },
+        ]
+
+        with patch(
+            "core.services.file_id_capture.aioredis.from_url",
+            return_value=mock_redis,
+        ):
+            await capture_and_push_file_ids(
+                uncached_info=uncached_info,
+                sent_messages=(msg,),
+                metadata_url="https://example.com/post/1",
+            )
+
+        payload = json.loads(mock_redis.lpush.call_args[0][1])
+        update = payload["file_id_updates"][0]
+        assert update["telegram_file_id"] == "BAACAgI456"
+        assert update["width"] == 720
+        assert update["height"] == 1280
+        assert update["duration"] == 14
+
+    @pytest.mark.asyncio
     async def test_skips_none_entries(self, mock_redis):
         """None entries in uncached_info are cached items — skip them."""
         from core.services.file_id_capture import capture_and_push_file_ids
@@ -254,7 +292,10 @@ class TestCaptureAndPushFileIds:
 
         uncached_info = [
             {"url": "https://img.com/1.jpg", "media_type": "image"},
-            {"url": "https://img.com/2.jpg", "media_type": "image"},  # no message for this
+            {
+                "url": "https://img.com/2.jpg",
+                "media_type": "image",
+            },  # no message for this
         ]
 
         with patch(
