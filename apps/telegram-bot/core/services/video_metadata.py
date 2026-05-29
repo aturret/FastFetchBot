@@ -144,7 +144,7 @@ async def ensure_video_metadata(media_item: dict, io_object: NamedBytesIO) -> No
     if media_item["media_type"] != "video":
         return
     metadata = video_metadata_from_mapping(media_item)
-    if "width" in metadata and "height" in metadata:
+    if all(field in metadata for field in VIDEO_METADATA_FIELDS):
         return
     probed_metadata = await probe_video_metadata(io_object)
     for field, value in probed_metadata.items():
