@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "loguru>=0.7.2",
-    "beautifulsoup4>=4.13.4",
+    "beautifulsoup4>=4.15.0",
     "httpx>=0.28.1",
     "lxml>=5.4.0",
     "pydantic>=2.0.0",
