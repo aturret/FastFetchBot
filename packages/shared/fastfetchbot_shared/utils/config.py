@@ -48,6 +48,7 @@ VIDEO_WEBSITE_PATTERNS = {
     "bilibili": [
         r"((www\.)?bilibili\.com\/video\/[A-Za-z0-9]+)",
         r"b23\.tv\/[A-Za-z0-9]+",
+        r"bili2233\.cn\/[A-Za-z0-9]+",
     ],
 }
 BANNED_PATTERNS = [

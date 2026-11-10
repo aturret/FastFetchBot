@@ -861,6 +861,7 @@ name = "fastfetchbot-file-export"
 version = "0.1.0"
 source = { editable = "packages/file-export" }
 dependencies = [
+    { name = "httpx" },
     { name = "loguru" },
     { name = "openai" },
     { name = "pydub" },
@@ -870,6 +871,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "openai", specifier = ">=2.15.0" },
     { name = "pydub", specifier = ">=0.25.1" },

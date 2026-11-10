@@ -8,7 +8,7 @@ and timeout are injected — no app-specific config imports.
 import asyncio
 import datetime
 import re
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 import httpx
 
@@ -20,6 +20,11 @@ from fastfetchbot_shared.utils.parse import (
 )
 from fastfetchbot_shared.utils.logger import logger
 from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV
+from fastfetchbot_shared.services.scrapers.bilibili import (
+    BilibiliApiUnavailable,
+    fetch_bilibili_video_meta,
+    resolve_bilibili_url,
+)
 
 video_info_template = JINJA2_ENV.get_template("video_info.jinja2")
 
@@ -75,13 +80,18 @@ class VideoDownloader(MetadataItem):
         return self.to_dict()
 
     async def get_video(self) -> None:
-        content_info = await self.get_video_info()
-        self.file_path = content_info["file_path"]
-        video_info_funcs = {
-            "youtube": self._youtube_info_parse,
-            "bilibili": self._bilibili_info_parse,
-        }
-        meta_info = video_info_funcs[self.extractor](content_info)
+        meta_info = None
+        if self.extractor == "bilibili":
+            meta_info = await self._fetch_bilibili_meta()
+        if meta_info is None or self.download:
+            content_info = await self.get_video_info()
+            self.file_path = content_info["file_path"]
+            if meta_info is None:
+                video_info_funcs = {
+                    "youtube": self._youtube_info_parse,
+                    "bilibili": self._bilibili_info_parse,
+                }
+                meta_info = video_info_funcs[self.extractor](content_info)
         self._video_info_formatting(meta_info)
         # AI transcribe
         if self.transcribe:
@@ -100,13 +110,24 @@ class VideoDownloader(MetadataItem):
             self.text += "\nAI\u5168\u6587\u6458\u5f55\uff1a" + transcribe_text
             self.content += "<hr>" + wrap_text_into_html(transcribe_text)
 
+    async def _fetch_bilibili_meta(self) -> dict | None:
+        """Metadata from Bilibili's official API; None means fall back to yt-dlp.
+
+        Unrecoverable errors (deleted, invisible, under review) propagate.
+        """
+        try:
+            return await fetch_bilibili_video_meta(self.url)
+        except BilibiliApiUnavailable as e:
+            logger.warning(f"Bilibili API unavailable, falling back to yt-dlp: {e}")
+            return None
+
     async def _parse_url(self, url: str) -> str:
         async def _get_redirected_url(original_url: str) -> str:
             async with httpx.AsyncClient(follow_redirects=False) as client:
                 resp = await client.get(original_url)
                 if resp.status_code == 200:
-                    original_url = resp.url
-                elif resp.status_code == 302:
+                    original_url = str(resp.url)
+                elif resp.status_code in (301, 302, 303, 307, 308):
                     original_url = resp.headers["Location"]
                 return original_url
 
@@ -132,33 +153,13 @@ class VideoDownloader(MetadataItem):
                         original_url += "?" + v_part_query[0]
             return original_url
 
-        def _remove_bilibili_link_tracing(original_url: str) -> str:
-            original_url_parser = urlparse(original_url)
-            original_url_hostname = str(original_url_parser.hostname)
-            query_dict = parse_qs(original_url_parser.query)
-            bilibili_p_query_string = (
-                "?p=" + query_dict["p"][0] if "p" in query_dict else ""
-            )
-            if "bilibili.com" in original_url_hostname:
-                original_url = (
-                    original_url_parser.scheme
-                    + "://"
-                    + original_url_parser.netloc
-                    + original_url_parser.path
-                )
-            return original_url + bilibili_p_query_string
-
         logger.info(f"Parsing original video url: {url} for {self.extractor}")
 
         url_parser = urlparse(url)
         url_hostname = str(url_parser.hostname)
 
         if self.extractor == "bilibili":
-            if "b23.tv" in url_hostname:
-                url = await _get_redirected_url(url)
-            if "m.bilibili.com" in url_hostname:
-                url = url.replace("m.bilibili.com", "www.bilibili.com")
-            url = _remove_bilibili_link_tracing(url)
+            url = await resolve_bilibili_url(url)
         elif self.extractor == "youtube":
             if "youtu.be" in url_hostname:
                 url = await _get_redirected_url(url)
