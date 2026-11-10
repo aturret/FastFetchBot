@@ -1,5 +1,6 @@
 """MetadataItem for Bilibili status posts: 动态 incl. opus 图文 (source `bilibili_status`)."""
 
+import html as html_lib
 from typing import Any
 
 from fastfetchbot_shared.exceptions import ScraperError
@@ -78,9 +79,9 @@ class BilibiliStatus(MetadataItem):
         html = _html_body(dyn)
         for media_file in self.media_files:
             if media_file.media_type == "image":
-                html += f'<p><img src="{media_file.url}" alt=""/></p>'
+                html += f'<p><img src="{_e(media_file.url)}" alt=""/></p>'
             elif media_file.media_type == "video":
-                html += f'<p><video src="{media_file.url}" controls="controls"></video></p>'
+                html += f'<p><video src="{_e(media_file.url)}" controls="controls"></video></p>'
         self.content = content_template.render(data={**data, "html_body": html})
 
 
@@ -95,23 +96,28 @@ def _plain_text(dyn: dict) -> str:
     return "\n\n".join(p for p in parts if p)
 
 
+def _e(value) -> str:
+    """Escape a user-supplied value for HTML text or a quoted attribute."""
+    return html_lib.escape(str(value), quote=True)
+
+
 def _html_body(dyn: dict) -> str:
-    html = wrap_text_into_html(dyn["text"]) if dyn["text"] else ""
+    html = wrap_text_into_html(_e(dyn["text"])) if dyn["text"] else ""
     if dyn["link"]:
-        html += f'<p><a href="{dyn["link"]}">{dyn["title"] or dyn["link"]}</a></p>'
+        html += f'<p><a href="{_e(dyn["link"])}">{_e(dyn["title"] or dyn["link"])}</a></p>'
     orig = dyn["orig"]
     if orig:
         author_link = (
-            f'<a href="https://space.bilibili.com/{orig["author_mid"]}">@{orig["author"]}</a>'
-            if orig["author_mid"] else f"@{orig['author']}"
+            f'<a href="https://space.bilibili.com/{_e(orig["author_mid"])}">@{_e(orig["author"])}</a>'
+            if orig["author_mid"] else f"@{_e(orig['author'])}"
         )
         quote = f"<p>{author_link}：</p>"
         if orig["title"]:
-            quote += f"<p><b>{orig['title']}</b></p>"
+            quote += f"<p><b>{_e(orig['title'])}</b></p>"
         if orig["text"]:
-            quote += wrap_text_into_html(orig["text"])
+            quote += wrap_text_into_html(_e(orig["text"]))
         if orig["link"]:
-            quote += f'<p><a href="{orig["link"]}">{orig["link"]}</a></p>'
+            quote += f'<p><a href="{_e(orig["link"])}">{_e(orig["link"])}</a></p>'
         html += f"<blockquote>{quote}</blockquote>"
     return html
 

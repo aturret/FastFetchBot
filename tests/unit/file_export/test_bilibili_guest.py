@@ -157,6 +157,8 @@ class TestGuestErrors:
             ({"code": 62002, "message": "x"}, "稿件不可见"),
             ({"code": -352, "message": "x"}, "风控拦截"),
             ({"code": 0, "data": None}, "数据结构异常"),
+            ([], "数据结构异常"),
+            ("ok", "数据结构异常"),
         ],
     )
     def test_view_errors(self, tmp_path, view, reason):

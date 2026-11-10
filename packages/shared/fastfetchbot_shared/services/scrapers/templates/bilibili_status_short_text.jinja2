@@ -1,2 +1,2 @@
-<b><a href="{{ data.url }}">{{ data.title }}</a></b> - <a href="{{ data.author_url }}">{{ data.author }}</a>
-{{ data.raw_content }}
+<b><a href="{{ data.url | e }}">{{ data.title | e }}</a></b> - <a href="{{ data.author_url | e }}">{{ data.author | e }}</a>
+{{ data.raw_content | e }}

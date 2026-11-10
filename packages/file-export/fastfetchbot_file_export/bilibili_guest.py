@@ -108,6 +108,8 @@ def _api_get(client: httpx.Client, endpoint: str, params: dict, what: str) -> di
         payload = resp.json()
     except ValueError as e:
         raise GuestDownloadError(f"获取{what}失败：返回的不是 JSON") from e
+    if not isinstance(payload, dict):
+        raise GuestDownloadError(f"获取{what}失败：数据结构异常")
     code = payload.get("code")
     if code != 0:
         reason = FATAL_CODES.get(code) or RETRYABLE_CODES.get(code) or payload.get("message") or "未知错误"

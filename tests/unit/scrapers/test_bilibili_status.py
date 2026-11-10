@@ -197,6 +197,8 @@ class TestFetchDynamicItem:
             (FakeApi(detail={"code": 4101131, "message": "内容不存在"}), "内容不存在"),
             (FakeApi(detail={"code": 0, "data": {}}), "未知错误"),
             (FakeApi(detail="not-json"), "不是 JSON"),
+            (FakeApi(detail=[]), "数据结构异常"),
+            (FakeApi(detail={"code": 0, "data": ["x"]}), "未知错误"),
         ],
     )
     async def test_errors(self, api, reason):
@@ -254,6 +256,27 @@ class TestBilibiliStatusItem:
             result = await BilibiliStatus(url=f"https://t.bilibili.com/{DYN_ID}").get_item()
         assert "https://www.bilibili.com/video/BV1xx411c7mD/" in result["text"]
         assert result["media_files"][0]["url"] == "https://i0.hdslb.com/cover.jpg"
+
+    @pytest.mark.asyncio
+    async def test_user_text_is_html_escaped(self):
+        evil_orig = _item({"desc": None, "major": {"type": "MAJOR_TYPE_ARCHIVE", "archive": {
+            "title": "<i>原标题</i>", "desc": "x > y", "cover": "",
+            "jump_url": 'https://www.bilibili.com/video/BV1"onclick="a', "bvid": "BV1xx411c7mD"}}},
+            id_str=ORIG_ID, author="<u>原作者</u>", mid=7)
+        evil = _item({"desc": {"text": "a < b <script>alert(1)</script> & c"}, "major": None},
+                     type_="DYNAMIC_TYPE_FORWARD", orig=evil_orig, author="A&B<b>")
+        with patch(FETCH_PATCH, AsyncMock(return_value=evil)):
+            result = await BilibiliStatus(url=f"https://t.bilibili.com/{DYN_ID}").get_item()
+        for field in ("text", "content"):
+            out = result[field]
+            assert "<script>" not in out and "<u>" not in out and "<i>" not in out
+            assert "&lt;script&gt;alert(1)&lt;/script&gt;" in out
+            assert "A&amp;B&lt;b&gt;" in out
+            assert '"onclick="' not in out
+        assert "x &gt; y" in result["content"]
+        # Our own markup survives.
+        assert result["text"].startswith("<b><a href=")
+        assert "<blockquote>" in result["content"]
 
     @pytest.mark.asyncio
     async def test_long_text_becomes_long_message(self):

@@ -41,6 +41,8 @@ async def fetch_bilibili_video_meta(url: str) -> dict:
         payload = resp.json()
     except ValueError as e:
         raise BilibiliApiUnavailable("B 站接口返回的不是 JSON") from e
+    if not isinstance(payload, dict):
+        raise BilibiliApiUnavailable("B 站接口数据结构异常：响应不是 JSON 对象")
 
     code = payload.get("code")
     if code in FATAL_CODES:

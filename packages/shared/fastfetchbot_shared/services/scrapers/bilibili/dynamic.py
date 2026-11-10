@@ -64,8 +64,11 @@ async def fetch_dynamic_item(dynamic_id: str) -> dict:
         payload = resp.json()
     except ValueError as e:
         raise ScraperError("B 站动态获取失败：返回的不是 JSON") from e
+    if not isinstance(payload, dict):
+        raise ScraperError("B 站动态获取失败：数据结构异常")
 
-    item = (payload.get("data") or {}).get("item")
+    data = payload.get("data")
+    item = data.get("item") if isinstance(data, dict) else None
     if payload.get("code") != 0 or not isinstance(item, dict):
         code = payload.get("code")
         reason = DYNAMIC_ERRORS.get(code) or payload.get("message") or "未知错误"
