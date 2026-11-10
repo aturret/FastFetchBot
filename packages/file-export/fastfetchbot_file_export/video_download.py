@@ -1,8 +1,44 @@
-import os
-
 from loguru import logger
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 from fastfetchbot_shared.exceptions import FileExportError
+from fastfetchbot_file_export.bilibili_guest import GuestDownloadError, guest_download
+
+BILIBILI_FORMAT_SORT = ("vcodec:h264",)
+
+# (substrings to look for, case-insensitive) -> user-facing reason
+_YTDLP_ERROR_REASONS = (
+    (("http error 412", "precondition failed"), "B 站风控拦截，请稍后再试或配置 Cookie"),
+    # yt-dlp's Bilibili extractor can't tell these apart (empty playinfo).
+    (("deleted or geo-restricted",), "视频不存在、已删除或有地区限制"),
+    (("requested format is not available",), "没有可用的视频格式"),
+    (
+        ("login", "log in", "sign in", "registered users", "premium", "大会员", "登录"),
+        "需要登录或大会员",
+    ),
+    (("geo restrict", "geo-restrict", "in your country", "地区"), "地区限制"),
+    (("http error 404", "video unavailable", "does not exist"), "视频不存在或已删除"),
+)
+
+
+def explain_ytdlp_error(exc: BaseException) -> str:
+    """Map a yt-dlp failure to a short, user-facing reason."""
+    text = str(exc)
+    lowered = text.lower()
+    for needles, reason in _YTDLP_ERROR_REASONS:
+        if any(n in lowered for n in needles):
+            return reason
+    # yt-dlp messages look like "ERROR: \r[download] Got error: ..."; \r is not a line break here.
+    text = text.replace("\r", " ").strip().removeprefix("ERROR:").strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines[0][:200] if lines else type(exc).__name__
+
+
+def _downloaded_file_path(downloader: YoutubeDL, info: dict) -> str:
+    downloads = info.get("requested_downloads") or []
+    if downloads and downloads[0].get("filepath"):
+        return downloads[0]["filepath"]
+    return info.get("filepath") or downloader.prepare_filename(info)
 
 
 def get_video_orientation(content_info: dict, extractor: str) -> str:
@@ -92,6 +128,14 @@ def init_yt_downloader(
         }
         if extractor == "bilibili":
             ydl_opts["referer"] = "https://www.bilibili.com/"
+            # Bilibili serves AVC, HEVC and AV1 all as mp4; prefer AVC so every
+            # Telegram client can play the result. Other codecs remain fallbacks.
+            ydl_opts["format_sort"] = list(BILIBILI_FORMAT_SORT)
+
+    if extractor == "bilibili":
+        # Multi-part videos are playlists to yt-dlp; fetch only the requested
+        # part (?p=N, default the first) instead of every part.
+        ydl_opts["noplaylist"] = True
 
     if youtube_cookie and extractor == "youtube" and cookie_file_path:
         logger.info("Using cookies for youtube")
@@ -135,66 +179,51 @@ def download_video(
     local_mode = config.get("LOCAL_MODE", True)
     base_url = config.get("BASE_URL", "")
 
+    common = dict(
+        extractor=extractor,
+        download_dir=download_dir,
+        cookie_file_path=cookie_file_path,
+        proxy_mode=proxy_mode,
+        proxy_url=proxy_url,
+        youtube_cookie=youtube_cookie,
+        bilibili_cookie=bilibili_cookie,
+    )
     file_path_output = None
 
     try:
-        # Phase 1: Extract info only (no downloading)
-        with init_yt_downloader(
-            extractor=extractor,
-            extract_only=True,
-            download_dir=download_dir,
-            cookie_file_path=cookie_file_path,
-            proxy_mode=proxy_mode,
-            proxy_url=proxy_url,
-            youtube_cookie=youtube_cookie,
-            bilibili_cookie=bilibili_cookie,
-        ) as extractor_dl:
-            content_info = extractor_dl.extract_info(url, download=False)
+        # Only YouTube video downloads need the info up front (orientation picks
+        # the format). Everything else is extracted exactly once.
+        needs_probe = not download or (extractor == "youtube" and not audio_only)
+        content_info = None
+        if needs_probe:
+            with init_yt_downloader(extract_only=True, **common) as extractor_dl:
+                content_info = extractor_dl.extract_info(url, download=False)
 
-        # Determine video orientation
-        orientation = get_video_orientation(content_info, extractor)
-        logger.info(f"Video orientation: {orientation}")
-
-        # Phase 2: Download with appropriate format based on orientation
         if download:
             if audio_only:
-                downloader = init_yt_downloader(
-                    audio_only=True,
-                    extractor=extractor,
-                    download_dir=download_dir,
-                    cookie_file_path=cookie_file_path,
-                    proxy_mode=proxy_mode,
-                    proxy_url=proxy_url,
-                    youtube_cookie=youtube_cookie,
-                    bilibili_cookie=bilibili_cookie,
-                )
+                downloader = init_yt_downloader(audio_only=True, **common)
             else:
+                orientation = get_video_orientation(content_info or {}, extractor)
                 video_format = get_format_for_orientation(
                     extractor, orientation, hd, bilibili_cookie
                 )
-                downloader = init_yt_downloader(
-                    extractor=extractor,
-                    video_format=video_format,
-                    download_dir=download_dir,
-                    cookie_file_path=cookie_file_path,
-                    proxy_mode=proxy_mode,
-                    proxy_url=proxy_url,
-                    youtube_cookie=youtube_cookie,
-                    bilibili_cookie=bilibili_cookie,
-                )
+                downloader = init_yt_downloader(video_format=video_format, **common)
 
             with downloader:
-                download_info = downloader.extract_info(url, download=True)
-                file_path = (
-                    download_info.get("filepath")
-                    or downloader.prepare_filename(download_info)
-                )
+                if content_info is not None:
+                    download_info = _download_with_info(downloader, content_info, url)
+                else:
+                    download_info = downloader.extract_info(url, download=True)
+                    content_info = download_info
+                file_path = _downloaded_file_path(downloader, download_info)
                 file_path_output = (
                     file_path
                     if local_mode
                     else base_url + "/fileDownload" + file_path
                 )
 
+        orientation = get_video_orientation(content_info, extractor)
+        logger.info(f"Video orientation: {orientation}")
         return {
             "message": "success",
             "content_info": content_info,
@@ -203,4 +232,47 @@ def download_video(
         }
     except Exception as e:
         logger.exception(f"download_video failed: url={url}")
-        raise FileExportError(f"download_video failed: url={url}") from e
+        reason = explain_ytdlp_error(e)
+        if not (extractor == "bilibili" and download and not audio_only):
+            raise FileExportError(f"视频下载失败：{reason} ({url})") from e
+        ytdlp_error, ytdlp_reason = e, reason
+
+    # yt-dlp failed on a Bilibili video download: retry as a guest without yt-dlp.
+    logger.warning(f"yt-dlp failed ({ytdlp_reason}), trying Bilibili guest download: url={url}")
+    try:
+        guest = guest_download(url, download_dir, proxy=proxy_url if proxy_mode else None)
+    except GuestDownloadError as guest_error:
+        logger.error(f"Bilibili guest download failed: {guest_error}")
+        raise FileExportError(
+            f"视频下载失败：{ytdlp_reason}；游客下载也失败：{guest_error} ({url})"
+        ) from ytdlp_error
+    except Exception as guest_error:
+        logger.exception("Bilibili guest download crashed")
+        raise FileExportError(
+            f"视频下载失败：{ytdlp_reason}；游客下载也失败：{type(guest_error).__name__} ({url})"
+        ) from ytdlp_error
+
+    file_path = guest["file_path"]
+    return {
+        "message": "success",
+        "content_info": guest["content_info"],
+        "orientation": get_video_orientation(guest["content_info"], extractor),
+        "file_path": file_path if local_mode else base_url + "/fileDownload" + file_path,
+    }
+
+
+def _download_with_info(downloader: YoutubeDL, content_info: dict, url: str) -> dict:
+    """Download from already-extracted info, like yt-dlp's --load-info-json.
+
+    The downloader re-runs format selection with its own options, so the probe's
+    choice doesn't leak through. Expired media URLs fall back to a fresh extract.
+    Playlists are re-extracted, since sanitizing drops their entries.
+    """
+    if content_info.get("_type", "video") != "video":
+        return downloader.extract_info(url, download=True)
+    info = downloader.sanitize_info(dict(content_info), remove_private_keys=True)
+    try:
+        return downloader.process_ie_result(info, download=True)
+    except DownloadError as e:
+        logger.warning(f"Download from extracted info failed, re-extracting: {e}")
+        return downloader.extract_info(url, download=True)

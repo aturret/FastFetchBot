@@ -10,6 +10,7 @@ from fastfetchbot_shared.services.scrapers import (
     threads,
     wechat,
     general,
+    bilibili,
 )
 from fastfetchbot_shared.services.scrapers.common import InfoExtractService
 from fastfetchbot_shared.services.scrapers.scraper_manager import ScraperManager
@@ -28,4 +29,5 @@ __all__ = [
     "threads",
     "wechat",
     "general",
+    "bilibili",
 ]

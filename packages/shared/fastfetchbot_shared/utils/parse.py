@@ -5,9 +5,11 @@ import mimetypes
 from typing import Optional
 from urllib.parse import urlparse, unquote
 
+import httpx
 from bs4 import BeautifulSoup
 
 from fastfetchbot_shared.models.url_metadata import UrlMetadata
+from fastfetchbot_shared.utils import bilibili
 from fastfetchbot_shared.utils.config import SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS
 
 TELEGRAM_TEXT_LIMIT = 900
@@ -69,6 +71,12 @@ def string_to_list(string: str, divider: str = ",") -> list:
 async def get_url_metadata(url: str, ban_list: Optional[list] = None) -> UrlMetadata:
     if not ban_list:
         ban_list = []
+    if bilibili.is_short_link(url):
+        # b23.tv links may point to a video or a dynamic; classify by the target.
+        try:
+            url = await bilibili.expand_short_link(url)
+        except httpx.HTTPError:
+            pass  # keep the short link; it still matches the video patterns
     url_parser = urlparse(url)
     url_main = str(url_parser.hostname) + str(url_parser.path)
     source, content_type = "unknown", "unknown"

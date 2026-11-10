@@ -12,6 +12,7 @@ from fastfetchbot_shared.services.scrapers import (
     instagram,
     xiaohongshu,
     threads,
+    bilibili,
 )
 from fastfetchbot_shared.services.scrapers.scraper_manager import ScraperManager
 from fastfetchbot_shared.utils.logger import logger
@@ -45,6 +46,7 @@ class InfoExtractService(object):
         "douban": douban.Douban,
         "zhihu": zhihu.Zhihu,
         "xiaohongshu": xiaohongshu.Xiaohongshu,
+        "bilibili_status": bilibili.BilibiliStatus,
     }
 
     def __init__(

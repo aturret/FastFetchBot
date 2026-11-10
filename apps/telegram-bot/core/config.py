@@ -143,6 +143,7 @@ def ban_list_resolver(ban_list_string: str) -> list:
             expanded.extend([
                 "weibo", "twitter", "instagram", "zhihu",
                 "douban", "wechat", "xiaohongshu", "reddit",
+                "bilibili_status",
             ])
         elif item == "video":
             expanded.extend(["youtube", "bilibili"])
