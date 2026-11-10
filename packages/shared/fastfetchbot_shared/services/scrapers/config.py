@@ -23,8 +23,7 @@ class ScrapersSettings(BaseSettings):
     CONF_DIR: str = ""
     TEMPLATE_LANGUAGE: str = "zh_CN"
 
-    # XHS sign server and cookie path (also declared in SharedSettings, read independently)
-    SIGN_SERVER_URL: str = "http://localhost:8989"
+    # XHS cookie path (also declared in SharedSettings, read independently)
     XHS_COOKIE_PATH: str = ""
 
     # X-RapidAPI (shared by Twitter and Instagram scrapers)
@@ -201,5 +200,4 @@ XHS_COOKIE_STRING = _load_xhs_cookies(
     settings.XIAOHONGSHU_WEBID,
     settings.XIAOHONGSHU_WEBSESSION,
 )
-XHS_SIGN_SERVER_URL = settings.SIGN_SERVER_URL
 ZHIHU_COOKIES_JSON = _load_zhihu_cookies(settings.CONF_DIR)

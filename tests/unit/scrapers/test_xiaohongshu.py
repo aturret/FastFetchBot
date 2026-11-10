@@ -10,6 +10,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 
 import httpx
+from xhshow import Xhshow
 
 from fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar import (
     XhsSinglePostAdapter,
@@ -87,32 +88,13 @@ class TestXhsSinglePostAdapterInit:
     def test_basic_init(self):
         adapter = XhsSinglePostAdapter(
             cookies="  a=1; b=2  ",
-            sign_server_endpoint="http://sign:8989",
         )
         assert adapter.cookies == "a=1; b=2"
-        assert adapter.sign_server_endpoint == "http://sign:8989"
         assert adapter.timeout == 20.0
-
-    def test_strips_trailing_slash(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1",
-            sign_server_endpoint="http://sign:8989/",
-        )
-        assert adapter.sign_server_endpoint == "http://sign:8989"
-
-    @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "")
-    def test_no_sign_server_raises(self):
-        with pytest.raises(ExternalServiceError, match="sign server URL"):
-            XhsSinglePostAdapter(cookies="c=1", sign_server_endpoint="")
-
-    @patch("fastfetchbot_shared.config.settings.SIGN_SERVER_URL", "http://fallback:8989")
-    def test_fallback_to_env_sign_server(self):
-        adapter = XhsSinglePostAdapter(cookies="c=1", sign_server_endpoint="")
-        assert adapter.sign_server_endpoint == "http://fallback:8989"
 
     def test_custom_timeout(self):
         adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989", timeout=5.0
+            cookies="c=1", timeout=5.0
         )
         assert adapter.timeout == 5.0
 
@@ -123,7 +105,7 @@ class TestXhsSinglePostAdapterContextManager:
     @pytest.mark.asyncio
     async def test_aenter_aexit(self):
         adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
         adapter._http = AsyncMock()
         async with adapter as a:
@@ -133,7 +115,7 @@ class TestXhsSinglePostAdapterContextManager:
     @pytest.mark.asyncio
     async def test_close(self):
         adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
         adapter._http = AsyncMock()
         await adapter.close()
@@ -145,7 +127,7 @@ class TestBaseHeaders:
 
     def test_returns_expected_keys(self):
         adapter = XhsSinglePostAdapter(
-            cookies="mycookie=val", sign_server_endpoint="http://s:8989"
+            cookies="mycookie=val"
         )
         headers = adapter._base_headers()
         assert headers["cookie"] == "mycookie=val"
@@ -153,101 +135,6 @@ class TestBaseHeaders:
         assert "user-agent" in headers
         assert headers["content-type"] == "application/json;charset=UTF-8"
 
-
-class TestSignHeaders:
-    """Tests for _sign_headers."""
-
-    @pytest.mark.asyncio
-    async def test_success(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "isok": True,
-            "data": {
-                "x_s": "xs_val",
-                "x_t": "xt_val",
-                "x_s_common": "xsc_val",
-                "x_b3_traceid": "trace_val",
-            },
-        }
-        mock_resp.raise_for_status = MagicMock()
-        adapter._http = AsyncMock()
-        adapter._http.post = AsyncMock(return_value=mock_resp)
-
-        headers = await adapter._sign_headers("/api/test")
-        assert headers["X-s"] == "xs_val"
-        assert headers["X-t"] == "xt_val"
-        assert headers["x-s-common"] == "xsc_val"
-        assert headers["X-B3-Traceid"] == "trace_val"
-        assert headers["cookie"] == "c=1"
-
-    @pytest.mark.asyncio
-    async def test_not_ok_raises(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"isok": False, "error": "bad"}
-        mock_resp.raise_for_status = MagicMock()
-        adapter._http = AsyncMock()
-        adapter._http.post = AsyncMock(return_value=mock_resp)
-
-        with pytest.raises(ExternalServiceError, match="sign server returned error"):
-            await adapter._sign_headers("/api/test")
-
-    @pytest.mark.asyncio
-    async def test_missing_fields_raises(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "isok": True,
-            "data": {"x_s": "xs_val"},  # missing x_t, x_s_common, x_b3_traceid
-        }
-        mock_resp.raise_for_status = MagicMock()
-        adapter._http = AsyncMock()
-        adapter._http.post = AsyncMock(return_value=mock_resp)
-
-        with pytest.raises(ExternalServiceError, match="missing fields"):
-            await adapter._sign_headers("/api/test")
-
-    @pytest.mark.asyncio
-    async def test_none_data_uses_empty_dict(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"isok": True, "data": None}
-        mock_resp.raise_for_status = MagicMock()
-        adapter._http = AsyncMock()
-        adapter._http.post = AsyncMock(return_value=mock_resp)
-
-        with pytest.raises(ExternalServiceError, match="missing fields"):
-            await adapter._sign_headers("/api/test")
-
-    @pytest.mark.asyncio
-    async def test_sign_headers_with_data_param(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "isok": True,
-            "data": {
-                "x_s": "a", "x_t": "b", "x_s_common": "c", "x_b3_traceid": "d",
-            },
-        }
-        mock_resp.raise_for_status = MagicMock()
-        adapter._http = AsyncMock()
-        adapter._http.post = AsyncMock(return_value=mock_resp)
-
-        await adapter._sign_headers("/api/test", data={"key": "val"})
-        call_args = adapter._http.post.call_args
-        payload = call_args.kwargs.get("json") or call_args[1].get("json")
-        assert payload["data"] == {"key": "val"}
 
 
 class TestParseApiResponse:
@@ -449,7 +336,7 @@ class TestNormalizeNote:
 
     def _make_adapter(self):
         return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
 
     def _make_note(self, **overrides):
@@ -618,7 +505,7 @@ class TestNormalizeComment:
 
     def _make_adapter(self):
         return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
 
     def test_basic_comment(self):
@@ -662,7 +549,7 @@ class TestFetchNoteByApi:
 
     def _make_adapter(self):
         adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
         return adapter
 
@@ -738,7 +625,7 @@ class TestFetchNoteByHtml:
 
     def _make_adapter(self):
         return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
 
     @pytest.mark.asyncio
@@ -806,15 +693,16 @@ class TestFetchNoteByHtml:
         assert "xsec_token" not in call_url
 
     @pytest.mark.asyncio
-    async def test_non_200_returns_none(self):
+    async def test_non_200_raises(self):
         adapter = self._make_adapter()
         mock_resp = MagicMock()
         mock_resp.status_code = 403
+        mock_resp.url = f"{XHS_WEB_URL}/explore/n1"
         adapter._http = AsyncMock()
         adapter._http.get = AsyncMock(return_value=mock_resp)
 
-        result = await adapter._fetch_note_by_html("n1", "tok", "src")
-        assert result is None
+        with pytest.raises(ScraperError, match="status 403"):
+            await adapter._fetch_note_by_html("n1", "tok", "src")
 
     @pytest.mark.asyncio
     async def test_no_initial_state_returns_none(self):
@@ -881,98 +769,117 @@ class TestFetchNoteByHtml:
 
 
 class TestFetchPost:
-    """Tests for fetch_post."""
+    """Tests for fetch_post and its fallback stages."""
 
-    def _make_adapter(self):
-        return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
+    LOGIN_COOKIE = "a1=a1v; web_session=wsv"
+
+    def _make_adapter(self, cookies=LOGIN_COOKIE):
+        adapter = XhsSinglePostAdapter(cookies=cookies)
+        adapter._fetch_note_by_api = AsyncMock(return_value=None)
+        adapter._fetch_note_by_html = AsyncMock(return_value=None)
+        adapter._fetch_note_with_guest = AsyncMock(return_value=None)
+        return adapter
 
     def _make_normalized_note(self, note_id="n1"):
-        return {
-            "note_id": note_id,
-            "type": "normal",
-            "title": "T",
-            "desc": "",
-            "video_urls": [],
-            "time": "",
-            "last_update_time": "",
-            "ip_location": "",
-            "image_list": [],
-            "tag_list": [],
-            "url": f"{XHS_WEB_URL}/explore/{note_id}?xsec_token=&xsec_source=pc_search",
-            "note_url": f"{XHS_WEB_URL}/explore/{note_id}?xsec_token=&xsec_source=pc_search",
-            "liked_count": 0,
-            "collected_count": 0,
-            "comment_count": 0,
-            "share_count": 0,
-            "user": {"user_id": "", "nickname": "", "avatar": ""},
-        }
+        return {"note_id": note_id, "type": "normal", "title": "T", "desc": "", "media": []}
 
     @pytest.mark.asyncio
     async def test_api_success(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(return_value=note)
-        adapter._fetch_note_by_html = AsyncMock()
+        adapter._fetch_note_by_api.return_value = self._make_normalized_note()
 
         url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
         result = await adapter.fetch_post(note_url=url)
         assert result["note"]["note_id"] == "n1"
         assert result["platform"] == "xhs"
         assert result["comments"] == []
+        adapter._fetch_note_by_api.assert_awaited_once_with("n1", "tok", "src")
         adapter._fetch_note_by_html.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_api_fails_html_fallback(self):
+    async def test_api_skipped_without_token(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(side_effect=Exception("API error"))
-        adapter._fetch_note_by_html = AsyncMock(return_value=note)
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
+
+        result = await adapter.fetch_post(note_url=f"{XHS_WEB_URL}/explore/n1")
+        assert result["note"]["note_id"] == "n1"
+        adapter._fetch_note_by_api.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_api_skipped_without_login_cookie(self):
+        adapter = self._make_adapter(cookies="a1=only")
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
+
+        url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
+        await adapter.fetch_post(note_url=url)
+        adapter._fetch_note_by_api.assert_not_awaited()
+        # cookie+html still runs because some cookie is configured
+        assert adapter._fetch_note_by_html.await_args.args[3] == {"a1": "only"}
+
+    @pytest.mark.asyncio
+    async def test_api_fails_cookie_html_fallback(self):
+        adapter = self._make_adapter()
+        adapter._fetch_note_by_api.side_effect = Exception("API error")
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
 
         url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
         result = await adapter.fetch_post(note_url=url)
         assert result["note"]["note_id"] == "n1"
+        adapter._fetch_note_with_guest.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_api_returns_none_html_fallback(self):
-        adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(return_value=None)
-        adapter._fetch_note_by_html = AsyncMock(return_value=note)
+    async def test_no_cookie_goes_to_guest(self):
+        adapter = self._make_adapter(cookies="")
+        adapter._fetch_note_with_guest.return_value = self._make_normalized_note()
 
-        url = f"{XHS_WEB_URL}/explore/n1"
+        url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
         result = await adapter.fetch_post(note_url=url)
         assert result["note"]["note_id"] == "n1"
+        adapter._fetch_note_by_api.assert_not_awaited()
+        adapter._fetch_note_by_html.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_both_fail_raises(self):
-        adapter = self._make_adapter()
-        adapter._fetch_note_by_api = AsyncMock(return_value=None)
-        adapter._fetch_note_by_html = AsyncMock(return_value=None)
+    async def test_falls_through_to_mobile(self):
+        adapter = self._make_adapter(cookies="")
+        adapter._fetch_note_with_guest.side_effect = ScraperError("guest blocked")
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
 
-        url = f"{XHS_WEB_URL}/explore/n1"
-        with pytest.raises(ScraperError, match="Cannot fetch note"):
+        result = await adapter.fetch_post(note_url=f"{XHS_WEB_URL}/explore/n1")
+        assert result["note"]["note_id"] == "n1"
+        call = adapter._fetch_note_by_html.await_args
+        assert call.args[3] == {}
+        assert call.kwargs["mobile"] is True
+
+    @pytest.mark.asyncio
+    async def test_all_fail_raises_with_stage_reasons(self):
+        adapter = self._make_adapter()
+        adapter._fetch_note_by_api.side_effect = ScraperError("captcha 461")
+        adapter._fetch_note_with_guest.side_effect = ScraperError("guest blocked")
+
+        url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
+        with pytest.raises(ScraperError, match="Cannot fetch XHS note n1") as exc:
             await adapter.fetch_post(note_url=url)
+        message = str(exc.value)
+        for stage in ("cookie+feed: captcha 461", "cookie+html: empty result",
+                      "guest+html: guest blocked", "mobile+html: empty result"):
+            assert stage in message
 
     @pytest.mark.asyncio
-    async def test_short_url_triggers_redirect(self):
+    async def test_short_url_is_resolved(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._get_redirection_url = AsyncMock(
+        adapter._resolve_note_url = AsyncMock(
             return_value=f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
         )
-        adapter._fetch_note_by_api = AsyncMock(return_value=note)
+        adapter._fetch_note_by_api.return_value = self._make_normalized_note()
 
         result = await adapter.fetch_post(note_url="https://xhslink.com/abc")
-        adapter._get_redirection_url.assert_awaited_once()
+        adapter._resolve_note_url.assert_awaited_once_with("https://xhslink.com/abc")
         assert result["note"]["note_id"] == "n1"
 
     @pytest.mark.asyncio
     async def test_with_comments(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(return_value=note)
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
         adapter._fetch_comments = AsyncMock(return_value=[{"comment_id": "c1"}])
 
         url = f"{XHS_WEB_URL}/explore/n1"
@@ -982,8 +889,7 @@ class TestFetchPost:
     @pytest.mark.asyncio
     async def test_with_comments_error_returns_empty(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(return_value=note)
+        adapter._fetch_note_by_html.return_value = self._make_normalized_note()
         adapter._fetch_comments = AsyncMock(side_effect=Exception("comment error"))
 
         url = f"{XHS_WEB_URL}/explore/n1"
@@ -993,20 +899,18 @@ class TestFetchPost:
     @pytest.mark.asyncio
     async def test_url_in_result_is_pure(self):
         adapter = self._make_adapter()
-        note = self._make_normalized_note()
-        adapter._fetch_note_by_api = AsyncMock(return_value=note)
+        adapter._fetch_note_by_api.return_value = self._make_normalized_note()
 
         url = f"{XHS_WEB_URL}/explore/n1?xsec_token=tok&xsec_source=src"
         result = await adapter.fetch_post(note_url=url)
         assert result["url"] == f"{XHS_WEB_URL}/explore/n1"
-
 
 class TestFetchComments:
     """Tests for _fetch_comments."""
 
     def _make_adapter(self):
         return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
 
     @pytest.mark.asyncio
@@ -1131,7 +1035,7 @@ class TestFetchSubComments:
 
     def _make_adapter(self):
         return XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
+            cookies="c=1"
         )
 
     @pytest.mark.asyncio
@@ -1257,17 +1161,14 @@ class TestFetchSubComments:
         assert result == []
 
 
-class TestGetRedirectionUrl:
-    """Tests for _get_redirection_url."""
+class TestResolveNoteUrl:
+    """Tests for _resolve_note_url."""
 
     @pytest.mark.asyncio
-    async def test_success(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
+    async def test_short_link_success(self):
+        adapter = XhsSinglePostAdapter(cookies="c=1")
         mock_resp = MagicMock()
-        mock_resp.url = "https://www.xiaohongshu.com/explore/n1?xsec_token=tok"
-
+        mock_resp.url = "https://www.xiaohongshu.com/discovery/item/n1?xsec_token=tok"
         with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
             mock_client.get = AsyncMock(return_value=mock_resp)
@@ -1275,17 +1176,31 @@ class TestGetRedirectionUrl:
             mock_client.__aexit__ = AsyncMock(return_value=None)
             MockClient.return_value = mock_client
 
-            result = await adapter._get_redirection_url("https://xhslink.com/abc")
-            assert "xiaohongshu.com" in result
+            result = await adapter._resolve_note_url("https://xhslink.com/abc")
+        assert result == "https://www.xiaohongshu.com/discovery/item/n1?xsec_token=tok"
+        headers = mock_client.get.call_args.kwargs["headers"]
+        assert "iPhone" in headers["user-agent"]
+
+    @pytest.mark.asyncio
+    async def test_short_link_landing_on_rednote_is_normalized(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        mock_resp = MagicMock()
+        mock_resp.url = "https://www.rednote.com/explore/n1?xsec_token=tok"
+        with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            MockClient.return_value = mock_client
+
+            result = await adapter._resolve_note_url("https://xhslink.cn/abc")
+        assert result == "https://www.xiaohongshu.com/explore/n1?xsec_token=tok"
 
     @pytest.mark.asyncio
     async def test_not_xhs_raises(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
+        adapter = XhsSinglePostAdapter(cookies="c=1")
         mock_resp = MagicMock()
         mock_resp.url = "https://www.google.com/"
-
         with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
             mock_client.get = AsyncMock(return_value=mock_resp)
@@ -1294,56 +1209,100 @@ class TestGetRedirectionUrl:
             MockClient.return_value = mock_client
 
             with pytest.raises(ScraperError, match="did not redirect to xiaohongshu.com"):
-                await adapter._get_redirection_url("https://xhslink.com/abc")
+                await adapter._resolve_note_url("https://xhslink.com/abc")
 
+    @pytest.mark.asyncio
+    async def test_expired_short_link_raises(self):
+        adapter = XhsSinglePostAdapter(cookies="c=1")
+        mock_resp = MagicMock()
+        mock_resp.url = "https://www.xiaohongshu.com"
+        with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            MockClient.return_value = mock_client
+
+            with pytest.raises(ScraperError, match="home page"):
+                await adapter._resolve_note_url("https://xhslink.com/abc")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "final_url, message",
+        [
+            ("https://www.xiaohongshu.com/login?redirectPath=x", "requires login"),
+            ("https://www.xiaohongshu.com/404/sec_abc?source=x", "risk control"),
+            ("https://www.xiaohongshu.com/404?source=x", "does not exist"),
+        ],
+    )
+    async def test_redirect_target_classified(self, final_url, message):
+        adapter = XhsSinglePostAdapter(cookies="c=1")
+        mock_resp = MagicMock()
+        mock_resp.url = final_url
+        with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            MockClient.return_value = mock_client
+            with pytest.raises(ScraperError, match=message):
+                await adapter._resolve_note_url("https://xhslink.com/abc")
+
+    @pytest.mark.asyncio
+    async def test_rednote_link_needs_no_request(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        with patch("fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar.httpx.AsyncClient") as MockClient:
+            result = await adapter._resolve_note_url("www.rednote.com/explore/n1?xsec_token=t")
+        MockClient.assert_not_called()
+        assert result == "https://www.xiaohongshu.com/explore/n1?xsec_token=t"
 
 class TestSignedPost:
     """Tests for _signed_post."""
 
     @pytest.mark.asyncio
-    async def test_signed_post(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        adapter._sign_headers = AsyncMock(return_value={"X-s": "val"})
+    async def test_body_matches_signed_payload(self):
+        adapter = XhsSinglePostAdapter(cookies="a1=a1v; web_session=wsv")
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"success": True, "data": {"result": "ok"}}
         adapter._http = AsyncMock()
         adapter._http.post = AsyncMock(return_value=mock_resp)
 
-        result = await adapter._signed_post("/api/test", data={"key": "val"})
+        data = {"key": "值", "nested": {"a": 1}}
+        result = await adapter._signed_post("/api/test", data=data)
         assert result == {"result": "ok"}
-        adapter._sign_headers.assert_awaited_once()
 
+        call = adapter._http.post.call_args
+        assert call.args[0] == f"{XHS_API_URL}/api/test"
+        assert call.kwargs["content"] == Xhshow().build_json_body(data).encode("utf-8")
+        headers = call.kwargs["headers"]
+        for key in ("x-s", "x-t", "x-s-common", "x-b3-traceid"):
+            assert key in headers
+        assert headers["cookie"] == "a1=a1v; web_session=wsv"
 
 class TestSignedGet:
     """Tests for _signed_get."""
 
     @pytest.mark.asyncio
     async def test_signed_get_with_params(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        adapter._sign_headers = AsyncMock(return_value={"X-s": "val"})
+        adapter = XhsSinglePostAdapter(cookies="a1=a1v; web_session=wsv")
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"success": True, "data": {"items": []}}
         adapter._http = AsyncMock()
         adapter._http.get = AsyncMock(return_value=mock_resp)
 
-        result = await adapter._signed_get("/api/test", params={"a": "1"})
+        with patch.object(adapter, "_sign_headers", wraps=adapter._sign_headers) as spy:
+            result = await adapter._signed_get("/api/test", params={"a": "1"})
         assert result == {"items": []}
-        # Verify the sign_headers was called with URI including query string
-        sign_uri = adapter._sign_headers.call_args.kwargs.get("uri") or adapter._sign_headers.call_args[1].get("uri")
-        assert "a=1" in sign_uri
+        spy.assert_called_once_with("GET", "/api/test", cookies=None, params={"a": "1"})
+        call = adapter._http.get.call_args
+        assert call.kwargs["params"] == {"a": "1"}
+        assert "x-s" in call.kwargs["headers"]
 
     @pytest.mark.asyncio
     async def test_signed_get_no_params(self):
-        adapter = XhsSinglePostAdapter(
-            cookies="c=1", sign_server_endpoint="http://s:8989"
-        )
-        adapter._sign_headers = AsyncMock(return_value={"X-s": "val"})
+        adapter = XhsSinglePostAdapter(cookies="a1=a1v")
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"success": True, "data": {"items": []}}
@@ -1351,9 +1310,7 @@ class TestSignedGet:
         adapter._http.get = AsyncMock(return_value=mock_resp)
 
         await adapter._signed_get("/api/test")
-        sign_uri = adapter._sign_headers.call_args.kwargs.get("uri") or adapter._sign_headers.call_args[1].get("uri")
-        assert sign_uri == "/api/test"
-
+        assert adapter._http.get.call_args.kwargs["params"] == {}
 
 # ---------------------------------------------------------------------------
 # Xiaohongshu class tests (from __init__.py)
@@ -1745,3 +1702,346 @@ class TestXiaohongshuGetItem:
         # raw_content should have img and video tags appended
         assert "img" in call_data["raw_content"]
         assert "video" in call_data["raw_content"]
+
+
+# ---------------------------------------------------------------------------
+# xhshow-based signing, guest session, HTML state and media normalization
+# ---------------------------------------------------------------------------
+
+from fastfetchbot_shared.services.scrapers.xiaohongshu import adaptar as xhs_adaptar
+from fastfetchbot_shared.services.scrapers.xiaohongshu.adaptar import (
+    XHS_IMG_CDN,
+    build_image_thumb_url,
+    build_image_url,
+    check_redirect_target,
+    normalize_note_url,
+    parse_cookie_string,
+    parse_initial_state,
+)
+
+CDN_IMG = (
+    "http://sns-webpic-qc.xhscdn.com/202611091200/0123456789abcdef0123456789abcdef/"
+    "1040g2sg31abc!nd_dft_wlteh_webp_3"
+)
+
+
+class TestHelpers:
+    def test_parse_cookie_string(self):
+        assert parse_cookie_string(" a1= x ; web_session=y;bad; =z ") == {"a1": "x", "web_session": "y"}
+        assert parse_cookie_string("") == {}
+
+    def test_has_login_cookie(self):
+        assert XhsSinglePostAdapter(cookies="a1=x; web_session=y").has_login_cookie
+        assert not XhsSinglePostAdapter(cookies="a1=x").has_login_cookie
+        assert not XhsSinglePostAdapter(cookies="").has_login_cookie
+
+    def test_normalize_note_url(self):
+        assert normalize_note_url("www.rednote.com/explore/n1?x=1") == "https://www.xiaohongshu.com/explore/n1?x=1"
+        assert normalize_note_url("https://www.xiaohongshu.com/explore/n1") == "https://www.xiaohongshu.com/explore/n1"
+
+    @pytest.mark.parametrize(
+        "url, message",
+        [
+            ("https://www.xiaohongshu.com/login?x=1", "requires login"),
+            ("https://www.rednote.com/404/sec_abc", "risk control"),
+            ("https://www.rednote.com/404?source=/404/sec_x", "does not exist"),
+        ],
+    )
+    def test_check_redirect_target_raises(self, url, message):
+        with pytest.raises(ScraperError, match=message):
+            check_redirect_target(url)
+
+    def test_check_redirect_target_ok(self):
+        check_redirect_target("https://www.xiaohongshu.com/explore/n1?xsec_token=t")
+
+
+class TestSignHeaders:
+    def test_post_headers_contain_signature(self):
+        adapter = XhsSinglePostAdapter(cookies="a1=a1v; web_session=wsv")
+        headers = adapter._sign_headers("POST", "/api/sns/web/v1/feed", payload={"a": 1})
+        for key in ("x-s", "x-t", "x-s-common", "x-b3-traceid"):
+            assert headers[key]
+        assert headers["cookie"] == "a1=a1v; web_session=wsv"
+
+    def test_explicit_cookies_override(self):
+        adapter = XhsSinglePostAdapter(cookies="a1=mine")
+        headers = adapter._sign_headers("GET", "/api/x", cookies={"a1": "guest"}, params={"q": "1"})
+        assert headers["cookie"] == "a1=guest"
+        assert headers["x-s"]
+
+
+class TestParseApiResponseCaptchaFirst:
+    def test_captcha_with_non_json_body(self):
+        resp = MagicMock(spec=httpx.Response)
+        resp.status_code = 461
+        resp.headers = {"Verifytype": "301", "Verifyuuid": "u"}
+        resp.json.side_effect = json.JSONDecodeError("x", "", 0)
+        with pytest.raises(ScraperError, match="captcha.*verify_type=301"):
+            XhsSinglePostAdapter._parse_api_response(resp)
+
+
+class TestParseInitialState:
+    def test_pc_page(self):
+        state = {"note": {"firstNoteId": "n1", "noteDetailMap": {"n1": {"note": {"title": "PC"}}}}}
+        html = f"<script>window.__INITIAL_STATE__={json.dumps(state)}</script><script>other()</script>"
+        assert parse_initial_state(html, "n1") == {"title": "PC"}
+
+    def test_pc_page_uses_first_note_id(self):
+        state = {"note": {"firstNoteId": "real", "noteDetailMap": {"real": {"note": {"title": "PC"}}}}}
+        html = f"<script>window.__INITIAL_STATE__={json.dumps(state)}</script>"
+        assert parse_initial_state(html, "other") == {"title": "PC"}
+
+    def test_h5_page(self):
+        state = {"noteData": {"data": {"noteData": {"title": "H5"}}}}
+        html = f"<script>window.__INITIAL_STATE__ = {json.dumps(state)};</script>"
+        assert parse_initial_state(html, "n1") == {"title": "H5"}
+
+    def test_undefined_only_replaced_as_token(self):
+        html = (
+            '<script>window.__INITIAL_STATE__={"note":{"noteDetailMap":{"n1":{"note":'
+            '{"desc":"undefinedness stays","x":undefined}}}}}</script>'
+        )
+        note = parse_initial_state(html, "n1")
+        assert note["x"] is None
+        assert note["desc"] == "undefinedness stays"
+
+    def test_js_collections_converted(self):
+        # Real PC pages embed `new Set([])` in the state object.
+        html = (
+            '<script>window.__INITIAL_STATE__={"commentTranslate":{"ids":new Set([]),"m":new Map(),'
+            '"s":new Set(["a","b"])},"note":{"noteDetailMap":{"n1":{"note":{"title":"ok"}}}}}</script>'
+        )
+        assert parse_initial_state(html, "n1") == {"title": "ok"}
+
+    def test_missing_state(self):
+        assert parse_initial_state("<html></html>", "n1") is None
+        assert parse_initial_state("", "n1") is None
+
+
+class TestImageUrls:
+    def test_trace_id_field_preferred(self):
+        assert build_image_url({"trace_id": "abc/def", "url_default": CDN_IMG}) == f"{XHS_IMG_CDN}/abc/def"
+        assert build_image_url({"traceId": "t1"}) == f"{XHS_IMG_CDN}/t1"
+
+    def test_trace_id_extracted_from_cdn_url(self):
+        assert build_image_url({"urlDefault": CDN_IMG}) == f"{XHS_IMG_CDN}/1040g2sg31abc"
+
+    def test_non_cdn_url_untouched(self):
+        assert build_image_url({"url_default": "https://example.com/a.jpg"}) == "https://example.com/a.jpg"
+
+    def test_no_url(self):
+        assert build_image_url({}) is None
+
+    def test_thumb_preference(self):
+        assert build_image_thumb_url({"url_pre": "pre", "url_default": "d"}) == "pre"
+        info = [{"imageScene": "WB_DFT", "url": "dft"}, {"imageScene": "H5_PRV", "url": "prv"}]
+        assert build_image_thumb_url({"infoList": info, "urlDefault": "d"}) == "prv"
+        assert build_image_thumb_url({"url_default": "d"}) == "d"
+
+
+class TestNormalizeNoteMedia:
+    def _adapter(self):
+        return XhsSinglePostAdapter(cookies="")
+
+    def test_images_and_live_photo(self):
+        note = {
+            "type": "normal",
+            "image_list": [
+                {"trace_id": "t1", "url_pre": "pre1", "width": 100, "height": 200, "live_photo": False},
+                {
+                    "trace_id": "t2",
+                    "width": 300,
+                    "height": 400,
+                    "live_photo": True,
+                    "stream": {"h264": [], "h265": [{"master_url": "https://live.mp4"}]},
+                },
+            ],
+        }
+        result = self._adapter()._normalize_note(note)
+        assert result["image_list"] == [f"{XHS_IMG_CDN}/t1", f"{XHS_IMG_CDN}/t2"]
+        first, second = result["media"]
+        assert first == {
+            "type": "image", "url": f"{XHS_IMG_CDN}/t1", "thumb_url": "pre1",
+            "video_url": None, "width": 100, "height": 200, "duration": 0,
+        }
+        assert second["type"] == "live_photo"
+        assert second["video_url"] == "https://live.mp4"
+
+    def test_live_photo_without_stream_is_plain_image(self):
+        note = {"type": "normal", "imageList": [{"traceId": "t", "livePhoto": True, "stream": {}}]}
+        media = self._adapter()._normalize_note(note)["media"]
+        assert media[0]["type"] == "image"
+
+    def test_video_media_with_meta(self):
+        note = {
+            "type": "video",
+            "image_list": [{"trace_id": "cover"}],
+            "video": {
+                "media": {
+                    "stream": {
+                        "h264": [{"master_url": "https://v264.mp4", "width": 720, "height": 1280,
+                                  "duration": 15300}],
+                        "h265": [{"master_url": "https://v265.mp4"}],
+                    }
+                }
+            },
+        }
+        result = self._adapter()._normalize_note(note)
+        assert result["image_list"] == []
+        assert result["video_urls"][0] == "https://v264.mp4"
+        (video,) = result["media"]
+        assert video["type"] == "video"
+        assert video["url"] == "https://v264.mp4"
+        assert video["thumb_url"] == f"{XHS_IMG_CDN}/cover"
+        assert (video["width"], video["height"], video["duration"]) == (720, 1280, 15)
+
+    def test_video_duration_falls_back_to_capa(self):
+        note = {
+            "type": "video",
+            "video": {"capa": {"duration": 42}, "media": {"stream": {"h264": [{"masterUrl": "https://v.mp4"}]}}},
+        }
+        (video,) = self._adapter()._normalize_note(note)["media"]
+        assert video["duration"] == 42
+
+
+class TestGuestSession:
+    @pytest.fixture(autouse=True)
+    def _reset_cache(self):
+        xhs_adaptar._guest_session.update({"cookies": None, "expires_at": 0.0})
+        yield
+        xhs_adaptar._guest_session.update({"cookies": None, "expires_at": 0.0})
+
+    @pytest.mark.asyncio
+    async def test_activate_returns_cookies(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.cookies = {"web_session": "guest_ws"}
+        adapter._http = AsyncMock()
+        adapter._http.post = AsyncMock(return_value=resp)
+
+        cookies = await adapter._new_guest_cookies()
+        assert cookies["web_session"] == "guest_ws"
+        assert cookies["a1"] and cookies["webId"]
+        call = adapter._http.post.call_args
+        assert call.args[0].endswith("/api/sns/web/v1/login/activate")
+        assert "x-s" in call.kwargs["headers"]
+
+    @pytest.mark.asyncio
+    async def test_activate_without_session_raises(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        resp = MagicMock()
+        resp.status_code = 461
+        resp.cookies = {}
+        adapter._http = AsyncMock()
+        adapter._http.post = AsyncMock(return_value=resp)
+        with pytest.raises(ScraperError, match="guest session"):
+            await adapter._new_guest_cookies()
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_and_expiry(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        adapter._new_guest_cookies = AsyncMock(side_effect=[{"web_session": "s1"}, {"web_session": "s2"}])
+
+        assert (await adapter._get_guest_cookies())["web_session"] == "s1"
+        assert (await adapter._get_guest_cookies())["web_session"] == "s1"
+        assert adapter._new_guest_cookies.await_count == 1
+
+        xhs_adaptar._guest_session["expires_at"] = 0.0
+        assert (await adapter._get_guest_cookies())["web_session"] == "s2"
+
+    @pytest.mark.asyncio
+    async def test_cache_shared_across_adapters(self):
+        first = XhsSinglePostAdapter(cookies="")
+        first._new_guest_cookies = AsyncMock(return_value={"web_session": "s1"})
+        await first._get_guest_cookies()
+
+        second = XhsSinglePostAdapter(cookies="")
+        second._new_guest_cookies = AsyncMock()
+        assert (await second._get_guest_cookies())["web_session"] == "s1"
+        second._new_guest_cookies.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_failure_invalidates_cache(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        adapter._new_guest_cookies = AsyncMock(return_value={"web_session": "s1"})
+        adapter._fetch_note_by_html = AsyncMock(side_effect=ScraperError("requires login"))
+
+        with pytest.raises(ScraperError):
+            await adapter._fetch_note_with_guest("n1", "tok", "src")
+        assert xhs_adaptar._guest_session["cookies"] is None
+        assert adapter._fetch_note_by_html.await_args.args[3] == {"web_session": "s1"}
+
+    @pytest.mark.asyncio
+    async def test_empty_result_invalidates_cache(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        adapter._new_guest_cookies = AsyncMock(return_value={"web_session": "s1"})
+        adapter._fetch_note_by_html = AsyncMock(return_value=None)
+
+        assert await adapter._fetch_note_with_guest("n1", "", "") is None
+        assert xhs_adaptar._guest_session["cookies"] is None
+
+
+class TestFetchNoteByHtmlModes:
+    def _resp(self, url=f"{XHS_WEB_URL}/explore/n1", text=""):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.url = url
+        resp.text = text
+        return resp
+
+    @pytest.mark.asyncio
+    async def test_mobile_uses_safari_headers_without_cookie(self):
+        adapter = XhsSinglePostAdapter(cookies="a1=x; web_session=y")
+        state = {"noteData": {"data": {"noteData": {"type": "normal", "title": "H5"}}}}
+        adapter._http = AsyncMock()
+        adapter._http.get = AsyncMock(
+            return_value=self._resp(text=f"<script>window.__INITIAL_STATE__={json.dumps(state)}</script>")
+        )
+
+        note = await adapter._fetch_note_by_html("n1", "", "", {}, mobile=True)
+        assert note["title"] == "H5"
+        assert note["note_id"] == "n1"
+        headers = adapter._http.get.call_args.kwargs["headers"]
+        assert "iPhone" in headers["user-agent"]
+        assert "cookie" not in headers
+
+    @pytest.mark.asyncio
+    async def test_login_redirect_raises(self):
+        adapter = XhsSinglePostAdapter(cookies="")
+        adapter._http = AsyncMock()
+        adapter._http.get = AsyncMock(return_value=self._resp(url=f"{XHS_WEB_URL}/login?redirectPath=x"))
+        with pytest.raises(ScraperError, match="requires login"):
+            await adapter._fetch_note_by_html("n1", "", "", {})
+
+
+class TestXiaohongshuMediaFiles:
+    def test_live_photo_yields_image_and_video(self):
+        from fastfetchbot_shared.services.scrapers.xiaohongshu import _build_media_files
+
+        files = _build_media_files({
+            "media": [
+                {"type": "image", "url": "i1", "width": 1, "height": 2},
+                {"type": "live_photo", "url": "i2", "video_url": "v2", "width": 3, "height": 4},
+                {"type": "video", "url": "v3", "width": 5, "height": 6, "duration": 7},
+            ]
+        })
+        assert [(f.media_type, f.url) for f in files] == [
+            ("image", "i1"), ("image", "i2"), ("video", "v2"), ("video", "v3"),
+        ]
+        assert (files[2].width, files[2].height) == (3, 4)
+        assert files[3].duration == 7
+
+    def test_legacy_payload_without_media(self):
+        from fastfetchbot_shared.services.scrapers.xiaohongshu import _build_media_files
+
+        files = _build_media_files({"image_list": ["a"], "video_urls": ["v1", "v2"]})
+        assert [(f.media_type, f.url) for f in files] == [("image", "a"), ("video", "v1")]
+
+    def test_clean_hashtags(self):
+        from fastfetchbot_shared.services.scrapers.xiaohongshu import clean_xhs_hashtags
+
+        assert clean_xhs_hashtags("hi #旅行[话题]# #美食[话题]#") == "hi #旅行 #美食"
+        assert clean_xhs_hashtags("#a[话题]##b[话题]#\nnext") == "#a #b \nnext"
+        assert clean_xhs_hashtags("no tags #here") == "no tags #here"
+        assert clean_xhs_hashtags(None) == ""
