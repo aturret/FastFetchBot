@@ -17,6 +17,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      skip: ${{ steps.check_message.outputs.skip }}
+      docker_tag: ${{ steps.env_vars.outputs.docker_tag }}
+      version_tag: ${{ steps.env_vars.outputs.version_tag }}
     strategy:
       matrix:
         include:
@@ -93,6 +97,62 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:${{ steps.env_vars.outputs.docker_tag }}
             ghcr.io/${{ github.repository_owner }}/fastfetchbot-${{ matrix.image_suffix }}:${{ steps.env_vars.outputs.version_tag }}
+
+  notify:
+    name: Telegram Notification
+    needs: build
+    # Run after all matrix builds finish, whether they passed or failed.
+    # Skip when the build was cancelled or skipped via the [github-action] marker.
+    if: ${{ always() && needs.build.result != 'cancelled' && needs.build.outputs.skip != 'true' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Prepare commit message
+        id: commit_msg
+        env:
+          # Passed via env (not inline ${{ }}) to avoid shell injection from commit messages
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          MSG=$(printf '%s\n' "$HEAD_COMMIT_MESSAGE" | head -1 | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+          echo "first_line=${MSG}" >> "$GITHUB_OUTPUT"
+
+      - name: Telegram Notification on Success
+        uses: appleboy/telegram-action@847a2d3240d33a6137191cc89b3ad7f53e427c06  # master
+        if: ${{ needs.build.result == 'success' }}
+        with:
+          to: ${{ secrets.TELEGRAM_DEBUG_CHANNEL_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            ✅ <b>Docker Images Published Successfully</b>
+
+            📦 Images: <code>fastfetchbot-{api,tgbot,worker,async-worker}</code>
+            🏷️ Tags: <code>${{ needs.build.outputs.docker_tag }}</code>, <code>${{ needs.build.outputs.version_tag }}</code>
+            🕐 Timestamp: <code>${{ github.event.head_commit.timestamp }}</code>
+
+            📝 Commit: <code>${{ github.sha }}</code>
+            Message: ${{ steps.commit_msg.outputs.first_line }}
+            Author: <code>${{ github.actor }}</code>
+            Ref: <code>${{ github.ref_name }}</code>
+
+            🔗 <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow</a>
+            🔗 <a href="https://github.com/${{ github.repository_owner }}?tab=packages&amp;repo_name=${{ github.event.repository.name }}">View Images</a>
+
+      - name: Telegram Notification on Failure
+        uses: appleboy/telegram-action@847a2d3240d33a6137191cc89b3ad7f53e427c06  # master
+        if: ${{ needs.build.result == 'failure' }}
+        with:
+          to: ${{ secrets.TELEGRAM_DEBUG_CHANNEL_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            ❌ <b>GitHub Actions Failed</b> Repo: <code>${{ github.repository }}</code>
+            Ref: <code>${{ github.ref_name }}</code>
+            Author: <code>${{ github.actor }}</code>
+            Message: ${{ steps.commit_msg.outputs.first_line }}
+            Details: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a>
+
+            <b>Job: build failed!</b>
 
 #  deploy:
 #    needs: build
