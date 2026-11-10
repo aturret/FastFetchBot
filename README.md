@@ -198,21 +198,16 @@ See `template.env` for a complete reference with comments.
 
 #### Xiaohongshu Setup
 
-Xiaohongshu (XHS) API requests require a cryptographic signature (`x-s`, `x-t`, etc.) that must be computed by a dedicated signing proxy. FastFetchBot delegates this to an external **sign server**.
+Xiaohongshu (XHS) API requests require a signature (`x-s`, `x-t`, `x-s-common`, etc.). FastFetchBot computes it locally with the open-source [xhshow](https://pypi.org/project/xhshow/) library — no external sign server is needed.
 
-> **Note:** We currently use a closed-source sign server. You will need to run your own compatible signing proxy and point `SIGN_SERVER_URL` at it.
+Notes are fetched in this order, falling back to the next step on failure:
 
-The sign server must accept `POST /signsrv/v1/xhs/sign` with a JSON body:
+1. Signed feed API with your cookie (requires a logged-in cookie and a link carrying `xsec_token`)
+2. Note web page with your cookie
+3. Note web page with an auto-generated guest session
+4. Mobile (H5) note page without cookies
 
-```json
-{"uri": "/api/sns/web/v1/feed", "data": {...}, "cookies": "a1=..."}
-```
-
-and return:
-
-```json
-{"isok": true, "data": {"x_s": "...", "x_t": "...", "x_s_common": "...", "x_b3_traceid": "..."}}
-```
+A cookie is optional, but without one only the web-page fallbacks are available and some notes may require login.
 
 **Cookie configuration** (two options; file takes priority):
 
@@ -226,7 +221,6 @@ and return:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SIGN_SERVER_URL` | `http://localhost:8989` | URL of the XHS signing proxy |
 | `XHS_COOKIE_PATH` | `conf/xhs_cookies.txt` | Path to cookie file (overrides default location) |
 | `XIAOHONGSHU_A1` | `None` | `a1` cookie value (legacy fallback) |
 | `XIAOHONGSHU_WEBID` | `None` | `web_id` cookie value (legacy fallback) |

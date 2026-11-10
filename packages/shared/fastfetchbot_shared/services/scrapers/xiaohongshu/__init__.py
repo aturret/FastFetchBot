@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from fastfetchbot_shared.models.metadata_item import MetadataItem, MediaFile, MessageType
@@ -7,7 +8,7 @@ from fastfetchbot_shared.utils.parse import (
     get_html_text_length,
     wrap_text_into_html,
 )
-from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, XHS_COOKIE_STRING, XHS_SIGN_SERVER_URL
+from fastfetchbot_shared.services.scrapers.config import JINJA2_ENV, XHS_COOKIE_STRING
 from .adaptar import XhsSinglePostAdapter
 
 environment = JINJA2_ENV
@@ -38,10 +39,7 @@ class Xiaohongshu(MetadataItem):
         return self.to_dict()
 
     async def _get_xiaohongshu(self) -> None:
-        async with XhsSinglePostAdapter(
-            cookies=XHS_COOKIE_STRING,
-            sign_server_endpoint=XHS_SIGN_SERVER_URL,
-        ) as adapter:
+        async with XhsSinglePostAdapter(cookies=XHS_COOKIE_STRING) as adapter:
             result = await adapter.fetch_post(note_url=self.url)
         note = result["note"]
         self.id = note.get("note_id")
@@ -57,7 +55,7 @@ class Xiaohongshu(MetadataItem):
         self.author_url = (
             "https://www.xiaohongshu.com/user/profile/" + user.get("user_id", "")
         )
-        self.raw_content = json_data.get("desc", "")
+        self.raw_content = clean_xhs_hashtags(json_data.get("desc", ""))
         raw_time = json_data.get("time", 0)
         raw_updated = json_data.get("last_update_time", 0)
         self.timestamp = _parse_xiaohongshu_timestamp(raw_time)
@@ -71,11 +69,7 @@ class Xiaohongshu(MetadataItem):
         self.comment_count = json_data.get("comment_count")
         self.share_count = json_data.get("share_count")
         self.ip_location = json_data.get("ip_location")
-        for image_url in json_data.get("image_list", []) or []:
-            self.media_files.append(MediaFile(url=image_url, media_type="image"))
-        video_urls = json_data.get("video_urls", []) or []
-        if video_urls:
-            self.media_files.append(MediaFile(url=video_urls[0], media_type="video"))
+        self.media_files.extend(_build_media_files(json_data))
         data = self.__dict__
         raw_content = self.raw_content or ""
         data["raw_content"] = raw_content.replace("\t", "")
@@ -93,6 +87,46 @@ class Xiaohongshu(MetadataItem):
                     f'<p><video src="{media_file.url}" controls="controls"></video></p>'
                 )
         self.content = content_template.render(data=data)
+
+
+def _build_media_files(json_data: dict) -> list[MediaFile]:
+    """Turn the adapter's normalized `media` list into MediaFile objects.
+
+    Live photos become two entries: the still image and its motion video.
+    Falls back to `image_list` / `video_urls` for payloads without `media`.
+    """
+    media = json_data.get("media")
+    if media is None:
+        files = [MediaFile(url=url, media_type="image") for url in json_data.get("image_list", []) or []]
+        video_urls = json_data.get("video_urls", []) or []
+        if video_urls:
+            files.append(MediaFile(url=video_urls[0], media_type="video"))
+        return files
+
+    files: list[MediaFile] = []
+    for item in media:
+        size = {"width": item.get("width") or None, "height": item.get("height") or None}
+        if item.get("type") == "video":
+            files.append(
+                MediaFile(url=item["url"], media_type="video", duration=item.get("duration") or None, **size)
+            )
+            continue
+        files.append(MediaFile(url=item["url"], media_type="image", **size))
+        if item.get("type") == "live_photo" and item.get("video_url"):
+            files.append(MediaFile(url=item["video_url"], media_type="video", **size))
+    return files
+
+
+_XHS_TOPIC_RE = re.compile(r"#([^#\[\]]+)\[话题\]# ?")
+
+
+def clean_xhs_hashtags(desc: str | None) -> str:
+    """Turn XHS topic markup `#话题[话题]#` into plain `#话题`."""
+    if not desc:
+        return ""
+    # Keep the text before the tag intact; emit exactly one space after it so that
+    # adjacent tags (`#a[话题]##b[话题]#`) stay separated.
+    return _XHS_TOPIC_RE.sub(lambda m: f"#{m.group(1)} ", desc).strip()
 
 
 def _parse_xiaohongshu_timestamp(value: Any) -> int | None:

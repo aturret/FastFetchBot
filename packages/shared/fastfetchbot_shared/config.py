@@ -22,7 +22,6 @@ class SharedSettings(BaseSettings):
     HTTP_REQUEST_TIMEOUT: int = 30
 
     # XHS (Xiaohongshu) shared configuration
-    SIGN_SERVER_URL: str = "http://localhost:8989"
     XHS_COOKIE_PATH: str = ""
 
     @model_validator(mode="after")

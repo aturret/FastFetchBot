@@ -82,7 +82,7 @@ The Telegram Bot communicates with the API server over HTTP (`API_SERVER_URL`). 
 
 ### Shared Library (`packages/shared/fastfetchbot_shared/`)
 
-- **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `SIGN_SERVER_URL` and `XHS_COOKIE_PATH`
+- **`config.py`** — URL patterns (SOCIAL_MEDIA_WEBSITE_PATTERNS, VIDEO_WEBSITE_PATTERNS, BANNED_PATTERNS); shared env vars including `XHS_COOKIE_PATH`
 - **`models/`** — `classes.py` (NamedBytesIO), `metadata_item.py` (MediaFile with optional `telegram_file_id` for Telegram file_id caching, MetadataItem, MessageType), `telegraph_item.py`, `url_metadata.py`
 - **`utils/`** — `parse.py` (URL parsing, HTML processing, `get_env_bool`), `image.py`, `logger.py`, `network.py`, `cookie.py`
 - **`database/`** — Dual database layer:
@@ -180,7 +180,7 @@ See `template.env` for a complete reference. Key variables:
 - Use browser extension "Get cookies.txt LOCALLY" to extract cookies
 - Store Zhihu cookies in `conf/zhihu_cookies.json`
 - Store Xiaohongshu cookies in `conf/xhs_cookies.txt` (single-line cookie string, e.g. `a1=x; web_id=x; web_session=x`)
-- Xiaohongshu also requires an external **sign server** reachable at `SIGN_SERVER_URL` (default `http://localhost:8989`); the sign server is currently closed-source — you must supply your own compatible implementation
+- Xiaohongshu API requests are signed locally with the open-source `xhshow` library (no sign server). The cookie is optional: with a logged-in cookie the signed feed API is used first; otherwise the scraper falls back to the note web page (guest session) and the mobile H5 page
 - See `template.env` for all platform-specific variables (Twitter, Weibo, Xiaohongshu, Reddit, Instagram, Bluesky, etc.)
 
 ### Database
@@ -250,7 +250,7 @@ GitHub Actions (`.github/workflows/ci.yml`) builds and pushes all four images on
   - `ScraperError` / `ScraperNetworkError` / `ScraperParseError` — scraper failures
   - `TelegraphPublishError` — Telegraph publishing failures
   - `FileExportError` — file export (PDF, video, audio) failures
-  - `ExternalServiceError` — external service call failures (OpenAI, Firecrawl, Zyte, XHS sign server, etc.)
+  - `ExternalServiceError` — external service call failures (OpenAI, Firecrawl, Zyte, etc.)
 - **Always use typed exceptions** instead of generic `RuntimeError`, `ValueError`, or `Exception` for domain errors. Pick the most specific subclass that fits.
 - **Use `from e` chaining** when wrapping exceptions: `raise ScraperError("message") from e`
 - **Boundary-level handlers** catch exceptions at service boundaries:
