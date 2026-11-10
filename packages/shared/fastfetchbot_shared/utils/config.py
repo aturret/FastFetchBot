@@ -37,6 +37,10 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
     ],
     "bluesky": [
         r"(www\.)?bsky\.app\/profile/[a-zA-Z0-9\.]+\/post\/[a-zA-Z0-9\-_]+",
+    ],
+    "bilibili_status": [
+        r"^t\.bilibili\.com\/[0-9]{18,19}",
+        r"^((www|m)\.)?bilibili\.com\/(opus|dynamic)\/[0-9]{18,19}",
     ]
 }
 VIDEO_WEBSITE_PATTERNS = {

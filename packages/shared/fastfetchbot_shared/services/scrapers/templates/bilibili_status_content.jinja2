@@ -1,0 +1,5 @@
+<h2>{{ data.title }}</h2>
+<p>作者：<a href="{{ data.author_url }}">{{ data.author }}</a></p>
+{% if data.created %}<p>发布于 {{ data.created }}</p>{% endif %}
+<p>转发：{{ data.forward_count }} 评论：{{ data.comment_count }} 点赞：{{ data.like_count }}</p>
+{{ data.html_body }}

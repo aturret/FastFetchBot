@@ -7,29 +7,15 @@ import httpx
 from fastfetchbot_shared.exceptions import ScraperError
 from fastfetchbot_shared.utils import bilibili as bili_id
 
-DESKTOP_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
-)
-SHORT_LINK_HOSTS = ("b23.tv", "bili2233.cn")
-REDIRECT_TIMEOUT = 15.0
-
-
-def _host_matches(host: str, domain: str) -> bool:
-    return host == domain or host.endswith("." + domain)
+DESKTOP_USER_AGENT = bili_id.DESKTOP_USER_AGENT
+_host_matches = bili_id.host_matches
 
 
 async def _expand_short_link(url: str) -> str:
     try:
-        async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=REDIRECT_TIMEOUT,
-            headers={"User-Agent": DESKTOP_USER_AGENT},
-        ) as client:
-            resp = await client.get(url)
+        return await bili_id.expand_short_link(url)
     except httpx.HTTPError as e:
         raise ScraperError(f"B 站短链展开失败：{type(e).__name__}") from e
-    return str(resp.url)
 
 
 async def resolve_bilibili_url(url: str) -> str:
@@ -40,8 +26,7 @@ async def resolve_bilibili_url(url: str) -> str:
     """
     if "://" not in url:
         url = "https://" + url
-    host = (urlparse(url).hostname or "").lower()
-    if any(_host_matches(host, h) for h in SHORT_LINK_HOSTS):
+    if bili_id.is_short_link(url):
         url = await _expand_short_link(url)
 
     # Re-parse after the redirect: the final host decides what this link is.
