@@ -353,6 +353,32 @@ class TestLinkTypes:
         assert z.method == "fxzhihu"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("bad", [
+        {},                              # no "data" key
+        {"data": "oops"},                # not a list
+        {"data": {"0": {"id": 1}}},      # mapping instead of list
+        {"data": ["123"]},               # entry is not a mapping
+        {"data": [{"title": "no id"}]},  # entry without id
+    ])
+    async def test_malformed_answers_try_next_method(self, zhihu_mod, bad):
+        z = zhihu_mod.Zhihu(url="https://www.zhihu.com/question/1", cookie="z_c0=Z; d_c0=D")
+        await z._check_zhihu_type()
+        api = AsyncMock(side_effect=[bad, {"data": [{"id": 7}]}])
+        with patch.object(zhihu_mod, "_zhihu_api_get_json", api):
+            await z._resolve_question_answer()
+        assert z.answer_id == "7"
+        assert api.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_malformed_answers_everywhere_raises_typed_error(self, zhihu_mod):
+        z = zhihu_mod.Zhihu(url="https://www.zhihu.com/question/1", cookie="z_c0=Z; d_c0=D")
+        await z._check_zhihu_type()
+        with patch.object(zhihu_mod, "_zhihu_api_get_json", AsyncMock(return_value={"data": "oops"})):
+            with pytest.raises(ScraperError, match="知乎问题的回答获取失败：signed_api: 知乎问题的回答列表数据结构异常；api: "):
+                await z._resolve_question_answer()
+        assert z.method == "api"  # caller's method restored
+
+    @pytest.mark.asyncio
     async def test_question_without_answers(self, zhihu_mod):
         z = zhihu_mod.Zhihu(url="https://www.zhihu.com/question/1")
         await z._check_zhihu_type()

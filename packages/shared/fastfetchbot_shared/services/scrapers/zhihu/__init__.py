@@ -78,6 +78,22 @@ def _cookie_value(cookie: str | None, name: str) -> str | None:
     return None
 
 
+def _first_answer_id(data: dict) -> str | None:
+    """First answer ID from a question's answers API response; None if there are no answers.
+
+    Raises ScraperParseError when the response does not have the expected shape.
+    """
+    answers = data.get("data")
+    if not isinstance(answers, list):
+        raise ScraperParseError("知乎问题的回答列表数据结构异常")
+    if not answers:
+        return None
+    first = answers[0]
+    if not isinstance(first, dict) or not first.get("id"):
+        raise ScraperParseError("知乎问题的回答数据结构异常")
+    return str(first["id"])
+
+
 def _is_formula_or_placeholder(src: str) -> bool:
     return src.startswith("data:image") or "/equation" in src
 
@@ -403,18 +419,17 @@ class Zhihu(MetadataItem):
         for method in self._method_order(API_METHODS):
             self.method = method
             try:
-                data = await self._api_get_json(url)
+                answer_id = _first_answer_id(await self._api_get_json(url))
                 break
-            except ScraperError as e:
+            except ScraperError as e:  # includes ScraperParseError: try the next method
                 errors.append(f"{method}: {e}")
         else:
             self.method = original_method
             raise ScraperError("知乎问题的回答获取失败：" + "；".join(errors))
         self.method = original_method
-        answers = data.get("data") or []
-        if not answers or not answers[0].get("id"):
+        if answer_id is None:
             raise ScraperError("该知乎问题还没有回答")
-        self.answer_id = str(answers[0]["id"])
+        self.answer_id = answer_id
         self.zhihu_type = "answer"
         self._set_url(f"https://www.zhihu.com/question/{self.question_id}/answer/{self.answer_id}")
 
