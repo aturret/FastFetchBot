@@ -15,6 +15,9 @@ SOCIAL_MEDIA_WEBSITE_PATTERNS = {
         r"(www\.)?zhihu\.com\/aria\/question\/[0-9]+\/answer\/[0-9]+",
         r"(www\.)?zhihu\.com\/pin\/[0-9]+",
         r"zhuanlan\.zhihu\.com\/p\/[0-9]+",
+        r"(www\.)?zhihu\.com\/question\/[0-9]+",
+        r"(zhuanlan|www)\.zhihu\.com\/appview\/p\/[0-9]+",
+        r"daily\.zhihu\.com\/story\/[0-9]+",
     ],
     "douban": [
         r"(game|music|movie|book)?\.douban\.com\/review\/[0-9]+",

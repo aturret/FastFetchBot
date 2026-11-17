@@ -56,6 +56,7 @@ class ScrapersSettings(BaseSettings):
     # Zhihu
     FXZHIHU_HOST: str = "fxzhihu.com"
     ZHIHU_Z_C0: Optional[str] = None
+    ZHIHU_D_C0: Optional[str] = None
 
     # Reddit
     REDDIT_CLIENT_ID: Optional[str] = None
