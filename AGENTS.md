@@ -178,7 +178,7 @@ See `template.env` for a complete reference. Key variables:
 ### Platform Credentials
 - Most scrapers require authentication cookies/tokens
 - Use browser extension "Get cookies.txt LOCALLY" to extract cookies
-- Store Zhihu cookies in `conf/zhihu_cookies.json`
+- Zhihu cookies: set `ZHIHU_Z_C0` and `ZHIHU_D_C0` (preferred), or store all cookies in `conf/zhihu_cookies.json` as a fallback
 - Store Xiaohongshu cookies in `conf/xhs_cookies.txt` (single-line cookie string, e.g. `a1=x; web_id=x; web_session=x`)
 - Xiaohongshu API requests are signed locally with the open-source `xhshow` library (no sign server). The cookie is optional: with a logged-in cookie the signed feed API is used first; otherwise the scraper falls back to the note web page (guest session) and the mobile H5 page
 - See `template.env` for all platform-specific variables (Twitter, Weibo, Xiaohongshu, Reddit, Instagram, Bluesky, etc.)

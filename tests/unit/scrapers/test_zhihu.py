@@ -9,6 +9,7 @@ import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 
+from fastfetchbot_shared.exceptions import ScraperError
 from fastfetchbot_shared.models.metadata_item import MediaFile, MessageType
 
 
@@ -82,8 +83,41 @@ class TestZhihuConfig:
 
             importlib.reload(cfg)
             assert cfg.ZHIHU_API_COOKIE == "z_c0=my_z_c0"
-            # ZHIHU_COOKIES still uses JSON cookies
-            assert cfg.ZHIHU_COOKIES == "a=1"
+            # Env vars win for every method; the JSON file is only a fallback.
+            assert cfg.ZHIHU_COOKIES == "z_c0=my_z_c0"
+
+    def test_config_z_c0_and_d_c0_env(self):
+        """ZHIHU_D_C0 is appended so the signed_api method can sign requests."""
+        with patch(
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", "my_z_c0"
+        ), patch(
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_D_C0", "my_d_c0|123"
+        ), patch(
+            "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON",
+            [{"name": "a", "value": "1"}],
+        ):
+            import importlib
+            import fastfetchbot_shared.services.scrapers.zhihu.config as cfg
+
+            importlib.reload(cfg)
+            assert cfg.ZHIHU_COOKIES == "z_c0=my_z_c0; d_c0=my_d_c0|123"
+            assert cfg.ZHIHU_API_COOKIE == cfg.ZHIHU_COOKIES
+
+    def test_config_d_c0_alone_falls_back_to_json(self):
+        """Without ZHIHU_Z_C0 there is no login token, so the JSON file is used."""
+        with patch(
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_Z_C0", ""
+        ), patch(
+            "fastfetchbot_shared.services.scrapers.config.settings.ZHIHU_D_C0", "my_d_c0"
+        ), patch(
+            "fastfetchbot_shared.services.scrapers.config.ZHIHU_COOKIES_JSON",
+            [{"name": "z_c0", "value": "Z"}, {"name": "d_c0", "value": "D"}],
+        ):
+            import importlib
+            import fastfetchbot_shared.services.scrapers.zhihu.config as cfg
+
+            importlib.reload(cfg)
+            assert cfg.ZHIHU_COOKIES == "z_c0=Z;d_c0=D"
 
 
 # ---------------------------------------------------------------------------
@@ -561,7 +595,7 @@ class TestGetZhihuAnswer:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=api_response,
         ), patch(
@@ -589,16 +623,17 @@ class TestGetZhihuAnswer:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
-            side_effect=Exception("network error"),
+            side_effect=ScraperError("知乎接口错误 10003：请求参数异常"),
         ):
             z = Zhihu(url="https://www.zhihu.com/question/100/answer/200")
             z.zhihu_type = "answer"
             z.answer_id = "200"
             z.method = "api"
             z.request_url = "https://www.zhihu.com/api/v4/answers/200"
-            with pytest.raises(Exception, match="Cannot get the answer by API"):
+            # Zhihu's own reason reaches the caller unchanged.
+            with pytest.raises(ScraperError, match="知乎接口错误 10003：请求参数异常"):
                 await z._get_zhihu_answer()
 
     @pytest.mark.asyncio
@@ -856,7 +891,7 @@ class TestGetZhihuAnswer:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value={},
         ):
@@ -896,7 +931,7 @@ class TestGetZhihuAnswer:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=api_response,
         ), patch(
@@ -937,7 +972,7 @@ class TestGetZhihuArticle:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -971,7 +1006,7 @@ class TestGetZhihuArticle:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -999,16 +1034,16 @@ class TestGetZhihuArticle:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
-            side_effect=Exception("fail"),
+            side_effect=ScraperError("知乎接口错误 4041：文章不存在"),
         ):
             z = Zhihu(url="https://zhuanlan.zhihu.com/p/12345")
             z.zhihu_type = "article"
             z.article_id = "12345"
             z.method = "api"
             z.request_url = "https://www.zhihu.com/api/v4/articles/12345"
-            with pytest.raises(Exception, match="zhihu request failed"):
+            with pytest.raises(ScraperError, match="知乎接口错误 4041：文章不存在"):
                 await z._get_zhihu_article()
 
     @pytest.mark.asyncio
@@ -1026,7 +1061,7 @@ class TestGetZhihuArticle:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ):
@@ -1172,7 +1207,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1222,7 +1257,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1260,7 +1295,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1308,7 +1343,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1355,7 +1390,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1400,7 +1435,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1444,7 +1479,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1483,7 +1518,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ), patch(
@@ -1541,7 +1576,7 @@ class TestGetZhihuStatus:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=json_data,
         ):
@@ -1939,7 +1974,7 @@ class TestGetZhihuItem:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=api_response,
         ), patch(
@@ -2011,7 +2046,7 @@ class TestGetZhihuItem:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             side_effect=mock_get_response_json,
         ), patch(
@@ -2035,7 +2070,7 @@ class TestGetZhihuItem:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             side_effect=Exception("api fail"),
         ), patch(
@@ -2077,7 +2112,7 @@ class TestGetZhihuItem:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=api_response,
         ), patch(
@@ -2391,7 +2426,7 @@ class TestGetItem:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value=api_response,
         ), patch(
@@ -2455,7 +2490,7 @@ class TestAnswerDataEmptyDict:
         ), patch(
             "fastfetchbot_shared.services.scrapers.zhihu.ZHIHU_COOKIES", None
         ), patch(
-            "fastfetchbot_shared.services.scrapers.zhihu.get_response_json",
+            "fastfetchbot_shared.services.scrapers.zhihu._zhihu_api_get_json",
             new_callable=AsyncMock,
             return_value={},
         ), patch(

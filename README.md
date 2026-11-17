@@ -194,7 +194,7 @@ See `template.env` for a complete reference with comments.
 | Weibo | `WEIBO_COOKIES` |
 | Xiaohongshu | See [Xiaohongshu Setup](#xiaohongshu-setup) below |
 | Instagram | `X_RAPIDAPI_KEY` |
-| Zhihu | Store cookies in `conf/zhihu_cookies.json` |
+| Zhihu | Set `ZHIHU_Z_C0` and `ZHIHU_D_C0` (recommended), or store all cookies in `conf/zhihu_cookies.json` as a fallback |
 
 #### Xiaohongshu Setup
 
